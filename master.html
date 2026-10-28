@@ -160,13 +160,50 @@
 
     function renderTenants() {
       const grid = document.getElementById("tenantsGrid");
+      if (!grid) return;
+
+      // Auto-inject Search Bar right above tenantsGrid if not already present
+      if (!document.getElementById("searchTenantInput")) {
+        const searchBox = document.createElement("div");
+        searchBox.className = "mb-4";
+        searchBox.innerHTML = `
+          <div class="relative w-full sm:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+            <input id="searchTenantInput" oninput="renderTenants()" type="text" placeholder="Search by Hostel Name, ID or Phone..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-indigo-500 outline-none">
+          </div>
+        `;
+        grid.parentNode.insertBefore(searchBox, grid);
+      }
+
       grid.innerHTML = "";
 
       let activeCount = 0;
       let totalMrr = 0;
-      const baseUrl = window.location.origin + window.location.pathname.replace("master.html", "");
+      const searchQ = (document.getElementById("searchTenantInput")?.value || "").toLowerCase().trim();
+
+      // Clean root domain (Fixes 404 Not Found on client links)
+      const baseUrl = window.location.origin;
 
       allTenants.forEach(t => {
+        const set = (t.data && t.data.settings) || {};
+        if (!set.isSuspended) {
+          activeCount++;
+          totalMrr += Number(set.saasFee || 2500);
+        }
+      });
+
+      const filteredTenants = allTenants.filter(t => {
+        const set = (t.data && t.data.settings) || {};
+        const name = (set.hostelName || "").toLowerCase();
+        const phone = (set.jazzcash || "").toLowerCase();
+        return t.id.toLowerCase().includes(searchQ) || name.includes(searchQ) || phone.includes(searchQ);
+      });
+
+      if (filteredTenants.length === 0) {
+        grid.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-500 text-xs">No matching client hostels found.</div>`;
+      }
+
+      filteredTenants.forEach(t => {
         const d = t.data || {};
         const set = d.settings || {};
         const isSuspended = set.isSuspended === true;
@@ -174,18 +211,15 @@
         const roomsCount = (d.rooms || []).length;
         const studentsCount = (d.students || []).length;
 
-        if (!isSuspended) {
-          activeCount++;
-          totalMrr += saasFee;
-        }
-
-        const pubLink = `${baseUrl}index.?hostel=${t.id}`;
-        const stuLink = `${baseUrl}student.?hostel=${t.id}`;
-        const warLink = `${baseUrl}warden.?hostel=${t.id}`;
-        const admLink = `${baseUrl}admin.?hostel=${t.id}`;
+        // Clean working URLs without broken dots
+        const pubLink = `${baseUrl}/?hostel=${t.id}`;
+        const stuLink = `${baseUrl}/student?hostel=${t.id}`;
+        const warLink = `${baseUrl}/warden?hostel=${t.id}`;
+        const admLink = `${baseUrl}/admin?hostel=${t.id}`;
 
         const waPackageMsg = `Salam! Welcome to HostelCloud SaaS.\n\n*${set.hostelName || t.id}* is now live!\n\n🌐 *Public Booking Link:* ${pubLink}\n🎓 *Student Portal:* ${stuLink}\n👮 *Warden Portal:* ${warLink}\n👑 *Owner Admin Portal:* ${admLink}\n🔑 *Default Admin Pass:* ${set.adminPass || '123'}`;
         const cleanPhone = "92" + (set.jazzcash || "").replace(/[^0-9]/g, "").replace(/^0/, "");
+        const safeName = (set.hostelName || t.id).replace(/'/g, "");
 
         grid.innerHTML += `
           <div class="bg-slate-950 border ${isSuspended ? 'border-rose-500/40' : 'border-slate-800'} rounded-2xl p-5 space-y-4 text-xs">
@@ -227,8 +261,11 @@
               </div>
 
               <div class="flex gap-2">
-                <button onclick="toggleTenantLock('${t.id}', ${isSuspended})" class="${isSuspended ? 'bg-emerald-600' : 'bg-rose-600'} text-white px-3 py-1.5 rounded-lg font-bold">
-                  <i class="fa-solid ${isSuspended ? 'fa-lock-open' : 'fa-lock'} mr-1"></i> ${isSuspended ? 'Unlock Hostel' : 'Suspend Lock'}
+                <button onclick="toggleTenantLock('${t.id}', ${isSuspended})" class="${isSuspended ? 'bg-emerald-600' : 'bg-amber-600'} text-white px-3 py-1.5 rounded-lg font-bold">
+                  <i class="fa-solid ${isSuspended ? 'fa-lock-open' : 'fa-lock'} mr-1"></i> ${isSuspended ? 'Unlock' : 'Suspend'}
+                </button>
+                <button onclick="deleteTenant('${t.id}', '${safeName}')" class="bg-rose-600/20 border border-rose-500/40 text-rose-400 hover:bg-rose-600 hover:text-white px-3 py-1.5 rounded-lg font-bold transition" title="Delete Client Hostel">
+                  <i class="fa-solid fa-trash"></i>
                 </button>
               </div>
             </div>
@@ -239,6 +276,17 @@
       document.getElementById("kpiTenants").innerText = allTenants.length;
       document.getElementById("kpiActive").innerText = activeCount;
       document.getElementById("kpiMrr").innerText = `Rs. ${totalMrr.toLocaleString()}`;
+    }
+
+    function deleteTenant(slug, hostelName) {
+      const confirmCode = prompt(`⚠️ DANGER: To permanently delete "${hostelName}" (?hostel=${slug}) and all its data, type DELETE below:`);
+      if (confirmCode === "DELETE") {
+        firestore.collection("hostel_system").doc(slug).delete().then(() => {
+          alert(`🗑️ Hostel "${hostelName}" has been permanently deleted!`);
+        }).catch(err => alert("Delete failed: " + err.message));
+      } else if (confirmCode !== null) {
+        alert("Deletion cancelled — you must type DELETE in capital letters.");
+      }
     }
 
     function createNewTenant(e) {
