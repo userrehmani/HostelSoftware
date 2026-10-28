@@ -32,16 +32,14 @@ const emptyDB = {
 };
 
 // ============================================================================
-// MULTI-TENANT SAAS ENGINE & REMOTE KILL-SWITCH (Replace in db.js)
+// ============================================================================
+// MULTI-TENANT SAAS ENGINE & REMOTE KILL-SWITCH (Fixed - No Duplicate const)
 // ============================================================================
 const urlParams = new URLSearchParams(window.location.search);
-const TENANT_ID = (urlParams.get("hostel") || localStorage.getItem("SAAS_TENANT_ID") || "default_hostel").toLowerCase().replace(/[^a-z0-9_-]/g, "");
-localStorage.setItem("SAAS_TENANT_ID", TENANT_ID);
-
+const TENANT_ID = (urlParams.get("hostel") || "main_hostel").toLowerCase().replace(/[^a-z0-9_-]/g, "");
 const DB_KEY = "HOSTEL_SAAS_DB_" + TENANT_ID;
 let cloudDocRef = null;
 
-//  DOMContentLoaded 
 window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("a[href]").forEach(link => {
     const href = link.getAttribute("href");
@@ -62,7 +60,7 @@ try {
         const cloudData = docSnap.data();
 
         // 🔒 REMOTE SAAS KILL-SWITCH (If suspended from master.html)
-        if (cloudData.settings && cloudData.settings.isSuspended === true && !location.pathname.includes("master.html")) {
+        if (cloudData.settings && cloudData.settings.isSuspended === true && !location.pathname.includes("master")) {
           document.body.innerHTML = `
             <div style="background:#020617;color:white;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px;">
               <div style="width:70px;height:70px;border-radius:20px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);display:flex;align-items:center;justify-content:center;font-size:32px;color:#f43f5e;margin-bottom:16px;">🔒</div>
@@ -79,18 +77,21 @@ try {
       } else {
         cloudDocRef.set(getDB());
       }
+    }, (err) => {
+      console.error("Firestore Sync Blocked (Check Firebase Rules):", err);
     });
   }
 } catch (err) {
   console.error("Firebase Init Error:", err);
 }
+
 function refreshCurrentPortalUI() {
   if (typeof renderAdminAll === "function") renderAdminAll();
   if (typeof loadPublicSite === "function") loadPublicSite();
+  if (typeof renderPublicPage === "function") renderPublicPage();
   if (typeof renderWardenConsole === "function") renderWardenConsole();
   if (typeof renderStudentDashboard === "function" && window.loggedStudent) renderStudentDashboard();
 }
-
 function getDB() {
   const raw = localStorage.getItem(DB_KEY);
   if (!raw) {
@@ -100,21 +101,22 @@ function getDB() {
   return JSON.parse(raw);
 }
 
-function saveDB(db, logText, actor = "Admin") {
-  if (logText) {
+function saveDB(db, actionText, actor = "Admin") {
+  if (actionText) {
+    db.logs = db.logs || [];
     db.logs.unshift({
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       actor,
-      action: logText
+      action: actionText
     });
   }
   localStorage.setItem(DB_KEY, JSON.stringify(db));
+  
+
   if (cloudDocRef) {
     cloudDocRef.set(db).catch(err => console.error("Cloud Sync Error:", err));
   }
-}
-
-function wipeAllData() {
+}function wipeAllData() {
   if (confirm("Are you sure? This will wipe all rooms, students, and records from Cloud & Local!")) {
     const fresh = JSON.parse(JSON.stringify(emptyDB));
     localStorage.setItem(DB_KEY, JSON.stringify(fresh));
