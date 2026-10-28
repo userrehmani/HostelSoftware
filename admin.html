@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="manifest" href="manifest.json">
+  <title>Super Admin Control Center - HostelCloud</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+
+  <!-- Owner Private Top Bar -->
+  <div class="bg-indigo-950/90 border-b border-indigo-800/50 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2">
+    <span class="text-indigo-200"><i class="fa-solid fa-lock mr-1 text-amber-400"></i> <strong>Owner Master Navigation (Hidden from Public):</strong></span>
+    <div class="flex flex-wrap gap-2">
+      <button onclick="installHostelPWA()" class="bg-emerald-600 text-white px-2.5 py-1 rounded font-bold"><i class="fa-solid fa-mobile-screen mr-1"></i> Install App</button>
+      <a href="index.html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded">🌐 Public Site ↗</a>
+      <a href="student.html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded">🎓 Student Portal ↗</a>
+      <a href="warden.html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded">👮 Warden Portal ↗</a>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN OVERLAY -->
+  <div id="adminLoginOverlay" class="fixed inset-0 bg-slate-950/95 flex items-center justify-center z-40 p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-8 space-y-5 shadow-2xl">
+      <div class="text-center">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl mx-auto mb-3 font-bold">
+          <i class="fa-solid fa-crown"></i>
+        </div>
+        <h2 class="text-2xl font-bold">Owner / Super Admin Login</h2>
+        <p class="text-xs text-slate-400">Private Management Console</p>
+      </div>
+      <form onsubmit="loginAdmin(event)" class="space-y-4 text-xs sm:text-sm">
+        <input id="admId" value="admin" required type="text" placeholder="Admin Username" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
+        <input id="admPass" required type="password" placeholder="Enter Admin Password" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg">Unlock Control Center</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN ADMIN SHELL -->
+  <div class="flex h-[calc(100vh-34px)] overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 overflow-y-auto">
+      <div>
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+          <span class="font-bold text-base text-white">👑 Admin<span class="text-indigo-400">Panel</span></span>
+          <button onclick="wipeAllData()" class="text-[10px] bg-rose-600/20 hover:bg-rose-600 px-2 py-1 rounded text-rose-300 hover:text-white">Wipe All</button>
+        </div>
+        <nav class="p-2.5 space-y-1 text-xs font-medium" id="adminSidebarNav">
+          <button onclick="showAdminTab('dashboard', this)" data-tab="dashboard" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold flex items-center justify-between transition">
+            <span><i class="fa-solid fa-chart-pie w-5"></i> 1. Dashboard</span>
+          </button>
+          <button onclick="showAdminTab('requests', this)" data-tab="requests" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-envelope-open-text w-5"></i> 2. Online Requests</span>
+            <span id="navAppBadge" class="bg-emerald-500 text-slate-950 font-bold px-2 py-0.5 rounded-full text-[10px]">0</span>
+          </button>
+          <button onclick="showAdminTab('rooms', this)" data-tab="rooms" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-bed w-5"></i> 3. Rooms & Set Fees</span>
+          </button>
+          <button onclick="showAdminTab('students', this)" data-tab="students" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-user-graduate w-5"></i> 4. Students & Clearance</span>
+          </button>
+          <button onclick="showAdminTab('fees', this)" data-tab="fees" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-file-invoice-dollar w-5"></i> 5. Fees & Verify Receipts</span>
+          </button>
+          <button onclick="showAdminTab('mess', this)" data-tab="mess" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-utensils w-5"></i> 6. Mess & Inventory</span>
+          </button>
+          <button onclick="showAdminTab('attendance', this)" data-tab="attendance" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-id-card-clip w-5"></i> 7. Gate & Visitors</span>
+          </button>
+          <button onclick="showAdminTab('complaints', this)" data-tab="complaints" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-screwdriver-wrench w-5"></i> 8. Complaints</span>
+          </button>
+          <button onclick="showAdminTab('accounts', this)" data-tab="accounts" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-scale-balanced w-5"></i> 9. Accounts & Bills</span>
+          </button>
+          <button onclick="showAdminTab('staff', this)" data-tab="staff" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-user-shield w-5"></i> 10. Staff & Payroll</span>
+          </button>
+          <button onclick="showAdminTab('settings', this)" data-tab="settings" class="adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition">
+            <span><i class="fa-solid fa-gears w-5"></i> 11. Settings & Passwords</span>
+          </button>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 overflow-y-auto p-6 space-y-6">
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="adm-dashboard" class="adm-tab space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl font-bold">1. Real-Time Owner Dashboard</h1>
+            <p class="text-xs text-slate-400">Live Cloud-Synced Metrics</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="showAdminTab('rooms')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold">+ Add Rooms & Fees</button>
+            <button onclick="showAdminTab('requests')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold">Online Requests (<span id="dashReqCount">0</span>)</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-slate-400 text-xs uppercase">Occupied / Total Beds</span>
+            <p id="dBeds" class="text-2xl font-bold mt-1">0 / 0 Beds</p>
+            <p id="dEmpty" class="text-xs text-emerald-400 mt-1">0 Empty Beds</p>
+          </div>
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-slate-400 text-xs uppercase">Collected Fee (Paid)</span>
+            <p id="dCollected" class="text-2xl font-bold text-emerald-400 mt-1">Rs. 0</p>
+            <p id="dPaidCount" class="text-xs text-slate-400 mt-1">0 Students Paid</p>
+          </div>
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-slate-400 text-xs uppercase">Pending Dues (Unpaid)</span>
+            <p id="dPending" class="text-2xl font-bold text-rose-400 mt-1">Rs. 0</p>
+            <p id="dUnpaidCount" class="text-xs text-rose-300 mt-1">0 Unpaid</p>
+          </div>
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+            <span class="text-slate-400 text-xs uppercase">Real Net Profit</span>
+            <p id="dProfit" class="text-2xl font-bold text-amber-400 mt-1">Rs. 0</p>
+            <p id="dExpenses" class="text-xs text-slate-400 mt-1">Total Expenses: Rs. 0</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <h3 class="text-xs font-bold uppercase text-slate-400 mb-3">Live System Audit Logs</h3>
+          <div id="admLogsList" class="space-y-2 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ONLINE ADMISSION REQUESTS -->
+      <section id="adm-requests" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-emerald-500/40 space-y-4">
+          <h2 class="text-lg font-bold text-emerald-400">2. Online Admission Requests</h2>
+          <div id="admApplicationsList" class="space-y-3 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: ROOMS, BEDS & CUSTOM FEES -->
+      <section id="adm-rooms" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-indigo-500/40 space-y-4">
+          <h2 class="text-lg font-bold text-indigo-400">3. Create Room & Set Custom Fee Package</h2>
+          <form onsubmit="adminSaveRoom(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <input id="arId" required placeholder="Room No (e.g. R-101) *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="arFloor" required placeholder="Floor / Block *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="arType" required placeholder="Type (e.g. 3-Seater AC) *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="arCap" required type="number" min="1" placeholder="Total Beds Capacity *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="arRent" required type="number" min="0" placeholder="Monthly Bed Rent (Rs.) *" class="bg-slate-800 border border-emerald-500/50 rounded-lg px-3 py-2 text-white">
+            <input id="arMess" required type="number" min="0" placeholder="Monthly Mess Fee (Rs.) *" class="bg-slate-800 border border-emerald-500/50 rounded-lg px-3 py-2 text-white">
+            <input id="arSec" required type="number" min="0" placeholder="Security Deposit (Rs.) *" class="bg-slate-800 border border-amber-500/50 rounded-lg px-3 py-2 text-white">
+            <input id="arFac" placeholder="Facilities (AC, Bath, Wi-Fi)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <div class="sm:col-span-4 flex justify-end">
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl px-6 py-2.5">Save Room & Fee Package</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3">
+          <h3 class="text-base font-bold text-amber-400">⚡ Room Sub-Meter Bill Splitter</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
+            <select id="admMeterRoom" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"></select>
+            <input id="admPrevU" type="number" placeholder="Prev Units" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="admCurrU" type="number" placeholder="Current Units" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="admRateU" type="number" placeholder="Rate per Unit (Rs.)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <button onclick="adminSplitMeterBill()" class="bg-amber-500 text-slate-950 font-bold rounded-lg px-3 py-2">Calculate & Split</button>
+          </div>
+        </div>
+
+        <div id="admRoomsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+      </section>
+
+      <!-- TAB 4: STUDENTS DIRECTORY, QR ID & CLEARANCE CERTIFICATE -->
+      <section id="adm-students" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="text-lg font-bold">4. Admit Student Manually</h2>
+          <form onsubmit="adminAdmitStudent(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <input id="asName" required placeholder="Student Full Name *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asCnic" required placeholder="CNIC / B-Form *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asPhone" required placeholder="Student Phone *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asGuardian" required placeholder="Guardian Phone *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asUni" required placeholder="University & Dept *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <select id="asRoom" required onchange="autoFillAdminStudentFee()" class="bg-slate-800 border border-indigo-500 rounded-lg px-3 py-2 text-indigo-300 font-bold"></select>
+            <input id="asRent" required type="number" placeholder="Monthly Rent (Rs.) *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asMess" required type="number" placeholder="Monthly Mess (Rs.) *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asSec" required type="number" placeholder="Security Deposit (Rs.) *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="asPass" required placeholder="Set Student Portal Password *" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <div class="sm:col-span-2 flex justify-end">
+              <button type="submit" class="w-full bg-indigo-600 text-white font-bold rounded-lg px-4 py-2">+ Admit Student & Create Login</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 overflow-x-auto">
+          <h3 class="text-base font-bold mb-3">Active Students (Issue QR ID Card or Leaving Clearance Certificate)</h3>
+          <table class="w-full text-left text-xs">
+            <thead class="border-b border-slate-800 text-slate-400 uppercase">
+              <tr>
+                <th class="py-2">Roll ID & Pass</th>
+                <th class="py-2">Name & CNIC</th>
+                <th class="py-2">Phone & Uni</th>
+                <th class="py-2">Room</th>
+                <th class="py-2">Security Held</th>
+                <th class="py-2 text-right">QR ID / Clearance / Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admStudentsBody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 5: FEES, PAYMENT PROOF VERIFICATION & VOUCHERS -->
+      <section id="adm-fees" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 overflow-x-auto">
+          <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
+            <div>
+              <h2 class="text-lg font-bold mb-1">5. Fee Ledger, Auto-Fine (Rs. 200 after 5th) & PDF Vouchers</h2>
+              <p class="text-xs text-slate-400">When a student submits a JazzCash/Easypaisa TID or Screenshot from the Student Portal, click "Verify Proof" to inspect and approve!</p>
+            </div>
+            <button onclick="startNewBillingMonth()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shrink-0">
+              <i class="fa-solid fa-calendar-plus mr-1.5"></i> Start New Month Billing Cycle
+            </button>
+          </div>
+          <table class="w-full text-left text-xs">
+            <thead class="border-b border-slate-800 text-slate-400 uppercase">
+              <tr>
+                <th class="py-2.5">Student</th>
+                <th class="py-2.5">Room</th>
+                <th class="py-2.5">Breakdown</th>
+                <th class="py-2.5">Net Payable</th>
+                <th class="py-2.5">Payment Proof (TID)</th>
+                <th class="py-2.5">Status</th>
+                <th class="py-2.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admFeesBody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 6: MESS & INVENTORY -->
+      <section id="adm-mess" class="adm-tab hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+            <h2 class="text-base font-bold">6A. Add Mess Menu Day</h2>
+            <form onsubmit="adminAddMessDay(event)" class="grid grid-cols-2 gap-2 text-xs">
+              <input id="mmDay" required placeholder="Day (e.g. Monday)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <input id="mmB" required placeholder="Breakfast" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <input id="mmL" required placeholder="Lunch" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <input id="mmD" required placeholder="Dinner" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <button type="submit" class="col-span-2 bg-indigo-600 text-white font-bold py-2 rounded-lg">+ Save Menu Day</button>
+            </form>
+            <div id="admMessList" class="space-y-2 text-xs"></div>
+          </div>
+
+          <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+            <h2 class="text-base font-bold">6B. Add Inventory Item</h2>
+            <form onsubmit="adminAddInventory(event)" class="grid grid-cols-3 gap-2 text-xs">
+              <input id="invItem" required placeholder="Item Name" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <input id="invQty" required placeholder="Quantity" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <button type="submit" class="bg-emerald-600 text-white font-bold py-2 rounded-lg">+ Add Item</button>
+            </form>
+            <div id="admInventoryList" class="space-y-2 text-xs"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: GATE & VISITORS -->
+      <section id="adm-attendance" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="text-lg font-bold">7. Outing Leaves & Visitor Logs</h2>
+          <div id="admLeavesList" class="space-y-2 text-xs"></div>
+          <hr class="border-slate-800">
+          <div id="admVisitorsList" class="space-y-2 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- TAB 8: COMPLAINTS -->
+      <section id="adm-complaints" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="text-lg font-bold">8. Maintenance & Student Complaints</h2>
+          <div id="admComplaintsList" class="space-y-2 text-xs"></div>
+        </div>
+      </section>
+
+      <!-- TAB 9: ACCOUNTS & EXPENSES -->
+      <section id="adm-accounts" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="text-lg font-bold">9. Hostel Expenses & Cash-Out Register</h2>
+          <form onsubmit="adminAddExpense(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+            <input id="aeTitle" required placeholder="Expense Title" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <select id="aeCat" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <option>Mess & Kitchen</option>
+              <option>Utility Bills</option>
+              <option>Staff Salaries</option>
+              <option>Maintenance</option>
+            </select>
+            <input id="aeAmt" required type="number" placeholder="Amount (Rs.)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <button type="submit" class="bg-rose-600 text-white font-bold rounded-lg px-3 py-2">+ Record Expense</button>
+          </form>
+          <div id="admExpensesList" class="space-y-2 text-xs pt-3"></div>
+        </div>
+      </section>
+
+      <!-- TAB 10: STAFF & PAYROLL -->
+      <section id="adm-staff" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="text-lg font-bold">10. Add Hostel Staff & Payroll</h2>
+          <form onsubmit="adminAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+            <input id="stfName" required placeholder="Employee Name" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="stfRole" required placeholder="Role (Warden, Cook, Guard)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="stfSal" required type="number" placeholder="Monthly Salary (Rs.)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <button type="submit" class="bg-indigo-600 text-white font-bold rounded-lg px-3 py-2">+ Add Employee</button>
+          </form>
+          <div id="admStaffList" class="space-y-2 text-xs pt-3"></div>
+        </div>
+      </section>
+
+      <!-- TAB 11: SETTINGS & PASSWORDS -->
+      <section id="adm-settings" class="adm-tab hidden space-y-6">
+        <div class="bg-slate-900 p-6 rounded-2xl border border-indigo-500/40 space-y-5">
+          <h2 class="text-lg font-bold text-indigo-400"><i class="fa-solid fa-key mr-2"></i> 11. Hostel Branding, Admin/Warden Passwords & Reports</h2>
+          <form onsubmit="adminSaveSettings(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label class="text-slate-400 block mb-1">Hostel Official Name</label>
+              <input id="setHostelName" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white">
+            </div>
+            <div>
+              <label class="text-slate-400 block mb-1">JazzCash / Easypaisa / Bank Account</label>
+              <input id="setJazz" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-white">
+            </div>
+            <div>
+              <label class="text-amber-400 font-bold block mb-1">👑 Admin Portal Password</label>
+              <input id="setAdminPass" required type="text" class="w-full bg-slate-800 border border-amber-500/50 rounded-lg px-3 py-2.5 text-white font-mono">
+            </div>
+            <div>
+              <label class="text-emerald-400 font-bold block mb-1">👮 Warden Portal Password</label>
+              <input id="setWardenPass" required type="text" class="w-full bg-slate-800 border border-emerald-500/50 rounded-lg px-3 py-2.5 text-white font-mono">
+            </div>
+            <div class="sm:col-span-2 flex justify-end pt-2">
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg">Save Settings & Passwords</button>
+            </div>
+          </form>
+          <hr class="border-slate-800">
+          <div class="flex flex-wrap gap-3 text-xs">
+            <button onclick="exportPoliceCSV()" class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold"><i class="fa-solid fa-file-csv mr-1"></i> Export Police Verification CSV</button>
+            <button onclick="exportBackupJSON()" class="bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-xl font-bold"><i class="fa-solid fa-download mr-1"></i> Download Database Backup (.JSON)</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL FOR INSPECTING STUDENT JAZZCASH SCREENSHOT & TID -->
+  <div id="proofVerifyModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl max-w-md w-full p-5 space-y-4 text-xs">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="text-sm font-bold text-emerald-400">Verify Student Payment Proof</h3>
+        <button onclick="document.getElementById('proofVerifyModal').classList.add('hidden')" class="text-slate-400 text-lg">&times;</button>
+      </div>
+      <div id="proofModalContent" class="space-y-3"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="document.getElementById('proofVerifyModal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-800">Close</button>
+        <button id="approveProofBtn" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold">Verify & Mark Fee Paid ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    function loginAdmin(e) {
+      e.preventDefault();
+      const db = getDB();
+      if (document.getElementById("admId").value.trim().toLowerCase() === "admin" && document.getElementById("admPass").value === db.settings.adminPass) {
+        document.getElementById("adminLoginOverlay").classList.add("hidden");
+        renderAdminAll();
+      } else {
+        alert("Wrong Admin Password!");
+      }
+    }
+
+    function showAdminTab(tab, clickedBtn) {
+      document.querySelectorAll(".adm-tab").forEach(t => t.classList.add("hidden"));
+      document.getElementById("adm-" + tab).classList.remove("hidden");
+
+      document.querySelectorAll(".adm-nav").forEach(btn => {
+        if (btn.dataset.tab === tab || btn === clickedBtn) {
+          btn.className = "adm-nav w-full text-left px-3.5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold flex items-center justify-between transition shadow-lg shadow-indigo-600/20";
+        } else {
+          btn.className = "adm-nav w-full text-left px-3.5 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800 flex items-center justify-between transition";
+        }
+      });
+
+      renderAdminAll();
+    }
+
+    function renderAdminAll() {
+      const db = getDB();
+      const m = getLiveMetrics();
+
+      document.getElementById("setHostelName").value = db.settings.hostelName;
+      document.getElementById("setJazz").value = db.settings.jazzcash;
+      document.getElementById("setAdminPass").value = db.settings.adminPass || "123";
+      document.getElementById("setWardenPass").value = db.settings.wardenPass || "123";
+
+      document.getElementById("dBeds").innerText = `${m.occupiedBeds} / ${m.totalCapacity} Beds`;
+      document.getElementById("dEmpty").innerText = `${m.emptyBeds} Empty Beds Available`;
+      document.getElementById("dCollected").innerText = `Rs. ${m.collectedFee.toLocaleString()}`;
+      document.getElementById("dPaidCount").innerText = `${m.paidCount} Students Paid`;
+      document.getElementById("dPending").innerText = `Rs. ${m.pendingFee.toLocaleString()}`;
+      document.getElementById("dUnpaidCount").innerText = `${m.unpaidCount} Unpaid`;
+      document.getElementById("dProfit").innerText = `Rs. ${m.netProfit.toLocaleString()}`;
+      document.getElementById("dExpenses").innerText = `Total Expenses: Rs. ${m.totalExpenses.toLocaleString()}`;
+      document.getElementById("navAppBadge").innerText = m.pendingApps;
+      document.getElementById("dashReqCount").innerText = m.pendingApps;
+
+      document.getElementById("admLogsList").innerHTML = db.logs.slice(0, 8).map(l => `
+        <div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong class="text-indigo-400">[${l.actor}]</strong> ${l.action}</span>
+          <span class="text-slate-500">${l.time}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("admApplicationsList").innerHTML = db.applications.length ? db.applications.map(a => `
+        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span class="text-indigo-400 font-bold">${a.appId} (${a.date})</span>
+            <h4 class="text-sm font-bold text-white">${a.name} — Room: ${a.preferredRoom}</h4>
+            <p class="text-slate-400">CNIC: ${a.cnic} | Phone: ${a.phone} | Uni: ${a.uni}</p>
+            <p class="text-emerald-400 font-semibold mt-1">Agreed Fee: Rent Rs. ${Number(a.agreedRent).toLocaleString()} + Mess Rs. ${Number(a.agreedMess).toLocaleString()} | Security: Rs. ${Number(a.agreedSecurity).toLocaleString()}</p>
+          </div>
+          <div class="flex gap-2">
+            ${a.status === "Pending" ? `
+              <button onclick="approveApplication('${a.appId}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg font-bold">Approve & Allot</button>
+              <button onclick="rejectApplication('${a.appId}')" class="bg-rose-600/20 text-rose-300 px-3 py-2 rounded-lg">Reject</button>
+            ` : `<span class="px-3 py-1 rounded bg-slate-800 font-bold text-emerald-400">${a.status}</span>`}
+          </div>
+        </div>
+      `).join("") : `<p class="text-slate-500">No online applications yet.</p>`;
+
+      const rOptions = db.rooms.map(r => `<option value="${r.id}">${r.id} (${r.type}) - Rent: Rs.${r.rent}</option>`).join("");
+      document.getElementById("asRoom").innerHTML = rOptions || `<option value="">First create a Room in Tab 3</option>`;
+      document.getElementById("admMeterRoom").innerHTML = rOptions || `<option value="">No Rooms</option>`;
+      autoFillAdminStudentFee();
+
+      document.getElementById("admRoomsGrid").innerHTML = db.rooms.length ? db.rooms.map(r => {
+        const occ = db.students.filter(s => s.room === r.id && s.status === "Active");
+        return `
+          <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+            <div class="flex justify-between items-center">
+              <strong class="text-sm text-white">${r.id} (${r.type})</strong>
+              <button onclick="deleteRoom('${r.id}')" class="text-rose-400 hover:underline text-[11px]">Delete</button>
+            </div>
+            <p class="text-slate-400">${r.floor} | Occupied: ${occ.length} / ${r.capacity} Beds</p>
+            <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 space-y-1">
+              <div class="flex justify-between"><span>Bed Rent:</span><strong class="text-emerald-400">Rs. ${Number(r.rent).toLocaleString()}</strong></div>
+              <div class="flex justify-between"><span>Mess Fee:</span><strong class="text-emerald-400">Rs. ${Number(r.mess).toLocaleString()}</strong></div>
+              <div class="flex justify-between"><span>Security:</span><strong class="text-amber-400">Rs. ${Number(r.security).toLocaleString()}</strong></div>
+            </div>
+            <button onclick="promptEditRoomFee('${r.id}')" class="w-full bg-slate-800 hover:bg-indigo-600 text-white py-1.5 rounded-lg font-semibold transition">Edit Room Fee</button>
+          </div>
+        `;
+      }).join("") : `<p class="text-slate-500 col-span-3">No rooms created yet.</p>`;
+
+      const sBody = document.getElementById("admStudentsBody");
+      const fBody = document.getElementById("admFeesBody");
+      sBody.innerHTML = "";
+      fBody.innerHTML = "";
+
+      db.students.forEach(s => {
+        const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
+        const cleanPhone = "92" + s.phone.replace(/[^0-9]/g, "").replace(/^0/, "");
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Salam ${s.name} (${s.id}), your ${db.settings.hostelName} Fee Voucher of Rs. ${total.toLocaleString()} is ${s.feeStatus}.`)}`;
+
+        sBody.innerHTML += `
+          <tr>
+            <td class="py-2.5"><strong class="text-indigo-400">${s.id}</strong><span class="block text-slate-400">Pass: ${s.pass}</span></td>
+            <td class="py-2.5"><strong class="text-white">${s.name}</strong><span class="block text-slate-400">${s.cnic}</span></td>
+            <td class="py-2.5">${s.phone}<span class="block text-slate-400">${s.uni}</span></td>
+            <td class="py-2.5 font-bold">${s.room}</td>
+            <td class="py-2.5 font-semibold text-amber-400">Rs. ${Number(s.security || 0).toLocaleString()}</td>
+            <td class="py-2.5 text-right space-x-1">
+              <button onclick="openStudentQRCard('${s.id}')" class="bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded font-semibold"><i class="fa-solid fa-qrcode mr-1"></i>QR ID</button>
+              <button onclick="openClearanceCertificate('${s.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded font-bold">Clearance PDF</button>
+              <button onclick="adminRemoveStudent('${s.id}')" class="bg-rose-600/20 text-rose-300 px-2 py-1 rounded">Delete</button>
+            </td>
+          </tr>
+        `;
+
+        const proofHtml = s.paymentTid
+          ? `<button onclick="inspectStudentProof('${s.id}')" class="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-2.5 py-1 rounded font-bold hover:bg-amber-500 hover:text-slate-950 transition"><i class="fa-solid fa-eye mr-1"></i>Verify Proof (${s.paymentTid})</button>`
+          : `<span class="text-slate-500">None</span>`;
+
+        fBody.innerHTML += `
+          <tr>
+            <td class="py-2.5 font-bold text-white">${s.name} (${s.id})</td>
+            <td class="py-2.5">${s.room}</td>
+            <td class="py-2.5">
+              Rent: ${s.rent} | Mess: ${s.mess} | Elec: ${s.elec} | Fine: ${s.otherCharges || 0} | Disc: ${s.discount || 0}
+              <button onclick="editStudentCustomFee('${s.id}')" class="ml-2 text-indigo-400 underline">Edit</button>
+            </td>
+            <td class="py-2.5 font-bold text-emerald-400">Rs. ${total.toLocaleString()}</td>
+            <td class="py-2.5">${proofHtml}</td>
+            <td class="py-2.5"><span class="px-2 py-0.5 rounded ${s.feeStatus === 'Paid' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${s.feeStatus}</span></td>
+            <td class="py-2.5 text-right space-x-1">
+              <button onclick="adminToggleFee('${s.id}')" class="bg-emerald-600 text-white px-2.5 py-1 rounded font-bold">${s.feeStatus === 'Paid' ? 'Mark Unpaid' : 'Mark Paid'}</button>
+              <button onclick="openStudentVoucher('${s.id}')" class="bg-indigo-600 text-white px-2.5 py-1 rounded font-bold">Voucher</button>
+              <a href="${waUrl}" target="_blank" class="bg-emerald-600/20 text-emerald-300 px-2.5 py-1 rounded inline-block"><i class="fa-brands fa-whatsapp"></i></a>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("admMessList").innerHTML = db.messMenu.map((m, idx) => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${m.day}:</strong> B: ${m.b} | L: ${m.l} | D: ${m.d}</span>
+          <button onclick="deleteMess(${idx})" class="text-rose-400">&times;</button>
+        </div>
+      `).join("");
+
+      document.getElementById("admInventoryList").innerHTML = db.inventory.map((i, idx) => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${i.item}</strong> — Qty: ${i.qty}</span>
+          <button onclick="deleteInv(${idx})" class="text-rose-400">&times;</button>
+        </div>
+      `).join("");
+
+      document.getElementById("admLeavesList").innerHTML = db.leaves.map(l => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${l.studentName} (${l.room}):</strong> ${l.reason} (${l.fromDate} - ${l.returnDate})</span>
+          <span class="text-emerald-400 font-bold">${l.status}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("admVisitorsList").innerHTML = db.visitors.map(v => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${v.visitorName}</strong> → ${v.studentName}</span>
+          <span class="text-emerald-400">${v.timeIn}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("admComplaintsList").innerHTML = db.complaints.map(c => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>[${c.priority}] ${c.category} (${c.room}):</strong> ${c.issue}</span>
+          <span class="text-amber-400 font-bold">${c.status}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("admExpensesList").innerHTML = db.expenses.map(ex => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${ex.title}</strong> (${ex.category}) - ${ex.date}</span>
+          <strong class="text-rose-400">Rs. ${Number(ex.amount).toLocaleString()}</strong>
+        </div>
+      `).join("");
+
+      document.getElementById("admStaffList").innerHTML = db.staff.map(st => `
+        <div class="p-2.5 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${st.name}</strong> — ${st.role}</span>
+          <strong class="text-emerald-400">Salary: Rs. ${Number(st.salary).toLocaleString()}</strong>
+        </div>
+      `).join("");
+    }
+
+    // INSPECT & VERIFY STUDENT PAYMENT SCREENSHOT
+    function inspectStudentProof(studentId) {
+      const db = getDB();
+      const s = db.students.find(st => st.id === studentId);
+      if (!s) return;
+
+      document.getElementById("proofModalContent").innerHTML = `
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+          <div>Student: <strong class="text-white">${s.name} (${s.id})</strong></div>
+          <div>Submitted Transaction ID: <strong class="text-amber-400">${s.paymentTid}</strong></div>
+        </div>
+        ${s.paymentImg ? `<img src="${s.paymentImg}" class="w-full max-h-72 object-contain rounded-xl border border-slate-700" />` : `<p class="text-slate-400 italic">No screenshot image attached (TID only).</p>`}
+      `;
+
+      const modal = document.getElementById("proofVerifyModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+
+      document.getElementById("approveProofBtn").onclick = () => {
+        s.feeStatus = "Paid";
+        saveDB(db, `Verified payment proof (${s.paymentTid}) & marked ${s.name} Paid`, "Admin");
+        modal.classList.add("hidden");
+        renderAdminAll();
+      };
+    }
+
+    function adminSaveRoom(e) {
+      e.preventDefault();
+      const db = getDB();
+      const id = document.getElementById("arId").value.trim();
+      const existing = db.rooms.find(r => r.id === id);
+      const roomData = {
+        id,
+        floor: document.getElementById("arFloor").value,
+        type: document.getElementById("arType").value,
+        capacity: Number(document.getElementById("arCap").value),
+        rent: Number(document.getElementById("arRent").value),
+        mess: Number(document.getElementById("arMess").value),
+        security: Number(document.getElementById("arSec").value),
+        facilities: document.getElementById("arFac").value
+      };
+      if (existing) Object.assign(existing, roomData);
+      else db.rooms.push(roomData);
+
+      saveDB(db, `Saved Room ${id} (Rent: ${roomData.rent}, Mess: ${roomData.mess})`, "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function promptEditRoomFee(roomId) {
+      const db = getDB();
+      const r = db.rooms.find(rm => rm.id === roomId);
+      if (!r) return;
+      const newRent = prompt(`New Monthly Bed Rent for ${r.id}:`, r.rent);
+      if (newRent === null) return;
+      const newMess = prompt(`New Monthly Mess Fee for ${r.id}:`, r.mess);
+      if (newMess === null) return;
+      const newSec = prompt(`New Security Deposit for ${r.id}:`, r.security);
+      if (newSec === null) return;
+
+      r.rent = Number(newRent) || 0;
+      r.mess = Number(newMess) || 0;
+      r.security = Number(newSec) || 0;
+
+      db.students.filter(s => s.room === r.id).forEach(s => {
+        s.rent = r.rent;
+        s.mess = r.mess;
+      });
+
+      saveDB(db, `Updated Room ${r.id} Fee`, "Admin");
+      renderAdminAll();
+    }
+
+    function deleteRoom(roomId) {
+      const db = getDB();
+      db.rooms = db.rooms.filter(r => r.id !== roomId);
+      saveDB(db, `Deleted Room ${roomId}`, "Admin");
+      renderAdminAll();
+    }
+
+    function autoFillAdminStudentFee() {
+      const db = getDB();
+      const rId = document.getElementById("asRoom").value;
+      const r = db.rooms.find(rm => rm.id === rId);
+      if (r) {
+        document.getElementById("asRent").value = r.rent;
+        document.getElementById("asMess").value = r.mess;
+        document.getElementById("asSec").value = r.security;
+      }
+    }
+
+    function adminAdmitStudent(e) {
+      e.preventDefault();
+      const db = getDB();
+      const roomId = document.getElementById("asRoom").value;
+      if (!roomId) return alert("Please create a room in Tab 3 first!");
+
+      const newId = "ST-" + (101 + db.students.length);
+      db.students.unshift({
+        id: newId,
+        pass: document.getElementById("asPass").value,
+        name: document.getElementById("asName").value,
+        cnic: document.getElementById("asCnic").value,
+        phone: document.getElementById("asPhone").value,
+        guardian: document.getElementById("asGuardian").value,
+        uni: document.getElementById("asUni").value,
+        room: roomId,
+        rent: Number(document.getElementById("asRent").value),
+        mess: Number(document.getElementById("asMess").value),
+        security: Number(document.getElementById("asSec").value),
+        elec: 0,
+        otherCharges: 0,
+        discount: 0,
+        feeStatus: "Unpaid",
+        status: "Active",
+        gateStatus: "Inside"
+      });
+      saveDB(db, `Admitted Student ${newId}`, "Admin");
+      alert(`Student Admitted!\nRoll ID: ${newId}`);
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function approveApplication(appId) {
+      const db = getDB();
+      const app = db.applications.find(a => a.appId === appId);
+      if (!app) return;
+      const newRollId = "ST-" + (101 + db.students.length);
+      app.status = `Approved (${newRollId})`;
+
+      db.students.unshift({
+        id: newRollId,
+        pass: "123",
+        name: app.name,
+        cnic: app.cnic,
+        phone: app.phone,
+        guardian: app.guardian,
+        uni: app.uni,
+        room: app.preferredRoom,
+        rent: Number(app.agreedRent),
+        mess: Number(app.agreedMess),
+        security: Number(app.agreedSecurity),
+        elec: 0,
+        otherCharges: 0,
+        discount: 0,
+        feeStatus: "Unpaid",
+        status: "Active",
+        gateStatus: "Inside"
+      });
+
+      saveDB(db, `Approved Application ${appId} -> ${newRollId}`, "Admin");
+      alert(`Approved!\nStudent Portal Login Roll ID: ${newRollId} | Password: 123`);
+      renderAdminAll();
+    }
+
+    function rejectApplication(appId) {
+      const db = getDB();
+      const app = db.applications.find(a => a.appId === appId);
+      if (app) app.status = "Rejected";
+      saveDB(db, `Rejected Application ${appId}`, "Admin");
+      renderAdminAll();
+    }
+
+    function editStudentCustomFee(studentId) {
+      const db = getDB();
+      const s = db.students.find(st => st.id === studentId);
+      if (!s) return;
+      const r = prompt("Monthly Room Rent (Rs.):", s.rent);
+      if (r === null) return;
+      const m = prompt("Monthly Mess Fee (Rs.):", s.mess);
+      if (m === null) return;
+      const el = prompt("Electricity Share (Rs.):", s.elec);
+      if (el === null) return;
+      const fine = prompt("Other Charges / Late Fine (Rs.):", s.otherCharges || 0);
+      if (fine === null) return;
+      const disc = prompt("Discount (Rs.):", s.discount || 0);
+      if (disc === null) return;
+
+      s.rent = Number(r) || 0;
+      s.mess = Number(m) || 0;
+      s.elec = Number(el) || 0;
+      s.otherCharges = Number(fine) || 0;
+      s.discount = Number(disc) || 0;
+
+      saveDB(db, `Updated fee for ${s.id}`, "Admin");
+      renderAdminAll();
+    }
+
+    function adminSplitMeterBill() {
+      const db = getDB();
+      const roomId = document.getElementById("admMeterRoom").value;
+      const prev = Number(document.getElementById("admPrevU").value) || 0;
+      const curr = Number(document.getElementById("admCurrU").value) || 0;
+      const rate = Number(document.getElementById("admRateU").value) || 0;
+      const totalBill = Math.max(0, curr - prev) * rate;
+      const occupants = db.students.filter(s => s.room === roomId && s.status === "Active");
+      if (!occupants.length) return alert("No active students in this room!");
+      const share = Math.round(totalBill / occupants.length);
+      occupants.forEach(s => s.elec = share);
+      saveDB(db, `Split ${roomId} Electricity Bill -> Rs.${share}/student`, "Admin");
+      renderAdminAll();
+    }
+
+    function adminRemoveStudent(id) {
+      const db = getDB();
+      db.students = db.students.filter(s => s.id !== id);
+      saveDB(db, `Removed student ${id}`, "Admin");
+      renderAdminAll();
+    }
+
+    function adminToggleFee(id) {
+      const db = getDB();
+      const s = db.students.find(st => st.id === id);
+      if (s) s.feeStatus = s.feeStatus === "Paid" ? "Unpaid" : "Paid";
+      saveDB(db, `Marked ${s.name} fee ${s.feeStatus}`, "Admin");
+      renderAdminAll();
+    }
+
+    function adminAddMessDay(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.messMenu.push({
+        day: document.getElementById("mmDay").value,
+        b: document.getElementById("mmB").value,
+        l: document.getElementById("mmL").value,
+        d: document.getElementById("mmD").value
+      });
+      saveDB(db, "Added Mess Menu day", "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function deleteMess(idx) {
+      const db = getDB();
+      db.messMenu.splice(idx, 1);
+      saveDB(db);
+      renderAdminAll();
+    }
+
+    function adminAddInventory(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.inventory.push({
+        item: document.getElementById("invItem").value,
+        qty: document.getElementById("invQty").value
+      });
+      saveDB(db, "Added inventory item", "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function deleteInv(idx) {
+      const db = getDB();
+      db.inventory.splice(idx, 1);
+      saveDB(db);
+      renderAdminAll();
+    }
+
+    function adminAddExpense(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.expenses.unshift({
+        id: Date.now(),
+        date: new Date().toLocaleDateString("en-GB"),
+        title: document.getElementById("aeTitle").value,
+        category: document.getElementById("aeCat").value,
+        amount: Number(document.getElementById("aeAmt").value)
+      });
+      saveDB(db, "Recorded hostel expense", "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function adminAddStaff(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.staff.push({
+        name: document.getElementById("stfName").value,
+        role: document.getElementById("stfRole").value,
+        salary: Number(document.getElementById("stfSal").value)
+      });
+      saveDB(db, "Added staff member", "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function adminSaveSettings(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.settings.hostelName = document.getElementById("setHostelName").value.trim();
+      db.settings.jazzcash = document.getElementById("setJazz").value.trim();
+      db.settings.adminPass = document.getElementById("setAdminPass").value.trim();
+      db.settings.wardenPass = document.getElementById("setWardenPass").value.trim();
+
+      saveDB(db, "Updated Hostel Settings & Passwords", "Admin");
+      alert("Settings & Passwords Updated Successfully!");
+      renderAdminAll();
+    }
+
+    function exportPoliceCSV() {
+      const db = getDB();
+      let csv = "Roll_ID,Name,CNIC,Phone,Guardian,University,Room\n";
+      db.students.forEach(s => {
+        csv += `${s.id},"${s.name}",${s.cnic},${s.phone},${s.guardian},"${s.uni}",${s.room}\n`;
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      a.download = "Police_Verification_Record.csv";
+      a.click();
+    }
+
+    function exportBackupJSON() {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(getDB(), null, 2)], { type: "application/json" }));
+      a.download = "Hostel_Database_Backup.json";
+      a.click();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4f46e5">
+  <link rel="manifest" href="manifest.json">
+  <title>Student Self-Service Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+
+  <!-- Clean Student Navbar -->
+  <nav class="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">
+        <i class="fa-solid fa-user-graduate"></i>
+      </div>
+      <span class="font-bold text-sm sm:text-base text-white">Student Self-Service Portal</span>
+    </div>
+    <div class="flex items-center space-x-2 text-xs">
+      <button onclick="installHostelPWA()" class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-lg font-semibold">
+        <i class="fa-solid fa-download mr-1"></i> Install App
+      </button>
+      <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg">← Public Home</a>
+    </div>
+  </nav>
+
+  <!-- STUDENT LOGIN -->
+  <div id="studentLoginBox" class="max-w-md mx-auto mt-14 bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-5">
+    <div class="text-center">
+      <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl mx-auto mb-3">
+        <i class="fa-solid fa-id-card"></i>
+      </div>
+      <h1 class="text-xl font-bold">Student Portal Login</h1>
+      <p class="text-xs text-slate-400">Enter your Hostel Roll ID (e.g. ST-101) & Password</p>
+    </div>
+    <form onsubmit="loginStudent(event)" class="space-y-4 text-xs sm:text-sm">
+      <input id="stuId" required type="text" placeholder="Enter Roll ID (e.g. ST-101)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
+      <input id="stuPass" required type="password" placeholder="Enter Password" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
+      <p id="stuErr" class="text-rose-400 text-xs hidden">Invalid Roll ID or Password!</p>
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl">Login to My Account</button>
+    </form>
+  </div>
+
+  <!-- STUDENT DASHBOARD -->
+  <div id="studentApp" class="hidden max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+    
+    <!-- Top Student Banner with Voucher + QR ID Card Buttons -->
+    <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">Verified Resident</span>
+        <h2 id="sName" class="text-2xl font-bold text-white mt-1"></h2>
+        <p id="sMeta" class="text-xs text-slate-400"></p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="sQrBtn" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg flex items-center">
+          <i class="fa-solid fa-qrcode mr-2 text-base"></i> My QR ID Card
+        </button>
+        <button id="sVoucherBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg flex items-center">
+          <i class="fa-solid fa-file-pdf mr-2 text-base"></i> Download Fee Voucher
+        </button>
+        <button onclick="location.reload()" class="bg-slate-800 hover:bg-rose-600 px-3 py-2.5 rounded-xl text-xs">Logout</button>
+      </div>
+    </div>
+
+    <!-- Fee Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-slate-400">Monthly Room Rent</span>
+        <p id="sRent" class="text-lg font-bold text-white mt-1">Rs. 0</p>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-slate-400">Monthly Mess Fee</span>
+        <p id="sMess" class="text-lg font-bold text-white mt-1">Rs. 0</p>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-slate-400">Electricity & Fine</span>
+        <p id="sElec" class="text-lg font-bold text-amber-400 mt-1">Rs. 0</p>
+      </div>
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <span class="text-slate-400">Net Payable & Status</span>
+        <p id="sTotal" class="text-lg font-bold mt-1">Rs. 0</p>
+      </div>
+    </div>
+
+    <!-- JAZZCASH / EASYPAISA PAYMENT PROOF UPLOAD SECTION -->
+    <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-5 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h3 class="text-base font-bold text-emerald-400"><i class="fa-solid fa-receipt mr-2"></i> Submit Online Fee Payment Proof (JazzCash / Easypaisa / Bank)</h3>
+          <p class="text-xs text-slate-400">Transfer your fee to <strong id="sAdminJazz" class="text-white"></strong> and upload your Transaction ID (TID) & Screenshot below for Admin verification.</p>
+        </div>
+        <span id="sProofBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300">No Proof Uploaded</span>
+      </div>
+      <form onsubmit="submitPaymentProof(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
+        <input id="payTid" required type="text" placeholder="Enter Transaction ID (e.g. TID 04928173621) *" class="bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white">
+        <input id="payFile" type="file" accept="image/*" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-300">
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl px-4 py-2.5 shadow-lg">
+          <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Submit Payment Proof to Admin
+        </button>
+      </form>
+    </div>
+
+    <!-- Complaints & Leave Passes -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <h3 class="text-base font-bold">Submit Maintenance Complaint</h3>
+        <form onsubmit="submitStudentComplaint(event)" class="space-y-3 text-xs">
+          <div class="grid grid-cols-2 gap-2">
+            <select id="cCat" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <option>Electricity / AC</option>
+              <option>Water / Plumbing</option>
+              <option>Internet / Wi-Fi</option>
+              <option>Mess / Food</option>
+            </select>
+            <select id="cPrio" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <option value="Normal">Normal</option>
+              <option value="High">High Priority</option>
+            </select>
+          </div>
+          <input id="cIssue" required placeholder="Describe your issue..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+          <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold">Submit Complaint</button>
+        </form>
+        <div id="myComplaintsList" class="space-y-2 text-xs pt-2"></div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+        <h3 class="text-base font-bold">Request Outing / Home Leave Pass</h3>
+        <form onsubmit="submitStudentLeave(event)" class="space-y-3 text-xs">
+          <input id="lvReason" required placeholder="Destination & Reason" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+          <div class="grid grid-cols-2 gap-2">
+            <input id="lvFrom" required placeholder="From Date" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+            <input id="lvTo" required placeholder="Return Date" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
+          </div>
+          <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold">Send Leave Request</button>
+        </form>
+        <div id="myLeavesList" class="space-y-2 text-xs pt-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    window.loggedStudent = null;
+
+    function loginStudent(e) {
+      e.preventDefault();
+      const id = document.getElementById("stuId").value.trim().toUpperCase();
+      const pass = document.getElementById("stuPass").value.trim();
+      const db = getDB();
+      const found = db.students.find(s => s.id.toUpperCase() === id && s.pass === pass);
+      if (!found) {
+        document.getElementById("stuErr").classList.remove("hidden");
+        return;
+      }
+      window.loggedStudent = found;
+      document.getElementById("studentLoginBox").classList.add("hidden");
+      document.getElementById("studentApp").classList.remove("hidden");
+      renderStudentDashboard();
+    }
+
+    function renderStudentDashboard() {
+      const db = getDB();
+      const s = db.students.find(st => st.id === window.loggedStudent.id);
+      if (!s) return;
+      const extra = Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
+      const total = Number(s.rent || 0) + Number(s.mess || 0) + extra;
+
+      document.getElementById("sName").innerText = s.name;
+      document.getElementById("sMeta").innerText = `Roll ID: ${s.id} | Room: ${s.room} | Security Held: Rs. ${Number(s.security || 0).toLocaleString()}`;
+      document.getElementById("sAdminJazz").innerText = db.settings.jazzcash;
+      document.getElementById("sRent").innerText = `Rs. ${Number(s.rent).toLocaleString()}`;
+      document.getElementById("sMess").innerText = `Rs. ${Number(s.mess).toLocaleString()}`;
+      document.getElementById("sElec").innerText = `Rs. ${extra.toLocaleString()}`;
+      document.getElementById("sTotal").innerHTML = `Rs. ${total.toLocaleString()} <span class="text-xs px-2 py-0.5 rounded ${s.feeStatus === 'Paid' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${s.feeStatus}</span>`;
+
+      document.getElementById("sVoucherBtn").onclick = () => openStudentVoucher(s.id);
+      document.getElementById("sQrBtn").onclick = () => openStudentQRCard(s.id);
+
+      const badge = document.getElementById("sProofBadge");
+      if (s.feeStatus === "Paid") {
+        badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300";
+        badge.innerText = "Verified & Paid ✓";
+      } else if (s.paymentTid) {
+        badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300";
+        badge.innerText = `Pending Admin Verification (${s.paymentTid})`;
+      }
+
+      document.getElementById("myComplaintsList").innerHTML = db.complaints.filter(c => c.studentId === s.id).map(c => `
+        <div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${c.category}:</strong> ${c.issue}</span>
+          <span class="text-amber-400 font-bold">${c.status}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("myLeavesList").innerHTML = db.leaves.filter(l => l.studentId === s.id).map(l => `
+        <div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between">
+          <span><strong>${l.reason}</strong> (${l.fromDate} - ${l.returnDate})</span>
+          <span class="text-emerald-400 font-bold">${l.status}</span>
+        </div>
+      `).join("");
+    }
+
+    // COMPRESS & UPLOAD SCREENSHOT + TID TO CLOUD FIRESTORE
+    function submitPaymentProof(e) {
+      e.preventDefault();
+      const tid = document.getElementById("payTid").value.trim();
+      const fileInput = document.getElementById("payFile");
+
+      const saveProofToDB = (base64Img) => {
+        const db = getDB();
+        const s = db.students.find(st => st.id === window.loggedStudent.id);
+        if (!s) return;
+        s.paymentTid = tid;
+        if (base64Img) s.paymentImg = base64Img;
+        saveDB(db, `Student ${s.name} (${s.id}) uploaded Fee Payment Proof TID: ${tid}`, "Student");
+        alert("Payment Proof Submitted! Admin will verify your receipt and mark your fee Paid.");
+        e.target.reset();
+        renderStudentDashboard();
+      };
+
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement("canvas");
+            const maxW = 500;
+            const scale = Math.min(1, maxW / img.width);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            saveProofToDB(canvas.toDataURL("image/jpeg", 0.65));
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        saveProofToDB(null);
+      }
+    }
+
+    function submitStudentComplaint(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.complaints.unshift({
+        id: "CMP-" + Math.floor(100 + Math.random() * 900),
+        studentId: window.loggedStudent.id,
+        studentName: window.loggedStudent.name,
+        room: window.loggedStudent.room,
+        category: document.getElementById("cCat").value,
+        issue: document.getElementById("cIssue").value,
+        priority: document.getElementById("cPrio").value,
+        status: "Pending"
+      });
+      saveDB(db, `Student ${window.loggedStudent.id} submitted complaint`, "Student");
+      e.target.reset();
+      renderStudentDashboard();
+    }
+
+    function submitStudentLeave(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.leaves.unshift({
+        id: "LV-" + Math.floor(100 + Math.random() * 900),
+        studentId: window.loggedStudent.id,
+        studentName: window.loggedStudent.name,
+        room: window.loggedStudent.room,
+        reason: document.getElementById("lvReason").value,
+        fromDate: document.getElementById("lvFrom").value,
+        returnDate: document.getElementById("lvTo").value,
+        status: "Pending"
+      });
+      saveDB(db, `Student ${window.loggedStudent.id} requested leave`, "Student");
+      e.target.reset();
+      renderStudentDashboard();
+    }
+  </script>
+</body>
+</html>
