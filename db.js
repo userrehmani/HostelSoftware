@@ -417,5 +417,181 @@ db.settings.currentMonth = monthName;
   refreshCurrentPortalUI();
 }
 
-// Run automatic 5th date fine check on load
-setTimeout(checkAndApplyAutoLateFine, 1500);
+
+const SAAS_FOUNDER_WHATSAPP = "92308610965"; 
+const SAAS_BRAND_NAME = "HostelCloud SaaS";
+
+// 1. 📲 WHATSAPP FEE REMINDER TO STUDENT
+function sendStudentFeeReminder(studentId) {
+  const db = getDB();
+  const s = db.students.find(st => st.id === studentId);
+  if (!s) return alert("Student not found!");
+
+  const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
+  const month = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const cleanPhone = "92" + (s.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "");
+
+  const msg = `*FEE REMINDER — ${db.settings.hostelName}*\n\nSalam *${s.name}* (Roll ID: ${s.id}, Room: ${s.room}),\nYour hostel fee voucher for *${month}* is currently *${s.feeStatus.toUpperCase()}*.\n\n💰 *Net Payable:* Rs. ${total.toLocaleString()}\n📅 *Due Date:* 05 ${month} (Rs. 200 fine applies after 5th)\n💳 *JazzCash/Easypaisa:* ${db.settings.jazzcash}\n\nPlease pay your dues and submit your TID on the Student Portal:\n${window.location.origin}/student?hostel=${TENANT_ID}`;
+
+  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+// 2. 👨‍👩‍👦 WHATSAPP ALERT TO PARENT / GUARDIAN (Fee Paid or Leave Info)
+function sendGuardianAlert(studentId) {
+  const db = getDB();
+  const s = db.students.find(st => st.id === studentId);
+  if (!s) return alert("Student not found!");
+  if (!s.guardian) return alert("Guardian phone number is not saved for this student!");
+
+  const cleanGuardian = "92" + (s.guardian || "").replace(/[^0-9]/g, "").replace(/^0/, "");
+  const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
+  const statusMsg = s.feeStatus === "Paid" 
+    ? `has *PAID* the monthly hostel dues of Rs. ${total.toLocaleString()}. Thank you!` 
+    : `has *PENDING* hostel dues of Rs. ${total.toLocaleString()}. Kindly clear before the 5th.`;
+
+  const msg = `*OFFICIAL GUARDIAN ALERT — ${db.settings.hostelName}*\n\nRespected Parent/Guardian,\nThis is an automated update regarding your ward *${s.name}* (Room ${s.room}).\n\n📌 *Account Update:* Your ward ${statusMsg}\n\nFor verification, contact Hostel Administration.`;
+  window.open(`https://wa.me/${cleanGuardian}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+// 3. 💾 CLOUD JSON BACKUP DOWNLOAD
+function exportHostelBackupJSON() {
+  const db = getDB();
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+  const dlAnchor = document.createElement("a");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  dlAnchor.setAttribute("href", dataStr);
+  dlAnchor.setAttribute("download", `Backup_${TENANT_ID}_${dateStr}.json`);
+  document.body.appendChild(dlAnchor);
+  dlAnchor.click();
+  dlAnchor.remove();
+}
+
+// 4. 📂 CLOUD JSON BACKUP RESTORE
+function importHostelBackupJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importedDB = JSON.parse(e.target.result);
+      if (!importedDB.settings || !Array.isArray(importedDB.rooms)) {
+        return alert("Invalid backup file format!");
+      }
+      if (confirm(`Restore backup for "${importedDB.settings.hostelName}"? This will overwrite current data!`)) {
+        saveDB(importedDB, "Restored full system database from JSON backup", "Admin");
+        alert("✅ Backup restored and synced to Cloud successfully!");
+        location.reload();
+      }
+    } catch (err) {
+      alert("Error reading JSON file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// 5. 📷 WARDEN QUICK QR / ROLL ID GATE VERIFIER MODAL
+function openWardenGateScanner() {
+  const db = getDB();
+  const rollId = prompt("📷 GATE PASS SCANNER\nScan or Enter Student Roll ID (e.g., ST-101):");
+  if (!rollId) return;
+
+  const s = db.students.find(st => st.id.toLowerCase() === rollId.trim().toLowerCase());
+  if (!s) {
+    alert(`❌ INVALID GATE PASS!\nNo active student found with Roll ID: ${rollId}`);
+    return;
+  }
+
+  const action = confirm(
+    `✅ VERIFIED RESIDENT GATE PASS\n` +
+    `----------------------------------\n` +
+    `👤 Name: ${s.name} (${s.id})\n` +
+    `🚪 Room: ${s.room} | CNIC: ${s.cnic}\n` +
+    `💳 Fee Status: ${s.feeStatus.toUpperCase()}\n` +
+    `----------------------------------\n` +
+    `Press OK to log Gate ENTRY/EXIT in system logs.`
+  );
+
+  if (action) {
+    const dir = prompt("Type IN (Entering Hostel) or OUT (Going Outside):", "OUT");
+    if (dir) {
+      saveDB(db, `Gate Pass Scanned: ${s.name} (${s.id}) marked ${dir.toUpperCase()}`, "Warden");
+      alert(`Logged: ${s.name} marked ${dir.toUpperCase()} at ${new Date().toLocaleTimeString()}`);
+    }
+  }
+}
+
+// 6. 🛠️ AUTO-INJECT UI TOOLBARS & DEVELOPER FOOTER ON LOAD
+window.addEventListener("DOMContentLoaded", () => {
+  const path = window.location.pathname.toLowerCase();
+
+  // A) Inject Admin Enterprise Toolbar (WhatsApp Broadcast + Backup/Restore)
+  if (path.includes("admin") && !document.getElementById("enterpriseAdminToolbar")) {
+    const bar = document.createElement("div");
+    bar.id = "enterpriseAdminToolbar";
+    bar.className = "max-w-7xl mx-auto px-4 pt-4";
+    bar.innerHTML = `
+      <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg">
+        <div class="flex items-center gap-2">
+          <span class="bg-indigo-600 text-white px-2.5 py-1 rounded-lg font-bold">⚡ Pro Suite</span>
+          <span class="text-slate-300 font-medium">1-Click WhatsApp Alerts & Cloud Data Safety</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="promptStudentWhatsApp()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-bold transition">
+            <i class="fa-brands fa-whatsapp mr-1"></i> Fee Reminder
+          </button>
+          <button onclick="promptGuardianWhatsApp()" class="bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded-xl font-bold transition">
+            <i class="fa-solid fa-user-shield mr-1"></i> Parent Alert
+          </button>
+          <button onclick="exportHostelBackupJSON()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 px-3 py-1.5 rounded-xl font-bold transition">
+            <i class="fa-solid fa-download mr-1"></i> Backup JSON
+          </button>
+          <label class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 px-3 py-1.5 rounded-xl font-bold cursor-pointer transition">
+            <i class="fa-solid fa-upload mr-1"></i> Restore
+            <input type="file" accept=".json" onchange="importHostelBackupJSON(event)" class="hidden" />
+          </label>
+        </div>
+      </div>
+    `;
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
+
+  // B) Inject Warden Floating Gate Scanner Button
+  if (path.includes("warden") && !document.getElementById("wardenScannerBtn")) {
+    const scanBtn = document.createElement("button");
+    scanBtn.id = "wardenScannerBtn";
+    scanBtn.onclick = openWardenGateScanner;
+    scanBtn.style.cssText = "position:fixed;bottom:64px;right:20px;z-index:999;background:linear-gradient(135deg,#4f46e5,#06b6d4);color:white;padding:12px 18px;border-radius:999px;font-weight:800;font-size:12px;box-shadow:0 10px 25px rgba(79,70,229,0.5);border:1px solid rgba(255,255,255,0.2);cursor:pointer;";
+    scanBtn.innerHTML = `<i class="fa-solid fa-qrcode mr-1.5"></i> Verify Gate Pass`;
+    document.body.appendChild(scanBtn);
+  }
+
+  // C) Inject SaaS Developer Marketing Footer on All Portals
+  if (!path.includes("master") && !document.getElementById("saasBrandingFooter")) {
+    const footer = document.createElement("footer");
+    footer.id = "saasBrandingFooter";
+    footer.className = "text-center py-4 px-4 mt-10 border-t border-slate-800/80 text-[11px] text-slate-400 bg-slate-950/80";
+    const pitchMsg = encodeURIComponent("Salam! I saw HostelCloud SaaS software and want a demo for my hostel.");
+    footer.innerHTML = `
+      <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <span>⚡ Powered by <strong class="text-indigo-400">${SAAS_BRAND_NAME}</strong> — Cloud Multi-Tenant ERP</span>
+        <a href="https://wa.me/${SAAS_FOUNDER_WHATSAPP}?text=${pitchMsg}" target="_blank" class="text-emerald-400 hover:underline font-bold">
+          <i class="fa-brands fa-whatsapp mr-1"></i> Want this software for your hostel? Get Free Demo ↗
+        </a>
+      </div>
+    `;
+    document.body.appendChild(footer);
+  }
+});
+
+// Helper prompts for quick toolbar selection
+function promptStudentWhatsApp() {
+  const db = getDB();
+  const unpaidList = db.students.filter(s => s.status === "Active" && s.feeStatus !== "Paid").map(s => `${s.id} (${s.name})`).join(", ");
+  const id = prompt(`📲 SEND WHATSAPP FEE REMINDER\nUnpaid Students: ${unpaidList || "None"}\n\nEnter Student Roll ID (e.g. ST-101):`);
+  if (id) sendStudentFeeReminder(id.trim());
+}
+
+function promptGuardianWhatsApp() {
+  const id = prompt("👨‍👩‍👦 SEND PARENT/GUARDIAN WHATSAPP ALERT\nEnter Student Roll ID (e.g. ST-101):");
+  if (id) sendGuardianAlert(id.trim());
+}
