@@ -1,180 +1,459 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#059669">
-  <link rel="manifest" href="manifest.json">
-  <title>Warden Operations Console</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Warden Console — Hostel ERP</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- HTML2PDF for Gate Pass / Reports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="db.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
+    #saasBrandingFooter { display: none !important; }
+    #globalLiveNoticeBanner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+<body class="antialiased h-screen w-screen overflow-hidden">
 
-  <div id="wardenLoginBox" class="max-w-md mx-auto mt-16 bg-slate-900 border border-emerald-500/30 rounded-2xl p-8 shadow-2xl space-y-5">
-    <div class="text-center">
-      <div class="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-white text-2xl mx-auto mb-3">
-        <i class="fa-solid fa-user-shield"></i>
-      </div>
-      <h1 class="text-xl font-bold">Private Warden Portal</h1>
-      <p class="text-xs text-slate-400">Authorized Hostel Operations Staff Only</p>
-    </div>
-    <form onsubmit="loginWarden(event)" class="space-y-4 text-xs sm:text-sm">
-      <input id="wUser" value="warden" required type="text" placeholder="Warden Username" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
-      <input id="wPass" required type="password" placeholder="Enter Warden Password" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
-      <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl">Login to Warden Console</button>
-    </form>
-  </div>
-
-  <div id="wardenApp" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-    <header class="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 flex justify-between items-center">
-      <div>
-        <h1 class="text-lg font-bold text-white">👮 Warden Operations Console</h1>
-        <p class="text-xs text-emerald-400">Gate Attendance, Outing Leaves, Sub-Meter Readings, Visitors & Maintenance</p>
-      </div>
-      <div class="flex gap-2">
-        <button onclick="installHostelPWA()" class="bg-emerald-600/20 text-emerald-300 px-3 py-1.5 rounded-lg text-xs">Install App</button>
-        <button onclick="location.reload()" class="bg-slate-800 hover:bg-rose-600 px-3 py-1.5 rounded-lg text-xs">Logout</button>
-      </div>
-    </header>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h2 class="text-base font-bold text-emerald-400">Student Leave Approvals & Gate In/Out</h2>
-        <div id="wardenLeavesList" class="space-y-2 text-xs"></div>
-        <hr class="border-slate-800">
-        <div id="wardenGateList" class="space-y-2 text-xs"></div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h2 class="text-base font-bold text-amber-400">Complaints & Maintenance Resolution</h2>
-        <div id="wardenComplaintsList" class="space-y-2 text-xs"></div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h2 class="text-base font-bold text-indigo-400">Room Sub-Meter Electricity Entry</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-          <select id="wRoomSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white"></select>
-          <input id="wPrev" type="number" placeholder="Prev Units" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white">
-          <input id="wCurr" type="number" placeholder="Curr Units" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white">
-          <input id="wRate" type="number" placeholder="Rate/Unit" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white">
-          <button onclick="wardenApplyMeter()" class="bg-emerald-600 text-white font-bold rounded-lg px-3 py-2">Split Bill</button>
+  <!-- ===================================================================== -->
+  <!-- 🔒 SECURITY WARDEN LOGIN GATE                                         -->
+  <!-- ===================================================================== -->
+  <div id="wardenLoginGate" class="fixed inset-0 bg-zinc-900/95 z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-zinc-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center gap-3 border-b border-zinc-100 pb-4">
+        <div class="w-10 h-10 rounded-lg bg-emerald-700 text-white flex items-center justify-center text-base font-bold">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <div>
+          <h2 id="wardenGateHostelName" class="text-base font-extrabold text-zinc-900 leading-tight">Warden Console</h2>
+          <p class="text-xs text-zinc-500">Gate Security & Resident Discipline</p>
         </div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h2 class="text-base font-bold text-purple-400">Gate Visitor Logbook</h2>
-        <form onsubmit="wardenAddVisitor(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <input id="vName" required placeholder="Visitor Name" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-white">
-          <input id="vStu" required placeholder="Meeting Student" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-white">
-          <button type="submit" class="bg-purple-600 text-white font-bold rounded-lg px-3 py-2">+ Log Visitor</button>
-        </form>
-        <div id="wardenVisitorsList" class="space-y-2 text-xs"></div>
+      <form onsubmit="handleWardenLogin(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-zinc-700 mb-1.5">Warden Console Password *</label>
+          <input id="wardenPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
+        </div>
+
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition">
+          Unlock Warden Console →
+        </button>
+      </form>
+
+      <div class="pt-3 border-t border-zinc-100 flex justify-between text-xs text-zinc-500 font-medium">
+        <a href="index" class="hover:text-zinc-900">← Public Website</a>
+        <a href="admin" class="hover:text-zinc-900">Admin ERP →</a>
       </div>
     </div>
   </div>
 
-  <script src="db.js"></script>
+  <!-- ===================================================================== -->
+  <!-- 🖥️ FULL-SCREEN WARDEN ERP WORKSPACE                                   -->
+  <!-- ===================================================================== -->
+  <div class="flex h-screen w-screen overflow-hidden">
+
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
+    <aside class="w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full">
+      <div>
+        <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
+          <div class="flex items-center gap-2.5 truncate">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="truncate">
+              <h1 id="wardenSidebarHostel" class="text-sm font-bold text-white truncate">Warden Console</h1>
+              <span class="text-[10px] text-emerald-400 font-semibold block">● Live Gate Security</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warden Navigation Menu -->
+        <div class="p-3 space-y-1 text-xs font-semibold">
+          <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Security & Discipline</p>
+
+          <button onclick="switchWardenTab('gate')" id="wnav-gate" class="wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-qrcode w-4 text-center text-emerald-400"></i> Gate Pass & Scanner</span>
+          </button>
+
+          <button onclick="switchWardenTab('residents')" id="wnav-residents" class="wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-users w-4 text-center"></i> Residents Directory</span>
+            <span id="badgeWardenResidents" class="text-[10px] text-zinc-400">0</span>
+          </button>
+
+          <button onclick="switchWardenTab('operations')" id="wnav-operations" class="wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-check w-4 text-center"></i> Complaints & Leaves</span>
+            <span id="badgeWardenOps" class="bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded text-[10px]">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Actions -->
+      <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
+        <a href="index" class="w-full block text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded font-medium">
+          ← Public Website
+        </a>
+        <button onclick="logoutWarden()" class="w-full flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-500/10 py-1.5 rounded font-bold transition">
+          <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- 🖥️ RIGHT MAIN WARDEN WORKSPACE -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
+
+      <!-- Top Header -->
+      <header class="h-16 bg-white border-b border-zinc-200 px-6 flex items-center justify-between shrink-0 w-full">
+        <div>
+          <h2 id="wardenViewTitle" class="text-base font-extrabold text-zinc-900">Gate Pass Scanner & Resident Verification</h2>
+          <p class="text-xs text-zinc-500">Security & Discipline Management Console</p>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <button onclick="openWardenGateScanner()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-2xs transition">
+            <i class="fa-solid fa-qrcode mr-1.5"></i> Scan / Verify Roll ID
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable View Area -->
+      <main class="flex-1 overflow-y-auto p-6 w-full custom-scroll space-y-6">
+
+        <!-- KPI Strip -->
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Active Residents</span>
+            <strong id="kpiWardenResidents" class="text-xl font-extrabold text-zinc-900 block mt-1">0</strong>
+          </div>
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Open Complaints</span>
+            <strong id="kpiWardenComps" class="text-xl font-extrabold text-amber-600 block mt-1">0</strong>
+          </div>
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Pending Leaves</span>
+            <strong id="kpiWardenLeaves" class="text-xl font-extrabold text-rose-600 block mt-1">0</strong>
+          </div>
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Gate Status</span>
+            <strong class="text-xl font-extrabold text-emerald-700 block mt-1">Secure ●</strong>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- VIEW 1: GATE PASS & QUICK ROLL ID VERIFIER                      -->
+        <!-- =============================================================== -->
+        <div id="wardenView-gate" class="space-y-6 w-full">
+          
+          <div class="bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs max-w-2xl space-y-5">
+            <div class="border-b border-zinc-100 pb-3">
+              <h3 class="text-base font-bold text-zinc-900"><i class="fa-solid fa-qrcode text-emerald-700 mr-2"></i> Gate Security Entry & Exit Verifier</h3>
+              <p class="text-xs text-zinc-500">Scan student QR code or type their Roll ID to instantly verify fee status and log campus movements.</p>
+            </div>
+
+            <div class="flex gap-2">
+              <input id="quickScanInput" type="text" placeholder="Enter Roll ID (e.g. ST-101)..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-sm text-zinc-900 font-mono outline-none focus:border-zinc-900" />
+              <button onclick="verifyRollIdManual()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap">
+                Verify Pass
+              </button>
+            </div>
+
+            <div id="scanResultBox" class="hidden bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-3 text-xs"></div>
+          </div>
+
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- VIEW 2: RESIDENTS DIRECTORY (QUICK EMERGENCY CONTACTS)          -->
+        <!-- =============================================================== -->
+        <div id="wardenView-residents" class="hidden space-y-6 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
+            <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-zinc-900">Hostel Residents Emergency Directory</h3>
+                <p class="text-xs text-zinc-500">Quick access to student phone numbers, guardian contacts, and room numbers.</p>
+              </div>
+              <input id="searchWardenStu" oninput="renderWardenResidents()" type="text" placeholder="Search name, ID, room..." class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs w-60 outline-none" />
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
+                  <tr>
+                    <th class="p-3.5">Resident & Roll ID</th>
+                    <th class="p-3.5">Room</th>
+                    <th class="p-3.5">Student Phone</th>
+                    <th class="p-3.5">Guardian Contact</th>
+                    <th class="p-3.5">Fee Status</th>
+                  </tr>
+                </thead>
+                <tbody id="wardenStudentsTable" class="divide-y divide-zinc-200"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- VIEW 3: COMPLAINTS & LEAVES                                     -->
+        <!-- =============================================================== -->
+        <div id="wardenView-operations" class="hidden space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+            
+            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm font-bold text-zinc-900">Resident Maintenance Complaints</h3>
+                <p class="text-xs text-zinc-500">Mark resolved once maintenance work is completed.</p>
+              </div>
+              <div id="wardenComplaintsList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
+            </div>
+
+            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm font-bold text-zinc-900">Leave Requests</h3>
+                <p class="text-xs text-zinc-500">Approve student leave applications.</p>
+              </div>
+              <div id="wardenLeavesList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🚀 WARDEN CONTROLLER SCRIPT                                           -->
+  <!-- ===================================================================== -->
   <script>
-    function loginWarden(e) {
+    const WARDEN_TITLES = {
+      gate: "Gate Pass Scanner & Resident Verification",
+      residents: "Residents Emergency Directory",
+      operations: "Maintenance Complaints & Leave Requests"
+    };
+
+    function checkWardenSession() {
+      const db = getDB();
+      document.getElementById("wardenGateHostelName").innerText = (db.settings && db.settings.hostelName) || "Warden Console";
+      if (sessionStorage.getItem("WARDEN_AUTH_" + TENANT_ID) === "true") {
+        document.getElementById("wardenLoginGate").classList.add("hidden");
+      }
+    }
+
+    function handleWardenLogin(e) {
       e.preventDefault();
       const db = getDB();
-      if (document.getElementById("wUser").value.trim().toLowerCase() === "warden" && document.getElementById("wPass").value === db.settings.wardenPass) {
-        document.getElementById("wardenLoginBox").classList.add("hidden");
-        document.getElementById("wardenApp").classList.remove("hidden");
+      const pass = document.getElementById("wardenPassInput").value.trim();
+      if (pass === String((db.settings && db.settings.wardenPass) || "123")) {
+        sessionStorage.setItem("WARDEN_AUTH_" + TENANT_ID, "true");
+        document.getElementById("wardenLoginGate").classList.add("hidden");
         renderWardenConsole();
       } else {
-        alert("Wrong Warden password!");
+        alert("Incorrect Warden Password!");
       }
+    }
+
+    function logoutWarden() {
+      sessionStorage.removeItem("WARDEN_AUTH_" + TENANT_ID);
+      location.reload();
+    }
+
+    function switchWardenTab(viewId) {
+      ["gate", "residents", "operations"].forEach(id => {
+        document.getElementById("wardenView-" + id).classList.toggle("hidden", id !== viewId);
+        const nav = document.getElementById("wnav-" + id);
+        if (nav) {
+          nav.className = id === viewId
+            ? "wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition"
+            : "wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+        }
+      });
+      document.getElementById("wardenViewTitle").innerText = WARDEN_TITLES[viewId] || "Warden Console";
+      renderWardenConsole();
     }
 
     function renderWardenConsole() {
       const db = getDB();
-      document.getElementById("wardenLeavesList").innerHTML = db.leaves.length ? db.leaves.map(l => `
-        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
-          <span><strong>${l.studentName} (${l.room}):</strong> ${l.reason} (${l.fromDate} - ${l.returnDate})</span>
-          ${l.status === "Pending" ? `<button onclick="approveLeave('${l.id}')" class="bg-emerald-600 text-white px-3 py-1 rounded font-bold">Approve</button>` : `<span class="text-emerald-400 font-bold">${l.status}</span>`}
+      const set = db.settings || {};
+      const activeStudents = (db.students || []).filter(s => s.status === "Active");
+      const openComps = (db.complaints || []).filter(c => c.status !== "Resolved").length;
+      const pendingLeaves = (db.leaves || []).filter(l => l.status !== "Approved").length;
+
+      document.getElementById("wardenSidebarHostel").innerText = set.hostelName || "Warden Console";
+      document.getElementById("kpiWardenResidents").innerText = activeStudents.length;
+      document.getElementById("kpiWardenComps").innerText = openComps;
+      document.getElementById("kpiWardenLeaves").innerText = pendingLeaves;
+
+      document.getElementById("badgeWardenResidents").innerText = activeStudents.length;
+      document.getElementById("badgeWardenOps").innerText = openComps + pendingLeaves;
+
+      renderWardenResidents();
+      renderWardenOperations();
+    }
+
+    function verifyRollIdManual() {
+      const val = document.getElementById("quickScanInput").value.trim().toLowerCase();
+      const box = document.getElementById("scanResultBox");
+      if (!val) return;
+
+      const db = getDB();
+      const s = (db.students || []).find(st =>
+        st.status === "Active" && (
+          String(st.id || "").toLowerCase() === val ||
+          String(st.cnic || "").toLowerCase() === val ||
+          String(st.phone || "").toLowerCase() === val
+        )
+      );
+
+      box.classList.remove("hidden");
+      if (!s) {
+        box.innerHTML = `<div class="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-lg font-bold">❌ INVALID GATE PASS! No active resident found matching "${val}".</div>`;
+        return;
+      }
+
+      const isPaid = s.feeStatus === "Paid";
+      box.innerHTML = `
+        <div class="space-y-3">
+          <div class="flex justify-between items-start border-b border-zinc-200 pb-2">
+            <div>
+              <h4 class="text-sm font-extrabold text-zinc-900">${s.name} (${s.id})</h4>
+              <p class="text-zinc-500">Room ${s.room} • CNIC: ${s.cnic || '—'}</p>
+            </div>
+            <span class="px-2.5 py-1 rounded text-[11px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}">
+              ${isPaid ? '✓ FEE PAID' : '⚠ FEE UNPAID'}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-zinc-600">
+            <div>Student Phone: <strong>${s.phone || '—'}</strong></div>
+            <div>Guardian: <strong>${s.guardian || '—'}</strong></div>
+          </div>
+
+          <div class="pt-2 flex gap-2">
+            <button onclick="logWardenGateMovement('${s.id}', 'IN')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold">
+              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Log IN (Entering)
+            </button>
+            <button onclick="logWardenGateMovement('${s.id}', 'OUT')" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-2 rounded-lg font-bold">
+              <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Log OUT (Leaving)
+            </button>
+          </div>
         </div>
-      `).join("") : `<p class="text-slate-500">No leave requests yet.</p>`;
-
-      document.getElementById("wardenGateList").innerHTML = db.students.length ? db.students.map(s => `
-        <div class="p-2.5 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
-          <span><strong>${s.name}</strong> (${s.id} - ${s.room})</span>
-          <button onclick="toggleGate('${s.id}')" class="px-2.5 py-1 rounded font-bold ${s.gateStatus === 'Inside' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">${s.gateStatus}</button>
-        </div>
-      `).join("") : `<p class="text-slate-500">No students admitted yet.</p>`;
-
-      document.getElementById("wardenComplaintsList").innerHTML = db.complaints.length ? db.complaints.map(c => `
-        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
-          <span><strong>[${c.priority}] ${c.category} (${c.room}):</strong> ${c.issue}</span>
-          ${c.status !== "Resolved" ? `<button onclick="resolveComp('${c.id}')" class="bg-emerald-600 text-white px-3 py-1 rounded font-bold">Resolve</button>` : `<span class="text-emerald-400 font-bold">Resolved</span>`}
-        </div>
-      `).join("") : `<p class="text-slate-500">No complaints logged.</p>`;
-
-      document.getElementById("wRoomSelect").innerHTML = db.rooms.map(r => `<option value="${r.id}">${r.id}</option>`).join("");
-
-      document.getElementById("wardenVisitorsList").innerHTML = db.visitors.map(v => `
-        <div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between">
-          <span><strong>${v.visitorName}</strong> → ${v.studentName}</span>
-          <span class="text-emerald-400">${v.timeIn}</span>
-        </div>
-      `).join("");
+      `;
     }
 
-    function approveLeave(id) {
-      const db = getDB();
-      const lv = db.leaves.find(l => l.id === id);
-      if (lv) lv.status = "Approved";
-      saveDB(db, `Warden approved leave ${id}`, "Warden");
-      renderWardenConsole();
+    function openWardenGateScanner() {
+      const id = prompt("📷 GATE PASS SCANNER\nEnter or Scan Student Roll ID (e.g. ST-101):");
+      if (id) {
+        document.getElementById("quickScanInput").value = id.trim();
+        verifyRollIdManual();
+        switchWardenTab("gate");
+      }
     }
 
-    function toggleGate(id) {
+    function logWardenGateMovement(studentId, direction) {
       const db = getDB();
-      const s = db.students.find(st => st.id === id);
-      if (s) s.gateStatus = s.gateStatus === "Inside" ? "Out of Hostel" : "Inside";
-      saveDB(db, `Warden marked ${s.name} ${s.gateStatus}`, "Warden");
-      renderWardenConsole();
+      const s = (db.students || []).find(st => st.id === studentId);
+      if (!s) return;
+      saveDB(db, `Gate Pass Verified: ${s.name} (${s.id}) marked ${direction}`, "Warden");
+      alert(`✅ Gate Movement Logged!\n\n${s.name} (${s.id}) successfully marked ${direction} at ${new Date().toLocaleTimeString()}.`);
+      document.getElementById("quickScanInput").value = "";
+      document.getElementById("scanResultBox").classList.add("hidden");
     }
 
-    function resolveComp(id) {
+    function renderWardenResidents() {
       const db = getDB();
-      const c = db.complaints.find(x => x.id === id);
-      if (c) c.status = "Resolved";
-      saveDB(db, `Warden resolved complaint ${id}`, "Warden");
-      renderWardenConsole();
-    }
+      const tbody = document.getElementById("wardenStudentsTable");
+      const q = (document.getElementById("searchWardenStu")?.value || "").toLowerCase().trim();
 
-    function wardenApplyMeter() {
-      const db = getDB();
-      const roomId = document.getElementById("wRoomSelect").value;
-      const units = Math.max(0, (Number(document.getElementById("wCurr").value) || 0) - (Number(document.getElementById("wPrev").value) || 0));
-      const rate = Number(document.getElementById("wRate").value) || 0;
-      const bill = units * rate;
-      const occupants = db.students.filter(s => s.room === roomId && s.status === "Active");
-      if (!occupants.length) return alert("No students in this room!");
-      const share = Math.round(bill / occupants.length);
-      occupants.forEach(s => s.elec = share);
-      saveDB(db, `Warden applied Rs.${share} electricity share to ${roomId}`, "Warden");
-      alert(`Applied Rs. ${share}/student to ${occupants.length} occupants in ${roomId}.`);
-    }
-
-    function wardenAddVisitor(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.visitors.unshift({
-        id: "VIS-" + Date.now(),
-        visitorName: document.getElementById("vName").value,
-        studentName: document.getElementById("vStu").value,
-        timeIn: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const list = (db.students || []).filter(s => {
+        if (s.status !== "Active") return false;
+        return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || String(s.room).toLowerCase().includes(q) || (s.phone || "").includes(q);
       });
-      saveDB(db, "Warden logged visitor", "Warden");
-      e.target.reset();
-      renderWardenConsole();
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-zinc-400">No active residents found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(s => {
+        const isPaid = s.feeStatus === "Paid";
+        return `
+          <tr class="hover:bg-zinc-50">
+            <td class="p-3.5">
+              <strong class="text-zinc-900 block">${s.name}</strong>
+              <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span>
+            </td>
+            <td class="p-3.5 font-bold text-zinc-900">Room ${s.room}</td>
+            <td class="p-3.5 font-semibold text-zinc-800"><a href="tel:${s.phone}" class="hover:underline"><i class="fa-solid fa-phone text-emerald-700 mr-1"></i> ${s.phone || '—'}</a></td>
+            <td class="p-3.5 text-zinc-600"><a href="tel:${s.guardian}" class="hover:underline"><i class="fa-solid fa-phone text-blue-700 mr-1"></i> ${s.guardian || '—'}</a></td>
+            <td class="p-3.5">
+              <span class="px-2.5 py-0.5 rounded text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}">
+                ${isPaid ? 'Paid' : 'Unpaid'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join("");
     }
+
+    function renderWardenOperations() {
+      const db = getDB();
+      const comps = db.complaints || [];
+      document.getElementById("wardenComplaintsList").innerHTML = comps.length === 0
+        ? `<p class="text-zinc-400 text-center py-6">No complaints registered.</p>`
+        : comps.map(c => `
+          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between gap-2">
+            <div>
+              <strong class="text-zinc-900">${c.studentName || c.studentId || 'Resident'} (Room ${c.room || '—'})</strong>
+              <p class="text-zinc-600 mt-0.5">${c.issue || c.text || ''}</p>
+            </div>
+            <button onclick="resolveWardenComplaint('${c.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold shrink-0 ${c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}">
+              ${c.status === 'Resolved' ? '✓ Resolved' : 'Mark Resolved'}
+            </button>
+          </div>
+        `).join("");
+
+      const leaves = db.leaves || [];
+      document.getElementById("wardenLeavesList").innerHTML = leaves.length === 0
+        ? `<p class="text-zinc-400 text-center py-6">No leave requests.</p>`
+        : leaves.map(l => `
+          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between gap-2">
+            <div>
+              <strong class="text-zinc-900">${l.studentName || l.studentId || 'Resident'}</strong>
+              <p class="text-zinc-600 text-[11px]">${l.reason || 'Leave'} • ${l.from || ''} to ${l.to || ''}</p>
+            </div>
+            <button onclick="approveWardenLeave('${l.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold shrink-0 ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-900 text-white'}">
+              ${l.status === 'Approved' ? '✓ Approved' : 'Approve'}
+            </button>
+          </div>
+        `).join("");
+    }
+
+    function resolveWardenComplaint(id) {
+      const db = getDB();
+      const c = (db.complaints || []).find(x => x.id === id);
+      if (c) { c.status = "Resolved"; saveDB(db, `Warden resolved complaint ${id}`, "Warden"); renderWardenConsole(); }
+    }
+
+    function approveWardenLeave(id) {
+      const db = getDB();
+      const l = (db.leaves || []).find(x => x.id === id);
+      if (l) { l.status = "Approved"; saveDB(db, `Warden approved leave ${id}`, "Warden"); renderWardenConsole(); }
+    }
+
+    window.renderWardenConsole = renderWardenConsole;
+    window.addEventListener("DOMContentLoaded", () => {
+      checkWardenSession();
+      renderWardenConsole();
+    });
   </script>
 </body>
 </html>
