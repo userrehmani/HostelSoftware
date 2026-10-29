@@ -1,316 +1,527 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome — Official Hostel Portal & Online Admission</title>
+  <title>Admin ERP Console — Hostel Management System</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- HTML2PDF for Vouchers, ID Cards & Audit Reports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="db.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .serif-heading { font-family: 'Merriweather', serif; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col">
 
-  <!-- 1. STICKY VVIP NAVIGATION BAR -->
-  <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <!-- Brand Logo & Dynamic Hostel Name -->
-      <a href="#" class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-indigo-500/20">
-          <i class="fa-solid fa-hotel"></i>
+  <!-- ===================================================================== -->
+  <!-- 🔒 ADMIN LOGIN GATE                                                   -->
+  <!-- ===================================================================== -->
+  <div id="adminLoginGate" class="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-7 shadow-2xl space-y-5 text-center">
+      <div class="w-14 h-14 rounded-xl bg-blue-900 text-white flex items-center justify-center text-2xl mx-auto shadow-md">
+        <i class="fa-solid fa-building-shield"></i>
+      </div>
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-900">Restricted Access</span>
+        <h2 id="gateHostelName" class="serif-heading text-xl font-black text-slate-900 mt-1">Admin ERP Console</h2>
+        <p class="text-xs text-slate-500 mt-1">Enter your administrator password to manage operations.</p>
+      </div>
+      <form onsubmit="verifyAdminLogin(event)" class="space-y-3 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Administrator Password</label>
+          <input id="adminPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-900 focus:bg-white outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm transition">
+          Unlock Admin Console →
+        </button>
+      </form>
+      <div class="pt-2 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+        <a href="index" class="hover:text-blue-900 font-medium">← Public Website</a>
+        <a href="student" class="hover:text-blue-900 font-medium">Student Portal →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🏛️ TOP INSTITUTIONAL BAR & NAVIGATION HEADER                          -->
+  <!-- ===================================================================== -->
+  <div class="bg-slate-900 text-slate-300 text-xs border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="bg-blue-900 text-blue-200 border border-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Executive ERP</span>
+        <span>Active Billing Month: <strong id="topBillingMonth" class="text-white">—</strong></span>
+      </div>
+      <div class="flex items-center gap-4 font-medium">
+        <a href="index" class="hover:text-white transition"><i class="fa-solid fa-globe mr-1"></i> Public Site</a>
+        <span class="text-slate-700">|</span>
+        <a href="student" class="hover:text-white transition">Student Portal</a>
+        <span class="text-slate-700">|</span>
+        <a href="warden" class="hover:text-white transition">Warden</a>
+        <span class="text-slate-700">|</span>
+        <button onclick="logoutAdmin()" class="text-rose-400 hover:text-rose-300 font-bold"><i class="fa-solid fa-power-off mr-1"></i> Lock</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-blue-900 text-white flex items-center justify-center text-lg font-bold shadow-xs">
+          <i class="fa-solid fa-landmark"></i>
         </div>
         <div>
-          <h1 id="pubHostelName" class="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">Loading Hostel...</h1>
-          <span class="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Verified Student Residence</span>
+          <h1 id="adminHostelTitle" class="serif-heading text-lg sm:text-xl font-black text-slate-900 leading-none">Hostel Administration</h1>
+          <p class="text-xs text-slate-500 mt-1">Real-Time Cloud Multi-Tenant ERP & Financial Ledger</p>
         </div>
-      </a>
-
-      <!-- Main Website Menu Links (Desktop) -->
-      <nav class="hidden md:flex items-center gap-6 text-xs font-bold text-slate-300">
-        <a href="#about" class="hover:text-indigo-400 transition">About Us</a>
-        <a href="#facilities" class="hover:text-indigo-400 transition">Facilities</a>
-        <a href="#rooms" class="hover:text-indigo-400 transition">Live Rooms & Beds</a>
-        <a href="#mess" class="hover:text-indigo-400 transition">Mess Menu</a>
-        <a href="#contact" class="hover:text-indigo-400 transition">Contact & Location</a>
-      </nav>
-
-      <!-- Action Buttons: Portals + Online Admission CTA -->
-      <div class="flex items-center gap-2">
-        <a href="student" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-user-graduate text-indigo-400 mr-1"></i> <span class="hidden sm:inline">Student</span> Login
-        </a>
-        <button onclick="openAdmissionModal()" class="bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/30 transition">
-          <i class="fa-solid fa-file-signature mr-1"></i> Online Admission
-        </button>
       </div>
+
+      <!-- Classic Navigation Tabs -->
+      <nav class="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+        <button onclick="switchAdminTab('overview')" id="tabBtn-overview" class="adm-tab bg-blue-900 text-white px-3.5 py-2 rounded-lg transition">
+          <i class="fa-solid fa-chart-pie mr-1"></i> Overview & Applications <span id="badgePendingApps" class="ml-1 bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full text-[10px]">0</span>
+        </button>
+        <button onclick="switchAdminTab('rooms')" id="tabBtn-rooms" class="adm-tab bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg transition">
+          <i class="fa-solid fa-bed mr-1"></i> Rooms & Visual Beds
+        </button>
+        <button onclick="switchAdminTab('students')" id="tabBtn-students" class="adm-tab bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg transition">
+          <i class="fa-solid fa-users mr-1"></i> Residents & Billing
+        </button>
+        <button onclick="switchAdminTab('finance')" id="tabBtn-finance" class="adm-tab bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg transition">
+          <i class="fa-solid fa-scale-balanced mr-1"></i> Expenses & Mess
+        </button>
+        <button onclick="switchAdminTab('settings')" id="tabBtn-settings" class="adm-tab bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg transition">
+          <i class="fa-solid fa-sliders mr-1"></i> Settings & Backup
+        </button>
+      </nav>
     </div>
   </header>
 
-  <!-- 2. HERO SECTION (COMPLETE INTRODUCTION & LIVE STATS) -->
-  <section id="about" class="relative overflow-hidden py-14 sm:py-20 border-b border-slate-900">
-    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/25 via-slate-950 to-slate-950 pointer-events-none"></div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+  <!-- ===================================================================== -->
+  <!-- 📊 MAIN ERP WORKSPACE                                                 -->
+  <!-- ===================================================================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
+
+    <!-- Executive KPI Summary Strip -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 block">Occupancy</span>
+        <strong id="kpiBeds" class="text-xl font-black text-slate-900 mt-0.5 block">0 / 0</strong>
+        <span id="kpiVacantText" class="text-[10px] font-bold text-emerald-700">0 Vacant Beds</span>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 block">Collected Fee</span>
+        <strong id="kpiCollected" class="text-xl font-black text-emerald-700 mt-0.5 block">Rs. 0</strong>
+        <span id="kpiPaidCount" class="text-[10px] text-slate-500">0 Paid Residents</span>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 block">Pending Dues</span>
+        <strong id="kpiPending" class="text-xl font-black text-amber-600 mt-0.5 block">Rs. 0</strong>
+        <span id="kpiUnpaidCount" class="text-[10px] text-rose-600 font-semibold">0 Unpaid</span>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 block">Month Expenses</span>
+        <strong id="kpiExpenses" class="text-xl font-black text-rose-600 mt-0.5 block">Rs. 0</strong>
+        <span class="text-[10px] text-slate-500">Operational Ledger</span>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 block">Net Profit</span>
+        <strong id="kpiProfit" class="text-xl font-black text-blue-900 mt-0.5 block">Rs. 0</strong>
+        <span class="text-[10px] text-slate-500">Collected - Expenses</span>
+      </div>
+      <div class="bg-blue-900 text-white rounded-xl p-4 shadow-xs flex flex-col justify-between">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-blue-200 font-bold block">Billing Cycle</span>
+          <strong class="text-xs font-bold block mt-0.5">1st of New Month</strong>
+        </div>
+        <button onclick="startNewBillingMonth()" class="mt-2 bg-white hover:bg-blue-50 text-blue-900 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold transition text-center">
+          <i class="fa-solid fa-rotate mr-1"></i> Start New Month
+        </button>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- TAB 1: OVERVIEW, ONLINE ADMISSION APPLICATIONS & COMPLAINTS         -->
+    <!-- =================================================================== -->
+    <section id="tab-overview" class="space-y-6">
       
-      <div class="lg:col-span-7 space-y-6">
-        <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 px-3.5 py-1.5 rounded-full text-xs font-bold">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Admissions Open for New Academic Session
-        </div>
-
-        <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight">
-          Premium, Secure & Peaceful Living at <span id="heroHostelTitle" class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Our Hostel</span>
-        </h2>
-
-        <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
-          Designed exclusively for university students and working professionals. Enjoy high-speed Wi-Fi, hygienic 3-time home-style mess, 24/7 CCTV security, standby power backup, and a disciplined study environment.
-        </p>
-
-        <!-- Primary CTA Buttons -->
-        <div class="flex flex-wrap items-center gap-3 pt-2">
-          <button onclick="openAdmissionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 rounded-2xl text-sm font-extrabold shadow-xl shadow-emerald-600/25 flex items-center gap-2 transition transform hover:-translate-y-0.5">
-            <i class="fa-solid fa-paper-plane"></i> Apply for Online Admission
+      <!-- 1A. ONLINE ADMISSION APPLICATIONS (WITH WORKING APPROVE & ALLOT) -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/60">
+          <div>
+            <h2 class="serif-heading text-base font-bold text-slate-900">
+              <i class="fa-solid fa-file-signature text-blue-900 mr-1.5"></i> Online Admission Applications
+            </h2>
+            <p class="text-xs text-slate-500">Applications submitted from the Public Website. Click <strong>Approve & Allot</strong> to assign a room and generate a Student Roll ID.</p>
+          </div>
+          <button onclick="switchAdminTab('students')" class="bg-blue-900 hover:bg-blue-800 text-white px-3.5 py-2 rounded-lg text-xs font-bold self-start sm:self-auto">
+            + Direct Manual Admission
           </button>
-          <a href="#rooms" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white px-5 py-3.5 rounded-2xl text-sm font-bold flex items-center gap-2 transition">
-            <i class="fa-solid fa-bed text-indigo-400"></i> Check Available Beds
-          </a>
-          <a id="heroWhatsAppBtn" href="#" target="_blank" class="bg-slate-900 hover:bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 px-4 py-3.5 rounded-2xl text-sm font-bold flex items-center gap-2 transition">
-            <i class="fa-brands fa-whatsapp text-base"></i> Chat on WhatsApp
-          </a>
         </div>
 
-        <!-- Quick Trust Highlights -->
-        <div class="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800/80 max-w-lg text-xs">
-          <div><strong class="text-white text-base block">24/7 Security</strong><span class="text-slate-400">CCTV & Biometric Gate</span></div>
-          <div><strong class="text-white text-base block">Hygienic Mess</strong><span class="text-slate-400">3 Fresh Meals Daily</span></div>
-          <div><strong class="text-white text-base block">Digital Portal</strong><span class="text-slate-400">Online Vouchers & QR ID</span></div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 text-slate-600 uppercase border-b border-slate-200">
+              <tr>
+                <th class="p-3.5">App ID & Date</th>
+                <th class="p-3.5">Applicant Details</th>
+                <th class="p-3.5">Phone & Guardian</th>
+                <th class="p-3.5">Requested Room</th>
+                <th class="p-3.5">Status</th>
+                <th class="p-3.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="applicationsTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Right Side: Live Hostel Availability Card -->
-      <div class="lg:col-span-5">
-        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+      <!-- 1B. PAYMENT TID VERIFICATION QUEUE & COMPLAINTS / LEAVES -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Complaints & Maintenance Desk -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="serif-heading text-sm font-bold text-slate-900"><i class="fa-solid fa-screwdriver-wrench text-amber-600 mr-1.5"></i> Resident Complaints</h3>
+            <span class="text-[11px] text-slate-400">Synced with Student & Warden Portals</span>
+          </div>
+          <div id="adminComplaintsList" class="space-y-2.5 max-h-72 overflow-y-auto text-xs"></div>
+        </div>
+
+        <!-- Leave Requests & Activity Logs -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="serif-heading text-sm font-bold text-slate-900"><i class="fa-solid fa-clock-rotate-left text-blue-900 mr-1.5"></i> Recent Audit Logs</h3>
+            <span class="text-[11px] text-slate-400">Live Activity Trail</span>
+          </div>
+          <div id="adminLogsList" class="space-y-2 max-h-72 overflow-y-auto text-xs font-mono"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- TAB 2: ROOMS MANAGEMENT & INTERACTIVE VISUAL BED MAP                -->
+    <!-- =================================================================== -->
+    <section id="tab-rooms" class="hidden space-y-6">
+      
+      <!-- Add New Room Form -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div class="border-b border-slate-100 pb-3">
+          <h3 class="serif-heading text-base font-bold text-slate-900"><i class="fa-solid fa-door-open text-blue-900 mr-1.5"></i> Create / Update Hostel Room</h3>
+          <p class="text-xs text-slate-500">Add rooms and bed capacity to automatically build the visual seat map on both Admin and Public portals.</p>
+        </div>
+
+        <form onsubmit="saveRoom(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs items-end">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Room No. *</label>
+            <input id="rmNo" type="text" required placeholder="e.g., 101" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:border-blue-900 outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Room Category *</label>
+            <select id="rmType" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:border-blue-900 outline-none">
+              <option value="Standard Shared">Standard Shared</option>
+              <option value="Executive AC">Executive AC</option>
+              <option value="2-Seater VIP">2-Seater VIP</option>
+              <option value="Single Cubicle">Single Cubicle</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Total Beds Capacity *</label>
+            <input id="rmCap" type="number" min="1" max="12" required placeholder="e.g., 4" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:border-blue-900 outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Default Bed Rent (Rs.) *</label>
+            <input id="rmRent" type="number" required placeholder="e.g., 5000" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:border-blue-900 outline-none" />
+          </div>
+          <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white py-2.5 px-4 rounded-lg font-bold shadow-xs transition">
+            <i class="fa-solid fa-plus mr-1"></i> Save Room
+          </button>
+        </form>
+      </div>
+
+      <!-- Interactive Visual Room & Bed Occupancy Map -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+          <div>
+            <h3 class="serif-heading text-base font-bold text-slate-900"><i class="fa-solid fa-bed text-blue-900 mr-1.5"></i> Live Visual Room & Bed Occupancy Map</h3>
+            <p class="text-xs text-slate-500">Click any <strong class="text-emerald-700">Vacant Bed</strong> to allot a new student, or click an <strong class="text-slate-800">Occupied Bed</strong> to print their Fee Voucher.</p>
+          </div>
+          <button onclick="splitRoomElectricityPrompt()" class="bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 px-3.5 py-2 rounded-lg text-xs font-bold transition self-start">
+            <i class="fa-solid fa-bolt text-amber-600 mr-1"></i> Split Room Sub-Meter Electricity
+          </button>
+        </div>
+
+        <div id="vvipBedMapGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- TAB 3: RESIDENTS DIRECTORY, MANUAL ALLOTMENT & BILLING LEDGER       -->
+    <!-- =================================================================== -->
+    <section id="tab-students" class="hidden space-y-6">
+      
+      <!-- Direct Student Admission Form -->
+      <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+          <div>
+            <h3 class="serif-heading text-base font-bold text-slate-900"><i class="fa-solid fa-user-plus text-blue-900 mr-1.5"></i> Enroll New Resident / Allot Bed</h3>
+            <p class="text-xs text-slate-500">Assign a room and custom agreed rent to generate a resident account.</p>
+          </div>
+        </div>
+
+        <form onsubmit="addStudentManual(event)" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Full Name *</label>
+            <input id="stuName" type="text" required placeholder="Resident Name" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">CNIC / B-Form *</label>
+            <input id="stuCnic" type="text" required placeholder="36302-0000000-0" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Student WhatsApp *</label>
+            <input id="stuPhone" type="text" required placeholder="03001234567" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Father / Guardian Phone *</label>
+            <input id="stuGuardian" type="text" required placeholder="03007654321" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Institute / Department</label>
+            <input id="stuUni" type="text" placeholder="University / Office" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Select Room *</label>
+            <select id="stuRoom" required onchange="syncRoomDefaultRent()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900"></select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Agreed Monthly Rent (Rs.) *</label>
+            <input id="stuRent" type="number" required placeholder="e.g., 5000" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Monthly Mess Fee (Rs.)</label>
+            <input id="stuMess" type="number" value="0" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Refundable Security (Rs.)</label>
+            <input id="stuSecurity" type="number" value="2000" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+          </div>
+          <div class="sm:col-span-3 flex items-end justify-end">
+            <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white px-6 py-2.5 rounded-lg font-bold shadow-xs transition">
+              <i class="fa-solid fa-check mr-1"></i> Register & Allot Seat
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Active Residents & Fee Ledger Table -->
+      <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
+          <div>
+            <h3 class="serif-heading text-base font-bold text-slate-900">Enrolled Residents & Fee Ledger</h3>
+            <p class="text-xs text-slate-500">All actions (Voucher, ID Card, WhatsApp Fee Reminder, Parent Alert, Room Shift, Mess Rebate, Clearance) are located directly in each student's row.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="searchStudentInput" oninput="renderStudentsTable()" type="text" placeholder="Search name, ID, room or phone..." class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 w-64 focus:border-blue-900 outline-none" />
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 text-slate-600 uppercase border-b border-slate-200">
+              <tr>
+                <th class="p-3.5">Resident & Roll ID</th>
+                <th class="p-3.5">Room</th>
+                <th class="p-3.5">Breakdown (Rent / Mess / Elec / Fine)</th>
+                <th class="p-3.5">Net Payable</th>
+                <th class="p-3.5">Status / TID</th>
+                <th class="p-3.5 text-right">Resident ERP Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- TAB 4: EXPENSES LEDGER & WEEKLY MESS SCHEDULE                       -->
+    <!-- =================================================================== -->
+    <section id="tab-finance" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Hostel Operational Expense Ledger -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <span class="text-[11px] text-indigo-400 font-bold uppercase">Real-Time Cloud Status</span>
-              <h3 class="text-lg font-extrabold text-white">Live Seat Availability</h3>
+              <h3 class="serif-heading text-base font-bold text-slate-900">Operational Expense Ledger</h3>
+              <p class="text-xs text-slate-500">Log kitchen ration, utility bills, staff salaries, and maintenance.</p>
             </div>
-            <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-extrabold">
-              <i class="fa-solid fa-bolt mr-1"></i> Live Sync
-            </span>
+            <button onclick="openMonthlyAuditPDF()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-xs font-bold">
+              <i class="fa-solid fa-file-pdf mr-1"></i> Audit Report PDF
+            </button>
           </div>
 
-          <div class="grid grid-cols-3 gap-3 text-center">
-            <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl">
-              <span class="text-[11px] text-slate-400 block">Total Capacity</span>
-              <strong id="statTotalBeds" class="text-2xl font-black text-white">0</strong>
-              <span class="text-[10px] text-slate-500 block">Beds</span>
-            </div>
-            <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl">
-              <span class="text-[11px] text-slate-400 block">Occupied</span>
-              <strong id="statOccupiedBeds" class="text-2xl font-black text-indigo-400">0</strong>
-              <span class="text-[10px] text-slate-500 block">Residents</span>
-            </div>
-            <div class="bg-emerald-950/30 border border-emerald-500/40 p-3.5 rounded-2xl">
-              <span class="text-[11px] text-emerald-300 block font-bold">Vacant Beds</span>
-              <strong id="statEmptyBeds" class="text-2xl font-black text-emerald-400">0</strong>
-              <span class="text-[10px] text-emerald-300/80 block">Available Now</span>
-            </div>
+          <form onsubmit="addExpense(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <input id="expTitle" type="text" required placeholder="Expense title (e.g., Mess Ration)" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+            <input id="expAmount" type="number" required placeholder="Amount (Rs.)" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
+            <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white rounded-lg font-bold py-2 px-3">+ Add Expense</button>
+          </form>
+
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                <tr><th class="p-2.5">Expense Head</th><th class="p-2.5">Date</th><th class="p-2.5 text-right">Amount</th><th class="p-2.5 text-right">Del</th></tr>
+              </thead>
+              <tbody id="expensesTableBody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Weekly Mess Menu Editor -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="serif-heading text-base font-bold text-slate-900">Weekly Mess Menu Configuration</h3>
+            <p class="text-xs text-slate-500">Published directly to the Public Website and Student Portal.</p>
           </div>
 
-          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs space-y-2">
-            <div class="flex justify-between"><span class="text-slate-400">Online Fee Payment (JazzCash/Easypaisa):</span><strong id="statJazzCash" class="text-emerald-400 font-mono">Not Set</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Gate Entry System:</span><strong class="text-white">QR Code Resident Pass</strong></div>
-          </div>
+          <form onsubmit="saveMessDay(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+            <select id="messDay" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-slate-900 font-semibold">
+              <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+            </select>
+            <input id="messB" type="text" required placeholder="Breakfast" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-slate-900" />
+            <input id="messL" type="text" required placeholder="Lunch" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-slate-900" />
+            <div class="flex gap-1.5">
+              <input id="messD" type="text" required placeholder="Dinner" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 text-slate-900" />
+              <button type="submit" class="bg-blue-900 text-white px-3 rounded-lg font-bold">Save</button>
+            </div>
+          </form>
 
-          <button onclick="openAdmissionModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-2xl font-extrabold text-xs uppercase tracking-wider shadow-lg transition">
-            Reserve Your Bed Online Now →
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                <tr><th class="p-2.5">Day</th><th class="p-2.5">Breakfast</th><th class="p-2.5">Lunch</th><th class="p-2.5">Dinner</th></tr>
+              </thead>
+              <tbody id="adminMessTable" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- TAB 5: INSTITUTION SETTINGS, NOTICE BANNER & CLOUD BACKUP           -->
+    <!-- =================================================================== -->
+    <section id="tab-settings" class="hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-6 max-w-4xl">
+        <div class="border-b border-slate-200 pb-3">
+          <h3 class="serif-heading text-lg font-bold text-slate-900"><i class="fa-solid fa-gear text-blue-900 mr-1.5"></i> Institution Profile & Security Settings</h3>
+          <p class="text-xs text-slate-500">Configure your hostel name, payment account, and portal passwords.</p>
+        </div>
+
+        <form onsubmit="saveAdminSettings(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Official Hostel Name *</label>
+            <input id="setHostelName" type="text" required class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-slate-900 font-semibold" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">JazzCash / Easypaisa / Bank Details *</label>
+            <input id="setJazzCash" type="text" required placeholder="0300-1234567 (Title: Ali)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Official Admin WhatsApp No.</label>
+            <input id="setWhatsApp" type="text" placeholder="03001234567" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Active Billing Month Label</label>
+            <input id="setMonth" type="text" placeholder="November 2026" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-slate-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Admin Console Password *</label>
+            <input id="setAdminPass" type="text" required class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-slate-900 font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Warden Console Password *</label>
+            <input id="setWardenPass" type="text" required class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2.5 text-slate-900 font-mono" />
+          </div>
+          <div class="sm:col-span-2 flex justify-end pt-2">
+            <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white px-6 py-2.5 rounded-lg font-bold shadow-xs transition">
+              Save Institution Settings
+            </button>
+          </div>
+        </form>
+
+        <!-- Danger Zone & Auto-Injected Backup/Notice Area -->
+        <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
+          <div>
+            <h4 class="text-xs font-bold text-rose-700">Reset All Hostel Data</h4>
+            <p class="text-[11px] text-slate-500">Permanently wipe rooms, students, and financial records for this tenant.</p>
+          </div>
+          <button onclick="wipeAllData()" class="text-xs bg-rose-50 hover:bg-rose-600 border border-rose-300 px-3.5 py-2 rounded-lg text-rose-700 hover:text-white font-bold transition">
+            Wipe All Data
           </button>
         </div>
       </div>
+    </section>
 
-    </div>
-  </section>
-
-  <!-- 3. FACILITIES & AMENITIES SECTION -->
-  <section id="facilities" class="py-14 max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
-    <div class="text-center max-w-2xl mx-auto space-y-2">
-      <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">Why Choose Us</span>
-      <h2 class="text-2xl sm:text-3xl font-black text-white">First-Class Hostel Facilities</h2>
-      <p class="text-xs sm:text-sm text-slate-400">Everything you need for a comfortable stay and focused academic performance.</p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-indigo-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center text-lg"><i class="fa-solid fa-wifi"></i></div>
-        <h3 class="text-sm font-bold text-white">High-Speed Fiber Wi-Fi</h3>
-        <p class="text-slate-400 leading-relaxed">Dedicated routers on every floor for uninterrupted online classes, coding, and study.</p>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-emerald-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-utensils"></i></div>
-        <h3 class="text-sm font-bold text-white">Hygienic 3-Time Mess</h3>
-        <p class="text-slate-400 leading-relaxed">Fresh breakfast, lunch, and dinner prepared daily under strict quality supervision.</p>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-amber-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg"><i class="fa-solid fa-bolt"></i></div>
-        <h3 class="text-sm font-bold text-white">Solar & UPS Backup</h3>
-        <p class="text-slate-400 leading-relaxed">24/7 electricity backup with transparent sub-meter room billing system.</p>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-cyan-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg"><i class="fa-solid fa-shield-halved"></i></div>
-        <h3 class="text-sm font-bold text-white">CCTV & Warden Security</h3>
-        <p class="text-slate-400 leading-relaxed">Round-the-clock security guard, CCTV surveillance, and digital QR gate pass entry.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4. LIVE VISUAL ROOMS & CINEMA-STYLE BED MAP -->
-  <section id="rooms" class="py-14 bg-slate-900/40 border-y border-slate-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <span class="text-xs font-extrabold uppercase tracking-widest text-emerald-400">Interactive Seat Selection</span>
-          <h2 class="text-2xl sm:text-3xl font-black text-white mt-1">Live Rooms & Vacant Bed Map</h2>
-          <p class="text-xs text-slate-400 mt-1">Click on any <span class="text-emerald-400 font-bold">🟢 Green Vacant Bed</span> below to directly apply for that exact room and bed!</p>
-        </div>
-        <div class="flex gap-2 text-xs font-bold">
-          <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-xl">🟢 Vacant (Click to Book)</span>
-          <span class="bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3 py-1.5 rounded-xl">🔴 Booked</span>
-        </div>
-      </div>
-
-      <!-- Dynamic Visual Room & Bed Cards -->
-      <div id="publicRoomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-    </div>
-  </section>
-
-  <!-- 5. WEEKLY MESS MENU SECTION -->
-  <section id="mess" class="py-14 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div>
-        <span class="text-xs font-extrabold uppercase tracking-widest text-amber-400">Healthy & Delicious</span>
-        <h2 class="text-2xl font-black text-white">Weekly Hostel Mess Schedule</h2>
-      </div>
-      <span class="text-xs text-slate-400"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Mess Rebate available on 5+ approved leave days</span>
-    </div>
-
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
-          <tr>
-            <th class="p-3.5">Day</th>
-            <th class="p-3.5">Breakfast (7:30 AM)</th>
-            <th class="p-3.5">Lunch (1:30 PM)</th>
-            <th class="p-3.5">Dinner (8:00 PM)</th>
-          </tr>
-        </thead>
-        <tbody id="publicMessTable" class="divide-y divide-slate-800/70"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- 6. CONTACT, RULES & STAFF LOGIN BAR -->
-  <section id="contact" class="py-14 bg-slate-900/60 border-t border-slate-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-      
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-3">
-        <h3 class="text-base font-extrabold text-white"><i class="fa-solid fa-phone-volume text-indigo-400 mr-2"></i> Contact & Helpline</h3>
-        <p class="text-slate-400">Have questions about admission, room rent, or facilities? Contact our administration directly:</p>
-        <div class="space-y-1.5 pt-2 text-slate-200">
-          <div><strong>Hostel Name:</strong> <span id="contactHostelName">Our Hostel</span></div>
-          <div><strong>JazzCash / Official Contact:</strong> <span id="contactPhone" class="text-emerald-400 font-mono">Not Set</span></div>
-        </div>
-      </div>
-
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-3">
-        <h3 class="text-base font-extrabold text-white"><i class="fa-solid fa-scale-balanced text-amber-400 mr-2"></i> Key Hostel Rules</h3>
-        <ul class="space-y-1.5 text-slate-300 list-disc list-inside">
-          <li>Monthly fee due before the <strong>5th of every month</strong> (Rs. 200 fine after 5th).</li>
-          <li>Main gate closes strictly at <strong>10:30 PM</strong> (Late entry requires Warden permission).</li>
-          <li>Visitors are only allowed in the guest waiting area after registration.</li>
-          <li>Refundable security deposit is settled upon official clearance certificate.</li>
-        </ul>
-      </div>
-
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-4">
-        <div class="space-y-2">
-          <h3 class="text-base font-extrabold text-white"><i class="fa-solid fa-user-lock text-emerald-400 mr-2"></i> Official Portals</h3>
-          <p class="text-slate-400">Quick access for registered residents, hostel warden, and administration:</p>
-        </div>
-        <div class="grid grid-cols-1 gap-2">
-          <a href="student" class="bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/40 text-indigo-300 hover:text-white py-2.5 px-4 rounded-xl font-bold text-center transition">
-            🎓 Resident Student Portal →
-          </a>
-          <div class="grid grid-cols-2 gap-2">
-            <a href="warden" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 py-2 px-3 rounded-xl font-bold text-center transition">
-              👮 Warden Portal
-            </a>
-            <a href="admin" class="bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-300 py-2 px-3 rounded-xl font-bold text-center transition">
-              👑 Admin Login
-            </a>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
+  </main>
 
   <!-- ===================================================================== -->
-  <!-- 📝 ONLINE ADMISSION POPUP MODAL (Opens when clicking Online Admission) -->
+  <!-- ✅ SMART APPROVE & ALLOT MODAL (100% RELIABLE SEAT ALLOTMENT)          -->
   <!-- ===================================================================== -->
-  <div id="admissionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 overflow-y-auto">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-8">
-      <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+  <div id="approveAllotModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white border border-slate-300 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+      <div class="flex justify-between items-start border-b border-slate-200 pb-3">
         <div>
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">Instant Cloud Application</span>
-          <h3 class="text-lg font-black text-white">Online Hostel Admission Form</h3>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Seat Confirmation</span>
+          <h3 class="serif-heading text-base font-black text-slate-900 mt-0.5">Approve & Allot Hostel Room</h3>
         </div>
-        <button onclick="closeAdmissionModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeApproveModal()" class="text-slate-400 hover:text-slate-700 text-xl leading-none">&times;</button>
       </div>
 
-      <form id="onlineAdmissionForm" onsubmit="submitOnlineAdmission(event)" class="space-y-3.5 text-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-bold mb-1">Full Name *</label>
-            <input id="appName" type="text" required placeholder="e.g., Ali Raza" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-slate-300 font-bold mb-1">CNIC / B-Form *</label>
-            <input id="appCnic" type="text" required placeholder="36302-1234567-1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
-          </div>
+      <form onsubmit="confirmApproveAndAllot(event)" class="space-y-3.5">
+        <input type="hidden" id="allotAppId" />
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1">
+          <div>Applicant: <strong id="allotAppName" class="text-slate-900 text-sm">—</strong></div>
+          <div class="text-slate-500">CNIC: <span id="allotAppCnic">—</span> | Phone: <span id="allotAppPhone">—</span></div>
+          <div class="text-blue-900 font-semibold">Requested Preference: <span id="allotAppPref">—</span></div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-bold mb-1">Student WhatsApp Phone *</label>
-            <input id="appPhone" type="text" required placeholder="03001234567" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-slate-300 font-bold mb-1">Father / Guardian Phone *</label>
-            <input id="appGuardian" type="text" required placeholder="03017654321" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
-          </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Select Room to Allot *</label>
+          <select id="allotRoomSelect" required onchange="updateAllotModalRent()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 font-semibold"></select>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-slate-300 font-bold mb-1">University / Workplace *</label>
-            <input id="appUni" type="text" required placeholder="e.g., BZU Multan" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
+            <label class="block font-bold text-slate-700 mb-1">Agreed Monthly Rent (Rs.) *</label>
+            <input id="allotRentInput" type="number" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-bold" />
           </div>
           <div>
-            <label class="block text-slate-300 font-bold mb-1">Preferred Available Room *</label>
-            <select id="appRoomSelect" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none"></select>
+            <label class="block font-bold text-slate-700 mb-1">Monthly Mess Fee (Rs.)</label>
+            <input id="allotMessInput" type="number" value="0" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
           </div>
         </div>
 
         <div>
-          <label class="block text-slate-300 font-bold mb-1">Special Note / Mess Preference (Optional)</label>
-          <input id="appNote" type="text" placeholder="e.g., Need ground floor bed + 3-time mess" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
+          <label class="block font-bold text-slate-700 mb-1">Refundable Security Deposit (Rs.)</label>
+          <input id="allotSecInput" type="number" value="2000" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900" />
         </div>
 
-        <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="closeAdmissionModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold">Cancel</button>
-          <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-lg">
-            <i class="fa-solid fa-check-circle mr-1"></i> Submit Application
+        <div class="pt-2 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" onclick="closeApproveModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold shadow-xs">
+            <i class="fa-solid fa-check-circle mr-1"></i> Confirm & Allot Seat
           </button>
         </div>
       </form>
@@ -318,165 +529,716 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 🚀 DYNAMIC WEBSITE RENDERER & BED SELECTION ENGINE                    -->
+  <!-- 🚀 ADMIN ERP JAVASCRIPT ENGINE                                        -->
   <!-- ===================================================================== -->
   <script>
-    function openAdmissionModal(preselectedRoom = "") {
-      const modal = document.getElementById("admissionModal");
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-      if (preselectedRoom) {
-        const sel = document.getElementById("appRoomSelect");
-        if (sel) sel.value = String(preselectedRoom);
+    // 1. Admin Session Auth
+    function checkAdminSession() {
+      const db = getDB();
+      document.getElementById("gateHostelName").innerText = db.settings.hostelName || "Admin ERP Console";
+      if (sessionStorage.getItem("ADMIN_AUTH_" + TENANT_ID) === "true") {
+        document.getElementById("adminLoginGate").classList.add("hidden");
       }
     }
 
-    function closeAdmissionModal() {
-      const modal = document.getElementById("admissionModal");
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
+    function verifyAdminLogin(e) {
+      e.preventDefault();
+      const db = getDB();
+      const pass = document.getElementById("adminPassInput").value.trim();
+      if (pass === String(db.settings.adminPass || "123")) {
+        sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true");
+        document.getElementById("adminLoginGate").classList.add("hidden");
+        renderAdminAll();
+      } else {
+        alert("Incorrect Administrator Password!");
+      }
     }
 
-    function loadPublicSite() {
+    function logoutAdmin() {
+      sessionStorage.removeItem("ADMIN_AUTH_" + TENANT_ID);
+      location.reload();
+    }
+
+    // 2. Tab Navigation
+    function switchAdminTab(tabId) {
+      ["overview", "rooms", "students", "finance", "settings"].forEach(id => {
+        document.getElementById("tab-" + id).classList.toggle("hidden", id !== tabId);
+        const btn = document.getElementById("tabBtn-" + id);
+        if (btn) {
+          btn.className = id === tabId
+            ? "adm-tab bg-blue-900 text-white px-3.5 py-2 rounded-lg transition font-bold"
+            : "adm-tab bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-lg transition font-bold";
+        }
+      });
+      renderAdminAll();
+    }
+
+    // 3. Master Render Function
+    function renderAdminAll() {
       const db = getDB();
       const set = db.settings || {};
       const m = getLiveMetrics();
 
-      // 1. Update Hostel Name & Contact Info Everywhere
-      const hName = set.hostelName || "Our Boys/Girls Hostel";
-      document.title = `${hName} — Official Website & Online Admission`;
-      document.getElementById("pubHostelName").innerText = hName;
-      document.getElementById("heroHostelTitle").innerText = hName;
-      document.getElementById("contactHostelName").innerText = hName;
-      document.getElementById("statJazzCash").innerText = set.jazzcash || "Contact Admin";
-      document.getElementById("contactPhone").innerText = set.jazzcash || "Contact Admin";
+      // Header & KPIs
+      document.getElementById("adminHostelTitle").innerText = set.hostelName || "Hostel Administration";
+      document.getElementById("topBillingMonth").innerText = set.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      document.getElementById("kpiBeds").innerText = `${m.occupiedBeds} / ${m.totalCapacity}`;
+      document.getElementById("kpiVacantText").innerText = `${m.emptyBeds} Vacant Beds`;
+      document.getElementById("kpiCollected").innerText = `Rs. ${m.collectedFee.toLocaleString()}`;
+      document.getElementById("kpiPaidCount").innerText = `${m.paidCount} Paid Residents`;
+      document.getElementById("kpiPending").innerText = `Rs. ${m.pendingFee.toLocaleString()}`;
+      document.getElementById("kpiUnpaidCount").innerText = `${m.unpaidCount} Unpaid`;
+      document.getElementById("kpiExpenses").innerText = `Rs. ${m.totalExpenses.toLocaleString()}`;
+      document.getElementById("kpiProfit").innerText = `Rs. ${m.netProfit.toLocaleString()}`;
+      document.getElementById("badgePendingApps").innerText = m.pendingApps;
 
-      // Setup Hero WhatsApp Inquiry Button
-      const rawPhone = (set.adminWhatsApp || set.jazzcash || "").replace(/[^0-9]/g, "");
-      const waPhone = rawPhone ? ("92" + rawPhone.replace(/^0/, "")) : "";
-      const waBtn = document.getElementById("heroWhatsAppBtn");
-      if (waPhone.length > 5) {
-        waBtn.href = `https://wa.me/${waPhone}?text=${encodeURIComponent("Salam! I visited the website of " + hName + " and want to inquire about room admission.")}`;
-      } else {
-        waBtn.onclick = (e) => { e.preventDefault(); openAdmissionModal(); };
+      renderApplicationsTable();
+      renderVVIPBedMap();
+      populateRoomDropdowns();
+      renderStudentsTable();
+      renderComplaintsAndLogs();
+      renderExpensesAndMess();
+      populateSettingsForm();
+    }
+
+    // ========================================================================
+    // 4. ONLINE ADMISSION APPLICATIONS & BULLETPROOF "APPROVE & ALLOT"
+    // ========================================================================
+    function renderApplicationsTable() {
+      const db = getDB();
+      const tbody = document.getElementById("applicationsTableBody");
+      const apps = db.applications || [];
+
+      if (apps.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">No online admission applications received yet.</td></tr>`;
+        return;
       }
 
-      // 2. Update Hero Live Occupancy Stats
-      document.getElementById("statTotalBeds").innerText = m.totalCapacity;
-      document.getElementById("statOccupiedBeds").innerText = m.occupiedBeds;
-      document.getElementById("statEmptyBeds").innerText = m.emptyBeds;
+      tbody.innerHTML = apps.map(app => {
+        const reqRoom = app.room || app.roomPref || "Any Available";
+        const isPending = app.status === "Pending";
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3.5 font-mono text-[11px] text-slate-500">
+              <strong class="text-slate-800 block">${app.id}</strong>
+              ${app.date || ''}
+            </td>
+            <td class="p-3.5">
+              <strong class="text-slate-900 text-sm block">${app.name}</strong>
+              <span class="text-slate-500">CNIC: ${app.cnic || '—'} • ${app.uni || ''}</span>
+              ${app.note ? `<span class="block text-[11px] text-blue-900 mt-0.5">Note: "${app.note}"</span>` : ''}
+            </td>
+            <td class="p-3.5">
+              <div class="font-semibold text-slate-800"><i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i> ${app.phone}</div>
+              <div class="text-slate-500 text-[11px]">Guardian: ${app.guardian || '—'}</div>
+            </td>
+            <td class="p-3.5 font-bold text-blue-900">Room ${reqRoom}</td>
+            <td class="p-3.5">
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${isPending ? 'bg-amber-100 text-amber-800' : app.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}">
+                ${app.status || 'Pending'}
+              </span>
+            </td>
+            <td class="p-3.5 text-right space-x-1.5 whitespace-nowrap">
+              ${isPending ? `
+                <button type="button" onclick="openApproveModal('${app.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold transition shadow-2xs">
+                  <i class="fa-solid fa-check mr-1"></i> Approve & Allot
+                </button>
+                <button type="button" onclick="rejectApplication('${app.id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 px-2.5 py-1.5 rounded-lg font-bold transition">
+                  Reject
+                </button>
+              ` : `
+                <button type="button" onclick="deleteApplication('${app.id}')" class="text-slate-400 hover:text-rose-600 px-2 py-1">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
 
-      // 3. Render Visual Rooms & Cinema-Style Bed Map + Populate Dropdown
-      const roomsGrid = document.getElementById("publicRoomsGrid");
-      const roomSelect = document.getElementById("appRoomSelect");
+    // Opens the Smart Allot Modal when clicking "Approve & Allot"
+    function openApproveModal(appId) {
+      const db = getDB();
+      const app = (db.applications || []).find(a => a.id === appId);
+      if (!app) return alert("Application record not found!");
+
+      const rooms = db.rooms || [];
+      if (rooms.length === 0) {
+        alert("Please create at least one Room in the 'Rooms & Visual Beds' tab first before allotting a student!");
+        switchAdminTab("rooms");
+        return;
+      }
+
+      const activeStudents = (db.students || []).filter(s => s.status === "Active");
+      const sel = document.getElementById("allotRoomSelect");
+      sel.innerHTML = "";
+
+      const preferredRoom = String(app.room || app.roomPref || "").trim();
+      let hasAvailableRoom = false;
+
+      rooms.forEach(r => {
+        const occ = activeStudents.filter(s => String(s.room) === String(r.no)).length;
+        const free = Math.max(0, Number(r.capacity || 0) - occ);
+        if (free > 0) {
+          hasAvailableRoom = true;
+          const isSelected = String(r.no) === preferredRoom ? "selected" : "";
+          sel.innerHTML += `<option value="${r.no}" data-rent="${r.rent || 0}" ${isSelected}>Room ${r.no} (${r.type || 'Standard'} — ${free} Beds Free — Rs. ${r.rent || 0})</option>`;
+        }
+      });
+
+      if (!hasAvailableRoom) {
+        return alert("All existing rooms are currently FULL! Please increase bed capacity or add a new room first.");
+      }
+
+      document.getElementById("allotAppId").value = app.id;
+      document.getElementById("allotAppName").innerText = app.name;
+      document.getElementById("allotAppCnic").innerText = app.cnic || "—";
+      document.getElementById("allotAppPhone").innerText = app.phone || "—";
+      document.getElementById("allotAppPref").innerText = preferredRoom ? `Room ${preferredRoom}` : "Any Available Room";
+
+      updateAllotModalRent();
+
+      const modal = document.getElementById("approveAllotModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function updateAllotModalRent() {
+      const sel = document.getElementById("allotRoomSelect");
+      const opt = sel.options[sel.selectedIndex];
+      if (opt) {
+        document.getElementById("allotRentInput").value = opt.getAttribute("data-rent") || 0;
+      }
+    }
+
+    function closeApproveModal() {
+      const modal = document.getElementById("approveAllotModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    // Finalizes Approval, Creates Resident Roll ID, Updates Bed Count & Offers WhatsApp Welcome
+    function confirmApproveAndAllot(e) {
+      e.preventDefault();
+      const db = getDB();
+      const appId = document.getElementById("allotAppId").value;
+      const app = (db.applications || []).find(a => a.id === appId);
+      if (!app) return;
+
+      const selectedRoom = document.getElementById("allotRoomSelect").value;
+      const agreedRent = Number(document.getElementById("allotRentInput").value || 0);
+      const messFee = Number(document.getElementById("allotMessInput").value || 0);
+      const secDeposit = Number(document.getElementById("allotSecInput").value || 0);
+
+      // Generate Unique Student Roll ID (ST-101, ST-102...)
+      const nextNum = 101 + (db.students ? db.students.length : 0);
+      const newRollId = "ST-" + nextNum;
+
+      const newStudent = {
+        id: newRollId,
+        name: app.name,
+        cnic: app.cnic || "",
+        phone: app.phone || "",
+        guardian: app.guardian || "",
+        uni: app.uni || "",
+        room: selectedRoom,
+        rent: agreedRent,
+        mess: messFee,
+        elec: 0,
+        otherCharges: 0,
+        discount: 0,
+        security: secDeposit,
+        feeStatus: "Unpaid",
+        status: "Active",
+        joinedDate: new Date().toLocaleDateString("en-GB")
+      };
+
+      db.students = db.students || [];
+      db.students.unshift(newStudent);
+      app.status = "Approved";
+
+      saveDB(db, `Approved application ${app.id} & allotted Room ${selectedRoom} to ${newStudent.name} (${newRollId})`, "Admin");
+      closeApproveModal();
+      renderAdminAll();
+
+      // Offer 1-Click WhatsApp Welcome Message with Roll ID & Student Portal Link
+      if (confirm(`✅ Seat Allotted Successfully!\n\nResident: ${newStudent.name}\nRoll ID: ${newRollId}\nRoom: ${selectedRoom}\n\nClick OK to send their Roll ID & Portal Login Link on WhatsApp:`)) {
+        const cleanPhone = "92" + (newStudent.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "");
+        const stuPortalUrl = `${window.location.origin}/student?hostel=${TENANT_ID}`;
+        const msg = `*ADMISSION CONFIRMED — ${db.settings.hostelName}*\n\nCongratulations *${newStudent.name}*!\nYour hostel admission has been approved.\n\n🎓 *Roll ID:* ${newRollId}\n🚪 *Allotted Room:* Room ${selectedRoom}\n💰 *Monthly Rent:* Rs. ${agreedRent.toLocaleString()}\n\n🔗 *Student Portal Login:*\n${stuPortalUrl}\n*(Login using your Roll ID: ${newRollId} or CNIC)*`;
+        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+      }
+    }
+
+    function rejectApplication(appId) {
+      const db = getDB();
+      const app = (db.applications || []).find(a => a.id === appId);
+      if (!app) return;
+      if (confirm(`Reject admission application from ${app.name}?`)) {
+        app.status = "Rejected";
+        saveDB(db, `Rejected application ${app.id} (${app.name})`, "Admin");
+        renderAdminAll();
+      }
+    }
+
+    function deleteApplication(appId) {
+      const db = getDB();
+      db.applications = (db.applications || []).filter(a => a.id !== appId);
+      saveDB(db, `Deleted application record ${appId}`, "Admin");
+      renderAdminAll();
+    }
+
+    // Alias in case any external script calls approveApp()
+    window.approveApp = openApproveModal;
+
+    // ========================================================================
+    // 5. ROOMS & VISUAL BED OCCUPANCY MAP
+    // ========================================================================
+    function saveRoom(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.rooms = db.rooms || [];
+
+      const no = document.getElementById("rmNo").value.trim();
+      const type = document.getElementById("rmType").value;
+      const capacity = Number(document.getElementById("rmCap").value || 1);
+      const rent = Number(document.getElementById("rmRent").value || 0);
+
+      const existing = db.rooms.find(r => String(r.no) === String(no));
+      if (existing) {
+        existing.type = type;
+        existing.capacity = capacity;
+        existing.rent = rent;
+      } else {
+        db.rooms.push({ no, type, capacity, rent });
+      }
+
+      saveDB(db, `Saved Room ${no} (${capacity} beds @ Rs. ${rent})`, "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function deleteRoom(roomNo) {
+      const db = getDB();
+      const occ = (db.students || []).filter(s => s.status === "Active" && String(s.room) === String(roomNo)).length;
+      if (occ > 0) return alert(`Cannot delete Room ${roomNo} because ${occ} active student(s) are currently allotted to it!`);
+      if (confirm(`Delete Room ${roomNo}?`)) {
+        db.rooms = db.rooms.filter(r => String(r.no) !== String(roomNo));
+        saveDB(db, `Deleted Room ${roomNo}`, "Admin");
+        renderAdminAll();
+      }
+    }
+
+    function renderVVIPBedMap() {
+      const grid = document.getElementById("vvipBedMapGrid");
+      if (!grid) return;
+      const db = getDB();
+      const rooms = db.rooms || [];
       const activeStudents = (db.students || []).filter(s => s.status === "Active");
 
-      roomsGrid.innerHTML = "";
-      roomSelect.innerHTML = `<option value="">-- Select Available Room --</option>`;
-
-      if (!db.rooms || db.rooms.length === 0) {
-        roomsGrid.innerHTML = `<div class="col-span-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-xs">Rooms are being updated by Administration. You can still submit an Online Admission request!</div>`;
-        roomSelect.innerHTML = `<option value="Any Available">Any Available Room</option>`;
-      } else {
-        db.rooms.forEach(room => {
-          const cap = Number(room.capacity || 0);
-          const occList = activeStudents.filter(s => String(s.room) === String(room.no));
-          const freeBeds = Math.max(0, cap - occList.length);
-          const isFull = freeBeds === 0;
-
-          if (!isFull) {
-            roomSelect.innerHTML += `<option value="${room.no}">Room ${room.no} (${room.type || 'Standard'} — ${freeBeds} Beds Free — Rs. ${room.rent || 0})</option>`;
-          }
-
-          let bedsHTML = "";
-          for (let i = 0; i < cap; i++) {
-            const bedNum = i + 1;
-            const isOccupied = i < occList.length;
-            if (isOccupied) {
-              bedsHTML += `
-                <div class="bg-rose-950/30 border border-rose-500/30 rounded-xl p-2.5 flex items-center justify-between text-xs opacity-75">
-                  <span class="font-bold text-rose-300"><i class="fa-solid fa-bed mr-1.5"></i> Bed #${bedNum}</span>
-                  <span class="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">Occupied</span>
-                </div>`;
-            } else {
-              bedsHTML += `
-                <button type="button" onclick="openAdmissionModal('${room.no}')" class="w-full bg-emerald-950/30 hover:bg-emerald-600 border border-dashed border-emerald-500/50 hover:border-emerald-400 rounded-xl p-2.5 flex items-center justify-between text-xs text-emerald-300 hover:text-white transition group">
-                  <span class="font-bold"><i class="fa-solid fa-bed mr-1.5"></i> Bed #${bedNum} — Vacant</span>
-                  <span class="text-[10px] bg-emerald-500/20 group-hover:bg-white/20 px-2 py-0.5 rounded font-extrabold">Book Bed →</span>
-                </button>`;
-            }
-          }
-
-          roomsGrid.innerHTML += `
-            <div class="bg-slate-900 border ${isFull ? 'border-slate-800' : 'border-emerald-500/30'} rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-lg">
-              <div class="flex justify-between items-start border-b border-slate-800 pb-3">
-                <div>
-                  <span class="text-[10px] uppercase font-extrabold text-indigo-400">${room.type || 'Standard Room'}</span>
-                  <h3 class="text-lg font-black text-white">Room ${room.no}</h3>
-                  <p class="text-xs text-slate-400">Monthly Rent: <strong class="text-emerald-400">Rs. ${Number(room.rent || 0).toLocaleString()}</strong> / bed</p>
-                </div>
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${isFull ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}">
-                  ${isFull ? '🔴 FULL' : `🟢 ${freeBeds} BEDS AVAILABLE`}
-                </span>
-              </div>
-              <div class="space-y-2">${bedsHTML}</div>
-            </div>
-          `;
-        });
+      if (rooms.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs">No rooms added yet. Use the form above to add your first room.</div>`;
+        return;
       }
 
-      // 4. Render Weekly Mess Menu
-      const messTbody = document.getElementById("publicMessTable");
-      const defaultMess = [
-        { day: "Monday", b: "Paratha, Omelette & Tea", l: "Seasonal Veg & Roti", d: "Chicken Qorma & Naan" },
-        { day: "Tuesday", b: "Chana, Naan & Tea", l: "Daal Chawal & Salad", d: "Aloo Qeema & Roti" },
-        { day: "Wednesday", b: "Paratha, Fried Egg & Tea", l: "Kari Pakora & Rice", d: "Chicken Biryani & Raita" },
-        { day: "Thursday", b: "Halwa Puri / Chana & Tea", l: "Mix Sabzi & Roti", d: "Daal Mash Fry & Roti" },
-        { day: "Friday", b: "Paratha, Anda & Tea", l: "Special Beef/Chicken Pulao", d: "Chicken Karahi & Naan" },
-        { day: "Saturday", b: "Aloo Paratha & Yogurt", l: "White Chana & Roti", d: "Kofta Curry & Roti" },
-        { day: "Sunday", b: "Special Sunday Nashta", l: "Light Lunch / Fruit", d: "Special BBQ / Zarda & Biryani" }
-      ];
-      const menuList = (db.messMenu && db.messMenu.length > 0) ? db.messMenu : defaultMess;
-      messTbody.innerHTML = menuList.map(m => `
-        <tr class="hover:bg-slate-800/40">
-          <td class="p-3.5 font-extrabold text-indigo-300">${m.day}</td>
-          <td class="p-3.5 text-slate-300">${m.b || m.breakfast || '-'}</td>
-          <td class="p-3.5 text-slate-300">${m.l || m.lunch || '-'}</td>
-          <td class="p-3.5 font-semibold text-emerald-300">${m.d || m.dinner || '-'}</td>
-        </tr>
+      grid.innerHTML = rooms.map(room => {
+        const cap = Number(room.capacity || 0);
+        const occupants = activeStudents.filter(s => String(s.room) === String(room.no));
+        const freeCount = Math.max(0, cap - occupants.length);
+        const isFull = freeCount === 0;
+
+        let bedSlotsHTML = "";
+        for (let i = 0; i < cap; i++) {
+          const stu = occupants[i];
+          const bedNo = i + 1;
+          if (stu) {
+            const isPaid = stu.feeStatus === "Paid";
+            bedSlotsHTML += `
+              <div onclick="openStudentVoucher('${stu.id}')" title="Click to view ${stu.name}'s Fee Voucher"
+                   class="cursor-pointer bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg p-2.5 flex items-center justify-between transition">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-7 h-7 rounded bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold shrink-0">
+                    <i class="fa-solid fa-user"></i>
+                  </span>
+                  <div class="truncate">
+                    <p class="text-xs font-bold text-slate-900 truncate">${stu.name}</p>
+                    <p class="text-[10px] text-slate-500 font-mono">Bed #${bedNo} • ${stu.id}</p>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                  ${isPaid ? 'Paid' : 'Unpaid'}
+                </span>
+              </div>`;
+          } else {
+            bedSlotsHTML += `
+              <div onclick="quickAllotVacantBed('${room.no}', '${room.rent || 0}')"
+                   class="cursor-pointer bg-emerald-50/70 hover:bg-emerald-100 border border-dashed border-emerald-400 rounded-lg p-2.5 flex items-center justify-between transition">
+                <span class="text-xs font-bold text-emerald-900"><i class="fa-solid fa-bed text-emerald-700 mr-1.5"></i> Bed #${bedNo} — Vacant</span>
+                <span class="text-[10px] font-bold text-emerald-800 underline">Allot +</span>
+              </div>`;
+          }
+        }
+
+        return `
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3 flex flex-col justify-between">
+            <div class="flex justify-between items-start border-b border-slate-100 pb-2.5">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400">${room.type || 'Room'}</span>
+                <h4 class="text-base font-black text-slate-900">Room ${room.no}</h4>
+                <p class="text-xs text-slate-500">Rent: <strong class="text-slate-800">Rs. ${Number(room.rent || 0).toLocaleString()}</strong> / bed</p>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isFull ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'}">
+                  ${isFull ? 'Full' : `${freeCount} Vacant`}
+                </span>
+                <button onclick="deleteRoom('${room.no}')" class="text-slate-400 hover:text-rose-600 px-1.5 py-0.5" title="Delete Room">
+                  <i class="fa-solid fa-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+            <div class="space-y-2">${bedSlotsHTML}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function quickAllotVacantBed(roomNo, roomRent) {
+      switchAdminTab("students");
+      const roomSelect = document.getElementById("stuRoom");
+      const rentInput = document.getElementById("stuRent");
+      if (roomSelect) roomSelect.value = String(roomNo);
+      if (rentInput) rentInput.value = roomRent;
+      document.getElementById("stuName").focus();
+    }
+
+    function splitRoomElectricityPrompt() {
+      const db = getDB();
+      const roomNo = prompt("⚡ SPLIT SUB-METER ELECTRICITY BILL\nEnter Room Number (e.g., 101):");
+      if (!roomNo) return;
+      const occupants = (db.students || []).filter(s => s.status === "Active" && String(s.room) === String(roomNo.trim()));
+      if (occupants.length === 0) return alert(`No active students found in Room ${roomNo}!`);
+
+      const totalBill = Number(prompt(`Room ${roomNo} has ${occupants.length} active resident(s).\nEnter Total Room Electricity Bill (Rs.) to split equally:`, "4000"));
+      if (!totalBill || totalBill <= 0) return;
+
+      const share = Math.round(totalBill / occupants.length);
+      occupants.forEach(s => { s.elec = Number(s.elec || 0) + share; });
+      saveDB(db, `Split Rs. ${totalBill} electricity bill in Room ${roomNo} (Rs. ${share}/student)`, "Admin");
+      renderAdminAll();
+      alert(`✅ Added Rs. ${share.toLocaleString()} electricity share to each of the ${occupants.length} residents in Room ${roomNo}!`);
+    }
+
+    // ========================================================================
+    // 6. RESIDENTS MANAGEMENT & BILLING TABLE
+    // ========================================================================
+    function populateRoomDropdowns() {
+      const db = getDB();
+      const sel = document.getElementById("stuRoom");
+      if (!sel) return;
+      const activeStudents = (db.students || []).filter(s => s.status === "Active");
+      sel.innerHTML = `<option value="">-- Select Room --</option>`;
+      (db.rooms || []).forEach(r => {
+        const occ = activeStudents.filter(s => String(s.room) === String(r.no)).length;
+        const free = Math.max(0, Number(r.capacity || 0) - occ);
+        if (free > 0) {
+          sel.innerHTML += `<option value="${r.no}" data-rent="${r.rent || 0}">Room ${r.no} (${free} Free — Rs. ${r.rent || 0})</option>`;
+        }
+      });
+    }
+
+    function syncRoomDefaultRent() {
+      const sel = document.getElementById("stuRoom");
+      const opt = sel.options[sel.selectedIndex];
+      if (opt && opt.getAttribute("data-rent")) {
+        document.getElementById("stuRent").value = opt.getAttribute("data-rent");
+      }
+    }
+
+    function addStudentManual(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.students = db.students || [];
+
+      const nextNum = 101 + db.students.length;
+      const newStudent = {
+        id: "ST-" + nextNum,
+        name: document.getElementById("stuName").value.trim(),
+        cnic: document.getElementById("stuCnic").value.trim(),
+        phone: document.getElementById("stuPhone").value.trim(),
+        guardian: document.getElementById("stuGuardian").value.trim(),
+        uni: document.getElementById("stuUni").value.trim(),
+        room: document.getElementById("stuRoom").value,
+        rent: Number(document.getElementById("stuRent").value || 0),
+        mess: Number(document.getElementById("stuMess").value || 0),
+        elec: 0,
+        otherCharges: 0,
+        discount: 0,
+        security: Number(document.getElementById("stuSecurity").value || 0),
+        feeStatus: "Unpaid",
+        status: "Active",
+        joinedDate: new Date().toLocaleDateString("en-GB")
+      };
+
+      db.students.unshift(newStudent);
+      saveDB(db, `Enrolled ${newStudent.name} (${newStudent.id}) in Room ${newStudent.room}`, "Admin");
+      e.target.reset();
+      renderAdminAll();
+      alert(`✅ Enrolled ${newStudent.name} with Roll ID: ${newStudent.id}`);
+    }
+
+    function renderStudentsTable() {
+      const db = getDB();
+      const tbody = document.getElementById("studentsTableBody");
+      const q = (document.getElementById("searchStudentInput")?.value || "").toLowerCase().trim();
+
+      const list = (db.students || []).filter(s => {
+        if (s.status !== "Active") return false;
+        return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || String(s.room).toLowerCase().includes(q) || (s.phone || "").includes(q);
+      });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">No matching active residents found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(s => {
+        const rent = Number(s.rent || 0), mess = Number(s.mess || 0), elec = Number(s.elec || 0), fine = Number(s.otherCharges || 0), disc = Number(s.discount || 0);
+        const total = rent + mess + elec + fine - disc;
+        const isPaid = s.feeStatus === "Paid";
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3.5">
+              <strong class="text-slate-900 text-sm block">${s.name}</strong>
+              <span class="font-mono text-[11px] text-blue-900 font-bold">${s.id}</span> • <span class="text-slate-500">${s.phone}</span>
+            </td>
+            <td class="p-3.5 font-bold text-slate-900">Room ${s.room}</td>
+            <td class="p-3.5 text-[11px] text-slate-600">
+              Rent: <strong>${rent}</strong> | Mess: <strong>${mess}</strong> | Elec: <strong>${elec}</strong>
+              ${fine > 0 ? `| <span class="text-rose-600 font-bold">Fine/Arr: ${fine}</span>` : ''}
+              ${disc > 0 ? `| <span class="text-emerald-700 font-bold">Disc: -${disc}</span>` : ''}
+            </td>
+            <td class="p-3.5 font-black text-slate-900 text-sm">Rs. ${total.toLocaleString()}</td>
+            <td class="p-3.5">
+              <button onclick="toggleFeeStatus('${s.id}')" class="px-2.5 py-1 rounded-full text-[11px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}">
+                ${isPaid ? '✓ PAID' : 'UNPAID (Click to Mark Paid)'}
+              </button>
+              ${s.paymentTid ? `<span class="block text-[10px] font-mono text-blue-900 font-bold mt-1">TID: ${s.paymentTid}</span>` : ''}
+            </td>
+            <td class="p-3.5 text-right whitespace-nowrap space-y-1">
+              <button onclick="openStudentVoucher('${s.id}')" class="bg-blue-900 hover:bg-blue-800 text-white px-2.5 py-1 rounded text-[11px] font-bold" title="2-Copy Fee Voucher">
+                <i class="fa-solid fa-file-invoice"></i> Voucher
+              </button>
+              <button onclick="openStudentQRCard('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-2 py-1 rounded text-[11px] font-bold" title="QR Gate Pass ID Card">
+                <i class="fa-solid fa-id-card"></i> ID
+              </button>
+              <button onclick="editStudentBilling('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-2 py-1 rounded text-[11px] font-bold" title="Edit Rent / Mess / Fine">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button onclick="openClearanceCertificate('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 px-2 py-1 rounded text-[11px] font-bold" title="Leaving Clearance Certificate">
+                <i class="fa-solid fa-stamp"></i>
+              </button>
+              <button onclick="checkoutStudent('${s.id}')" class="text-rose-600 hover:bg-rose-50 px-2 py-1 rounded text-[11px]" title="Checkout / Remove Resident">
+                <i class="fa-solid fa-user-xmark"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      if (typeof enhanceAdminUI === "function") enhanceAdminUI();
+    }
+
+    function toggleFeeStatus(studentId) {
+      const db = getDB();
+      const s = (db.students || []).find(st => st.id === studentId);
+      if (!s) return;
+      s.feeStatus = s.feeStatus === "Paid" ? "Unpaid" : "Paid";
+      saveDB(db, `Marked ${s.name} (${s.id}) fee as ${s.feeStatus}`, "Admin");
+      renderAdminAll();
+    }
+
+    function editStudentBilling(studentId) {
+      const db = getDB();
+      const s = (db.students || []).find(st => st.id === studentId);
+      if (!s) return;
+
+      const newRent = prompt(`Edit Monthly Rent for ${s.name} (Rs.):`, s.rent || 0);
+      if (newRent === null) return;
+      const newMess = prompt(`Edit Monthly Mess Charges (Rs.):`, s.mess || 0);
+      if (newMess === null) return;
+      const newElec = prompt(`Edit Electricity Sub-Meter Share (Rs.):`, s.elec || 0);
+      if (newElec === null) return;
+      const newFine = prompt(`Edit Arrears / Late Fine (Rs.):`, s.otherCharges || 0);
+      if (newFine === null) return;
+
+      s.rent = Number(newRent || 0);
+      s.mess = Number(newMess || 0);
+      s.elec = Number(newElec || 0);
+      s.otherCharges = Number(newFine || 0);
+
+      saveDB(db, `Updated billing breakdown for ${s.name} (${s.id})`, "Admin");
+      renderAdminAll();
+    }
+
+    function checkoutStudent(studentId) {
+      const db = getDB();
+      const s = (db.students || []).find(st => st.id === studentId);
+      if (!s) return;
+      if (confirm(`Check out and remove ${s.name} (${s.id}) from Room ${s.room}?`)) {
+        db.students = db.students.filter(st => st.id !== studentId);
+        saveDB(db, `Checked out resident ${s.name} (${s.id}) from Room ${s.room}`, "Admin");
+        renderAdminAll();
+      }
+    }
+
+    // ========================================================================
+    // 7. COMPLAINTS, LOGS, EXPENSES, MESS & SETTINGS
+    // ========================================================================
+    function renderComplaintsAndLogs() {
+      const db = getDB();
+      const compDiv = document.getElementById("adminComplaintsList");
+      const logsDiv = document.getElementById("adminLogsList");
+
+      const comps = db.complaints || [];
+      compDiv.innerHTML = comps.length === 0
+        ? `<p class="text-slate-400 py-4 text-center">No resident complaints registered.</p>`
+        : comps.map(c => `
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between">
+            <div>
+              <strong class="text-slate-900">${c.studentName || c.studentId || 'Resident'} (Room ${c.room || '—'})</strong>
+              <p class="text-slate-600 mt-0.5">${c.issue || c.text || ''}</p>
+            </div>
+            <button onclick="resolveComplaint('${c.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold ${c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+              ${c.status === 'Resolved' ? 'Resolved' : 'Mark Resolved'}
+            </button>
+          </div>
+        `).join("");
+
+      logsDiv.innerHTML = (db.logs || []).slice(0, 25).map(l => `
+        <div class="border-b border-slate-100 pb-1.5 text-[11px]">
+          <span class="text-slate-400">[${l.time}]</span> <strong class="text-blue-900">${l.actor}:</strong> <span class="text-slate-700">${l.action}</span>
+        </div>
       `).join("");
     }
 
-    // Submit Online Admission Application to Cloud DB
-    function submitOnlineAdmission(e) {
-      e.preventDefault();
+    function resolveComplaint(compId) {
       const db = getDB();
-      db.applications = db.applications || [];
-
-      const newApp = {
-        id: "APP-" + Math.floor(1000 + Math.random() * 9000),
-        name: document.getElementById("appName").value.trim(),
-        cnic: document.getElementById("appCnic").value.trim(),
-        phone: document.getElementById("appPhone").value.trim(),
-        guardian: document.getElementById("appGuardian").value.trim(),
-        uni: document.getElementById("appUni").value.trim(),
-        room: document.getElementById("appRoomSelect").value,
-        note: document.getElementById("appNote").value.trim(),
-        date: new Date().toLocaleDateString("en-GB"),
-        status: "Pending"
-      };
-
-      db.applications.unshift(newApp);
-      saveDB(db, `New Online Admission Application from ${newApp.name} for Room ${newApp.room}`, "Public Website");
-
-      closeAdmissionModal();
-      e.target.reset();
-      alert(`🎉 Application Submitted Successfully!\n\nApplication ID: ${newApp.id}\nPreferred Room: ${newApp.room}\n\nHostel Administration will review your request and approve your seat shortly!`);
+      const c = (db.complaints || []).find(x => x.id === compId);
+      if (c) {
+        c.status = "Resolved";
+        saveDB(db, `Resolved complaint ${compId}`, "Admin");
+        renderAdminAll();
+      }
     }
 
-    // Alias so db.js refreshCurrentPortalUI() works seamlessly
-    window.renderPublicPage = loadPublicSite;
-    window.addEventListener("DOMContentLoaded", loadPublicSite);
+    function addExpense(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.expenses = db.expenses || [];
+      const title = document.getElementById("expTitle").value.trim();
+      const amount = Number(document.getElementById("expAmount").value || 0);
+      db.expenses.unshift({
+        id: "EXP-" + Date.now(),
+        title,
+        amount,
+        date: new Date().toLocaleDateString("en-GB")
+      });
+      saveDB(db, `Logged expense: ${title} (Rs. ${amount})`, "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function deleteExpense(expId) {
+      const db = getDB();
+      db.expenses = (db.expenses || []).filter(e => e.id !== expId);
+      saveDB(db, `Deleted expense item`, "Admin");
+      renderAdminAll();
+    }
+
+    function saveMessDay(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.messMenu = db.messMenu || [];
+      const day = document.getElementById("messDay").value;
+      const b = document.getElementById("messB").value.trim();
+      const l = document.getElementById("messL").value.trim();
+      const d = document.getElementById("messD").value.trim();
+
+      const existing = db.messMenu.find(m => m.day === day);
+      if (existing) {
+        existing.b = b; existing.l = l; existing.d = d;
+      } else {
+        db.messMenu.push({ day, b, l, d });
+      }
+      saveDB(db, `Updated Mess Menu for ${day}`, "Admin");
+      e.target.reset();
+      renderAdminAll();
+    }
+
+    function renderExpensesAndMess() {
+      const db = getDB();
+      const expBody = document.getElementById("expensesTableBody");
+      const messBody = document.getElementById("adminMessTable");
+
+      expBody.innerHTML = (db.expenses || []).length === 0
+        ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">No expenses logged yet.</td></tr>`
+        : db.expenses.map(e => `
+          <tr>
+            <td class="p-2.5 font-semibold text-slate-800">${e.title}</td>
+            <td class="p-2.5 text-slate-500">${e.date || '—'}</td>
+            <td class="p-2.5 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td>
+            <td class="p-2.5 text-right"><button onclick="deleteExpense('${e.id}')" class="text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button></td>
+          </tr>
+        `).join("");
+
+      messBody.innerHTML = (db.messMenu || []).length === 0
+        ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">No mess menu configured yet.</td></tr>`
+        : db.messMenu.map(m => `
+          <tr>
+            <td class="p-2.5 font-bold text-slate-900">${m.day}</td>
+            <td class="p-2.5 text-slate-600">${m.b || m.breakfast || '—'}</td>
+            <td class="p-2.5 text-slate-600">${m.l || m.lunch || '—'}</td>
+            <td class="p-2.5 font-semibold text-slate-800">${m.d || m.dinner || '—'}</td>
+          </tr>
+        `).join("");
+    }
+
+    function populateSettingsForm() {
+      const db = getDB();
+      const s = db.settings || {};
+      const activeEl = document.activeElement;
+      if (activeEl && activeEl.tagName === "INPUT") return;
+
+      document.getElementById("setHostelName").value = s.hostelName || "";
+      document.getElementById("setJazzCash").value = s.jazzcash || "";
+      document.getElementById("setWhatsApp").value = s.adminWhatsApp || "";
+      document.getElementById("setMonth").value = s.currentMonth || "";
+      document.getElementById("setAdminPass").value = s.adminPass || "123";
+      document.getElementById("setWardenPass").value = s.wardenPass || "123";
+    }
+
+    function saveAdminSettings(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.settings = db.settings || {};
+      db.settings.hostelName = document.getElementById("setHostelName").value.trim();
+      db.settings.jazzcash = document.getElementById("setJazzCash").value.trim();
+      db.settings.adminWhatsApp = document.getElementById("setWhatsApp").value.trim();
+      db.settings.currentMonth = document.getElementById("setMonth").value.trim();
+      db.settings.adminPass = document.getElementById("setAdminPass").value.trim();
+      db.settings.wardenPass = document.getElementById("setWardenPass").value.trim();
+
+      saveDB(db, "Updated institution profile & security settings", "Admin");
+      renderAdminAll();
+      alert("✅ Institution settings saved & synced to Cloud!");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      checkAdminSession();
+      renderAdminAll();
+    });
   </script>
 </body>
 </html>
