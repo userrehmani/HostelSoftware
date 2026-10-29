@@ -3,128 +3,147 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome — Official Hostel Portal & Online Admission</title>
+  <title>Official Hostel Portal & Online Admission</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Merriweather for Classic Institutional Look -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="db.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .serif-heading { font-family: 'Merriweather', serif; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-900 selection:text-white">
 
-  <!-- 1. STICKY VVIP NAVIGATION BAR -->
-  <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <!-- Brand Logo & Dynamic Hostel Name -->
-      <a href="#" class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-indigo-500/20">
-          <i class="fa-solid fa-hotel"></i>
+  <!-- 1. TOP INSTITUTIONAL UTILITY BAR -->
+  <div class="bg-slate-900 text-slate-300 text-xs border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <span><i class="fa-solid fa-phone text-blue-400 mr-1.5"></i> Helpdesk: <strong id="topPhoneText" class="text-white">—</strong></span>
+        <span class="hidden sm:inline text-slate-600">|</span>
+        <span class="hidden sm:inline"><i class="fa-solid fa-calendar-check text-blue-400 mr-1.5"></i> Active Cycle: <strong id="topBillingCycle" class="text-white">—</strong></span>
+      </div>
+      <div class="flex items-center gap-4 font-medium">
+        <a href="student" class="hover:text-white transition"><i class="fa-solid fa-user-graduate mr-1"></i> Student Portal</a>
+        <span class="text-slate-600">|</span>
+        <a href="warden" class="hover:text-white transition">Warden</a>
+        <span class="text-slate-600">|</span>
+        <a href="admin" class="text-amber-400 hover:text-amber-300 transition"><i class="fa-solid fa-lock mr-1"></i> Admin</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CLASSIC MAIN NAVIGATION HEADER -->
+  <header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+      <!-- Hostel Brand Identity -->
+      <a href="#" class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-lg bg-blue-900 text-white flex items-center justify-center text-lg font-bold shadow-sm">
+          <i class="fa-solid fa-building-columns"></i>
         </div>
         <div>
-          <h1 id="pubHostelName" class="text-base sm:text-lg font-extrabold text-white tracking-tight leading-none">Loading Hostel...</h1>
-          <span class="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Verified Student Residence</span>
+          <h1 id="pubHostelName" class="serif-heading text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none">—</h1>
+          <p id="pubTagline" class="text-xs text-slate-500 mt-1 font-medium">Official Accommodation & Resident Portal</p>
         </div>
       </a>
 
-      <!-- Main Website Menu Links (Desktop) -->
-      <nav class="hidden md:flex items-center gap-6 text-xs font-bold text-slate-300">
-        <a href="#about" class="hover:text-indigo-400 transition">About Us</a>
-        <a href="#facilities" class="hover:text-indigo-400 transition">Facilities</a>
-        <a href="#rooms" class="hover:text-indigo-400 transition">Live Rooms & Beds</a>
-        <a href="#mess" class="hover:text-indigo-400 transition">Mess Menu</a>
-        <a href="#contact" class="hover:text-indigo-400 transition">Contact & Location</a>
+      <!-- Classic Navigation Links -->
+      <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
+        <a href="#overview" class="hover:text-blue-900 transition">Overview</a>
+        <a href="#rooms" class="hover:text-blue-900 transition">Room & Bed Directory</a>
+        <a href="#mess" class="hover:text-blue-900 transition">Mess Schedule</a>
+        <a href="#contact" class="hover:text-blue-900 transition">Contact & Administration</a>
       </nav>
 
-      <!-- Action Buttons: Portals + Online Admission CTA -->
-      <div class="flex items-center gap-2">
-        <a href="student" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-user-graduate text-indigo-400 mr-1"></i> <span class="hidden sm:inline">Student</span> Login
+      <!-- Primary Action Buttons -->
+      <div class="flex items-center gap-2.5">
+        <a href="student" class="hidden sm:inline-flex items-center px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition">
+          Resident Login
         </a>
-        <button onclick="openAdmissionModal()" class="bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/30 transition">
-          <i class="fa-solid fa-file-signature mr-1"></i> Online Admission
+        <button onclick="openAdmissionModal()" class="bg-blue-900 hover:bg-blue-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-sm transition">
+          <i class="fa-solid fa-pen-to-square mr-1.5"></i> Online Admission
         </button>
       </div>
     </div>
   </header>
 
-  <!-- 2. HERO SECTION (COMPLETE INTRODUCTION & LIVE STATS) -->
-  <section id="about" class="relative overflow-hidden py-14 sm:py-20 border-b border-slate-900">
-    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/25 via-slate-950 to-slate-950 pointer-events-none"></div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+  <!-- 3. CLASSIC EXECUTIVE HERO & LIVE SUMMARY -->
+  <section id="overview" class="bg-white border-b border-slate-200 py-12 sm:py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
       
-      <div class="lg:col-span-7 space-y-6">
-        <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 px-3.5 py-1.5 rounded-full text-xs font-bold">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Admissions Open for New Academic Session
+      <!-- Left Column: Formal Introduction -->
+      <div class="lg:col-span-7 space-y-5">
+        <div class="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-900 px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
+          <span class="w-2 h-2 rounded-full bg-blue-700"></span> Official Online Registration Portal
         </div>
 
-        <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight">
-          Premium, Secure & Peaceful Living at <span id="heroHostelTitle" class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Our Hostel</span>
+        <h2 class="serif-heading text-3xl sm:text-4xl font-black text-slate-900 leading-snug">
+          Welcome to <span id="heroHostelTitle" class="text-blue-900">—</span>
         </h2>
 
-        <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
-          Designed exclusively for university students and working professionals. Enjoy high-speed Wi-Fi, hygienic 3-time home-style mess, 24/7 CCTV security, standby power backup, and a disciplined study environment.
+        <p id="heroDescription" class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          Check real-time room and bed availability below, review the official mess schedule, or submit your online admission application directly to the hostel administration. Existing residents can log in to the Student Portal to download fee challans and gate passes.
         </p>
 
-        <!-- Primary CTA Buttons -->
         <div class="flex flex-wrap items-center gap-3 pt-2">
-          <button onclick="openAdmissionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 rounded-2xl text-sm font-extrabold shadow-xl shadow-emerald-600/25 flex items-center gap-2 transition transform hover:-translate-y-0.5">
-            <i class="fa-solid fa-paper-plane"></i> Apply for Online Admission
+          <button onclick="openAdmissionModal()" class="bg-blue-900 hover:bg-blue-800 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-sm transition">
+            Apply for Admission
           </button>
-          <a href="#rooms" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white px-5 py-3.5 rounded-2xl text-sm font-bold flex items-center gap-2 transition">
-            <i class="fa-solid fa-bed text-indigo-400"></i> Check Available Beds
+          <a href="#rooms" class="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 px-5 py-3 rounded-lg text-sm font-semibold transition">
+            View Vacant Beds
           </a>
-          <a id="heroWhatsAppBtn" href="#" target="_blank" class="bg-slate-900 hover:bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 px-4 py-3.5 rounded-2xl text-sm font-bold flex items-center gap-2 transition">
-            <i class="fa-brands fa-whatsapp text-base"></i> Chat on WhatsApp
+          <a id="heroWhatsAppBtn" href="#" target="_blank" class="hidden items-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-bold transition">
+            <i class="fa-brands fa-whatsapp text-base"></i> WhatsApp Inquiry
           </a>
-        </div>
-
-        <!-- Quick Trust Highlights -->
-        <div class="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800/80 max-w-lg text-xs">
-          <div><strong class="text-white text-base block">24/7 Security</strong><span class="text-slate-400">CCTV & Biometric Gate</span></div>
-          <div><strong class="text-white text-base block">Hygienic Mess</strong><span class="text-slate-400">3 Fresh Meals Daily</span></div>
-          <div><strong class="text-white text-base block">Digital Portal</strong><span class="text-slate-400">Online Vouchers & QR ID</span></div>
         </div>
       </div>
 
-      <!-- Right Side: Live Hostel Availability Card -->
+      <!-- Right Column: Clean Institutional Availability Ledger -->
       <div class="lg:col-span-5">
-        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
             <div>
-              <span class="text-[11px] text-indigo-400 font-bold uppercase">Real-Time Cloud Status</span>
-              <h3 class="text-lg font-extrabold text-white">Live Seat Availability</h3>
+              <h3 class="text-base font-bold text-slate-900">Accommodation Summary</h3>
+              <p class="text-xs text-slate-500">Synchronized with Administration Records</p>
             </div>
-            <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-extrabold">
-              <i class="fa-solid fa-bolt mr-1"></i> Live Sync
+            <span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded text-[11px] font-bold">
+              Live Data
             </span>
           </div>
 
+          <!-- Dynamic Occupancy Counters -->
           <div class="grid grid-cols-3 gap-3 text-center">
-            <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl">
-              <span class="text-[11px] text-slate-400 block">Total Capacity</span>
-              <strong id="statTotalBeds" class="text-2xl font-black text-white">0</strong>
-              <span class="text-[10px] text-slate-500 block">Beds</span>
+            <div class="bg-white border border-slate-200 p-3.5 rounded-lg">
+              <span class="text-[11px] text-slate-500 font-medium block">Total Rooms</span>
+              <strong id="statTotalRooms" class="text-2xl font-bold text-slate-900 mt-0.5 block">0</strong>
             </div>
-            <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl">
-              <span class="text-[11px] text-slate-400 block">Occupied</span>
-              <strong id="statOccupiedBeds" class="text-2xl font-black text-indigo-400">0</strong>
-              <span class="text-[10px] text-slate-500 block">Residents</span>
+            <div class="bg-white border border-slate-200 p-3.5 rounded-lg">
+              <span class="text-[11px] text-slate-500 font-medium block">Total Capacity</span>
+              <strong id="statTotalBeds" class="text-2xl font-bold text-slate-900 mt-0.5 block">0</strong>
             </div>
-            <div class="bg-emerald-950/30 border border-emerald-500/40 p-3.5 rounded-2xl">
-              <span class="text-[11px] text-emerald-300 block font-bold">Vacant Beds</span>
-              <strong id="statEmptyBeds" class="text-2xl font-black text-emerald-400">0</strong>
-              <span class="text-[10px] text-emerald-300/80 block">Available Now</span>
+            <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-lg">
+              <span class="text-[11px] text-emerald-800 font-bold block">Vacant Beds</span>
+              <strong id="statEmptyBeds" class="text-2xl font-bold text-emerald-700 mt-0.5 block">0</strong>
             </div>
           </div>
 
-          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs space-y-2">
-            <div class="flex justify-between"><span class="text-slate-400">Online Fee Payment (JazzCash/Easypaisa):</span><strong id="statJazzCash" class="text-emerald-400 font-mono">Not Set</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Gate Entry System:</span><strong class="text-white">QR Code Resident Pass</strong></div>
+          <div class="bg-white border border-slate-200 rounded-lg p-3.5 text-xs space-y-2 text-slate-600">
+            <div class="flex justify-between">
+              <span>Currently Enrolled Residents:</span>
+              <strong id="statOccupiedBeds" class="text-slate-900">0</strong>
+            </div>
+            <div class="flex justify-between border-t border-slate-100 pt-2">
+              <span>Official Payment / Contact Account:</span>
+              <strong id="statJazzCash" class="text-blue-900 font-mono">—</strong>
+            </div>
           </div>
 
-          <button onclick="openAdmissionModal()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-2xl font-extrabold text-xs uppercase tracking-wider shadow-lg transition">
-            Reserve Your Bed Online Now →
+          <button onclick="openAdmissionModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-lg font-bold text-xs uppercase tracking-wider transition">
+            Submit Online Application Form
           </button>
         </div>
       </div>
@@ -132,123 +151,101 @@
     </div>
   </section>
 
-  <!-- 3. FACILITIES & AMENITIES SECTION -->
-  <section id="facilities" class="py-14 max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
-    <div class="text-center max-w-2xl mx-auto space-y-2">
-      <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">Why Choose Us</span>
-      <h2 class="text-2xl sm:text-3xl font-black text-white">First-Class Hostel Facilities</h2>
-      <p class="text-xs sm:text-sm text-slate-400">Everything you need for a comfortable stay and focused academic performance.</p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-indigo-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center text-lg"><i class="fa-solid fa-wifi"></i></div>
-        <h3 class="text-sm font-bold text-white">High-Speed Fiber Wi-Fi</h3>
-        <p class="text-slate-400 leading-relaxed">Dedicated routers on every floor for uninterrupted online classes, coding, and study.</p>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-emerald-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-utensils"></i></div>
-        <h3 class="text-sm font-bold text-white">Hygienic 3-Time Mess</h3>
-        <p class="text-slate-400 leading-relaxed">Fresh breakfast, lunch, and dinner prepared daily under strict quality supervision.</p>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-amber-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg"><i class="fa-solid fa-bolt"></i></div>
-        <h3 class="text-sm font-bold text-white">Solar & UPS Backup</h3>
-        <p class="text-slate-400 leading-relaxed">24/7 electricity backup with transparent sub-meter room billing system.</p>
-      </div>
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2 hover:border-cyan-500/50 transition">
-        <div class="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg"><i class="fa-solid fa-shield-halved"></i></div>
-        <h3 class="text-sm font-bold text-white">CCTV & Warden Security</h3>
-        <p class="text-slate-400 leading-relaxed">Round-the-clock security guard, CCTV surveillance, and digital QR gate pass entry.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4. LIVE VISUAL ROOMS & CINEMA-STYLE BED MAP -->
-  <section id="rooms" class="py-14 bg-slate-900/40 border-y border-slate-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <span class="text-xs font-extrabold uppercase tracking-widest text-emerald-400">Interactive Seat Selection</span>
-          <h2 class="text-2xl sm:text-3xl font-black text-white mt-1">Live Rooms & Vacant Bed Map</h2>
-          <p class="text-xs text-slate-400 mt-1">Click on any <span class="text-emerald-400 font-bold">🟢 Green Vacant Bed</span> below to directly apply for that exact room and bed!</p>
-        </div>
-        <div class="flex gap-2 text-xs font-bold">
-          <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-3 py-1.5 rounded-xl">🟢 Vacant (Click to Book)</span>
-          <span class="bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3 py-1.5 rounded-xl">🔴 Booked</span>
-        </div>
-      </div>
-
-      <!-- Dynamic Visual Room & Bed Cards -->
-      <div id="publicRoomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
-    </div>
-  </section>
-
-  <!-- 5. WEEKLY MESS MENU SECTION -->
-  <section id="mess" class="py-14 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  <!-- 4. LIVE ROOM & BED DIRECTORY (CLASSIC TABLE/CARD HYBRID) -->
+  <section id="rooms" class="py-14 max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 pb-4">
       <div>
-        <span class="text-xs font-extrabold uppercase tracking-widest text-amber-400">Healthy & Delicious</span>
-        <h2 class="text-2xl font-black text-white">Weekly Hostel Mess Schedule</h2>
+        <span class="text-xs font-bold uppercase tracking-wider text-blue-900">Real-Time Inventory</span>
+        <h2 class="serif-heading text-2xl font-black text-slate-900 mt-0.5">Room & Bed Availability Directory</h2>
+        <p class="text-xs text-slate-500 mt-1">Select any <strong class="text-emerald-700">Available Bed</strong> below to automatically pre-fill your admission form for that room.</p>
       </div>
-      <span class="text-xs text-slate-400"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Mess Rebate available on 5+ approved leave days</span>
+      <div class="flex items-center gap-3 text-xs font-semibold">
+        <span class="inline-flex items-center gap-1.5 bg-white border border-slate-300 px-3 py-1.5 rounded-md text-slate-700">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Vacant Bed (Click to Apply)
+        </span>
+        <span class="inline-flex items-center gap-1.5 bg-white border border-slate-300 px-3 py-1.5 rounded-md text-slate-700">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Occupied Bed
+        </span>
+      </div>
     </div>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
-          <tr>
-            <th class="p-3.5">Day</th>
-            <th class="p-3.5">Breakfast (7:30 AM)</th>
-            <th class="p-3.5">Lunch (1:30 PM)</th>
-            <th class="p-3.5">Dinner (8:00 PM)</th>
-          </tr>
-        </thead>
-        <tbody id="publicMessTable" class="divide-y divide-slate-800/70"></tbody>
-      </table>
+    <!-- Dynamic Rooms Grid (100% Data-Driven from Admin Rooms) -->
+    <div id="publicRoomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </section>
+
+  <!-- 5. OFFICIAL MESS SCHEDULE (ONLY DISPLAYS WHAT ADMIN CONFIGURED) -->
+  <section id="mess" class="py-14 bg-white border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-blue-900">Dining & Mess</span>
+          <h2 class="serif-heading text-2xl font-black text-slate-900 mt-0.5">Weekly Mess Menu</h2>
+        </div>
+        <span class="text-xs text-slate-500">Updated by Hostel Mess Administration</span>
+      </div>
+
+      <div class="border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+            <tr>
+              <th class="p-3.5">Day</th>
+              <th class="p-3.5">Breakfast</th>
+              <th class="p-3.5">Lunch</th>
+              <th class="p-3.5">Dinner</th>
+            </tr>
+          </thead>
+          <tbody id="publicMessTable" class="divide-y divide-slate-200 bg-white"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
-  <!-- 6. CONTACT, RULES & STAFF LOGIN BAR -->
-  <section id="contact" class="py-14 bg-slate-900/60 border-t border-slate-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+  <!-- 6. ADMINISTRATION CONTACT & PORTAL ACCESS -->
+  <section id="contact" class="py-14 max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-3">
-        <h3 class="text-base font-extrabold text-white"><i class="fa-solid fa-phone-volume text-indigo-400 mr-2"></i> Contact & Helpline</h3>
-        <p class="text-slate-400">Have questions about admission, room rent, or facilities? Contact our administration directly:</p>
-        <div class="space-y-1.5 pt-2 text-slate-200">
-          <div><strong>Hostel Name:</strong> <span id="contactHostelName">Our Hostel</span></div>
-          <div><strong>JazzCash / Official Contact:</strong> <span id="contactPhone" class="text-emerald-400 font-mono">Not Set</span></div>
-        </div>
-      </div>
-
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 space-y-3">
-        <h3 class="text-base font-extrabold text-white"><i class="fa-solid fa-scale-balanced text-amber-400 mr-2"></i> Key Hostel Rules</h3>
-        <ul class="space-y-1.5 text-slate-300 list-disc list-inside">
-          <li>Monthly fee due before the <strong>5th of every month</strong> (Rs. 200 fine after 5th).</li>
-          <li>Main gate closes strictly at <strong>10:30 PM</strong> (Late entry requires Warden permission).</li>
-          <li>Visitors are only allowed in the guest waiting area after registration.</li>
-          <li>Refundable security deposit is settled upon official clearance certificate.</li>
-        </ul>
-      </div>
-
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-4">
-        <div class="space-y-2">
-          <h3 class="text-base font-extrabold text-white"><i class="fa-solid fa-user-lock text-emerald-400 mr-2"></i> Official Portals</h3>
-          <p class="text-slate-400">Quick access for registered residents, hostel warden, and administration:</p>
-        </div>
-        <div class="grid grid-cols-1 gap-2">
-          <a href="student" class="bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/40 text-indigo-300 hover:text-white py-2.5 px-4 rounded-xl font-bold text-center transition">
-            🎓 Resident Student Portal →
-          </a>
-          <div class="grid grid-cols-2 gap-2">
-            <a href="warden" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 py-2 px-3 rounded-xl font-bold text-center transition">
-              👮 Warden Portal
-            </a>
-            <a href="admin" class="bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-300 py-2 px-3 rounded-xl font-bold text-center transition">
-              👑 Admin Login
-            </a>
+      <!-- Dynamic Administration Details -->
+      <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+        <h3 class="serif-heading text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+          <i class="fa-solid fa-address-card text-blue-900 mr-2"></i> Administration & Payment Details
+        </h3>
+        <div class="space-y-3 text-sm text-slate-600">
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="font-medium text-slate-500">Institution Name:</span>
+            <strong id="contactHostelName" class="text-slate-900">—</strong>
           </div>
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="font-medium text-slate-500">Official Account / Contact:</span>
+            <strong id="contactPhone" class="text-blue-900 font-mono">—</strong>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="font-medium text-slate-500">Current Billing Session:</span>
+            <strong id="contactMonth" class="text-slate-900">—</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Direct Portal Directory -->
+      <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+        <div>
+          <h3 class="serif-heading text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+            <i class="fa-solid fa-door-open text-blue-900 mr-2"></i> Portal Directory
+          </h3>
+          <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+            Registered students can log in with their Roll ID or CNIC to view fee vouchers, submit payment TIDs, download QR gate passes, or register complaints.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 text-xs font-bold">
+          <a href="student" class="bg-blue-900 hover:bg-blue-800 text-white py-3 px-4 rounded-lg text-center transition">
+            <i class="fa-solid fa-user-graduate mr-1"></i> Student Portal
+          </a>
+          <a href="warden" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 py-3 px-4 rounded-lg text-center transition">
+            <i class="fa-solid fa-user-shield mr-1"></i> Warden Login
+          </a>
+          <a href="admin" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 py-3 px-4 rounded-lg text-center transition">
+            <i class="fa-solid fa-user-tie mr-1"></i> Admin Office
+          </a>
         </div>
       </div>
 
@@ -256,61 +253,61 @@
   </section>
 
   <!-- ===================================================================== -->
-  <!-- 📝 ONLINE ADMISSION POPUP MODAL (Opens when clicking Online Admission) -->
+  <!-- 📝 CLASSIC ONLINE ADMISSION FORM MODAL                                -->
   <!-- ===================================================================== -->
-  <div id="admissionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4 overflow-y-auto">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-8">
-      <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+  <div id="admissionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white border border-slate-300 rounded-xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-8 text-slate-800">
+      <div class="flex justify-between items-start border-b border-slate-200 pb-3.5">
         <div>
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">Instant Cloud Application</span>
-          <h3 class="text-lg font-black text-white">Online Hostel Admission Form</h3>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-blue-900">Admission Registration</span>
+          <h3 class="serif-heading text-lg font-black text-slate-900 mt-0.5">Online Hostel Application Form</h3>
         </div>
-        <button onclick="closeAdmissionModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        <button onclick="closeAdmissionModal()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
       </div>
 
-      <form id="onlineAdmissionForm" onsubmit="submitOnlineAdmission(event)" class="space-y-3.5 text-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <form id="onlineAdmissionForm" onsubmit="submitOnlineAdmission(event)" class="space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
-            <label class="block text-slate-300 font-bold mb-1">Full Name *</label>
-            <input id="appName" type="text" required placeholder="e.g., Ali Raza" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
+            <label class="block text-slate-700 font-bold mb-1">Applicant Full Name *</label>
+            <input id="appName" type="text" required placeholder="Enter full name" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none" />
           </div>
           <div>
-            <label class="block text-slate-300 font-bold mb-1">CNIC / B-Form *</label>
-            <input id="appCnic" type="text" required placeholder="36302-1234567-1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-bold mb-1">Student WhatsApp Phone *</label>
-            <input id="appPhone" type="text" required placeholder="03001234567" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-slate-300 font-bold mb-1">Father / Guardian Phone *</label>
-            <input id="appGuardian" type="text" required placeholder="03017654321" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
+            <label class="block text-slate-700 font-bold mb-1">CNIC / B-Form No. *</label>
+            <input id="appCnic" type="text" required placeholder="00000-0000000-0" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none" />
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
-            <label class="block text-slate-300 font-bold mb-1">University / Workplace *</label>
-            <input id="appUni" type="text" required placeholder="e.g., BZU Multan" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
+            <label class="block text-slate-700 font-bold mb-1">Applicant Phone / WhatsApp *</label>
+            <input id="appPhone" type="text" required placeholder="03000000000" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none" />
           </div>
           <div>
-            <label class="block text-slate-300 font-bold mb-1">Preferred Available Room *</label>
-            <select id="appRoomSelect" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none"></select>
+            <label class="block text-slate-700 font-bold mb-1">Parent / Guardian Contact *</label>
+            <input id="appGuardian" type="text" required placeholder="03000000000" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-slate-700 font-bold mb-1">Institute / Department / Profession *</label>
+            <input id="appUni" type="text" required placeholder="University or Organization" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none" />
+          </div>
+          <div>
+            <label class="block text-slate-700 font-bold mb-1">Select Preferred Room *</label>
+            <select id="appRoomSelect" required class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none"></select>
           </div>
         </div>
 
         <div>
-          <label class="block text-slate-300 font-bold mb-1">Special Note / Mess Preference (Optional)</label>
-          <input id="appNote" type="text" placeholder="e.g., Need ground floor bed + 3-time mess" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-indigo-500 outline-none" />
+          <label class="block text-slate-700 font-bold mb-1">Remarks / Additional Details (Optional)</label>
+          <input id="appNote" type="text" placeholder="Any specific requirement" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:border-blue-900 outline-none" />
         </div>
 
-        <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="closeAdmissionModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold">Cancel</button>
-          <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-lg">
-            <i class="fa-solid fa-check-circle mr-1"></i> Submit Application
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2.5">
+          <button type="button" onclick="closeAdmissionModal()" class="px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50">Cancel</button>
+          <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold shadow-sm">
+            Submit Application
           </button>
         </div>
       </form>
@@ -318,7 +315,7 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 🚀 DYNAMIC WEBSITE RENDERER & BED SELECTION ENGINE                    -->
+  <!-- 🚀 100% DATA-DRIVEN WEBSITE CONTROLLER (ZERO HARDCODED FAKE DATA)     -->
   <!-- ===================================================================== -->
   <script>
     function openAdmissionModal(preselectedRoom = "") {
@@ -340,52 +337,67 @@
     function loadPublicSite() {
       const db = getDB();
       const set = db.settings || {};
+      const rooms = db.rooms || [];
+      const activeStudents = (db.students || []).filter(s => s.status === "Active");
       const m = getLiveMetrics();
 
-      // 1. Update Hostel Name & Contact Info Everywhere
-      const hName = set.hostelName || "Our Boys/Girls Hostel";
-      document.title = `${hName} — Official Website & Online Admission`;
+      // 1. Dynamic Hostel Identity & Contact Info (From Admin Settings)
+      const hName = (set.hostelName && set.hostelName !== "My Hostel (Update in Settings)") 
+        ? set.hostelName 
+        : (set.hostelName || "Hostel Portal");
+      const contactAcc = (set.jazzcash && set.jazzcash !== "Not Set") ? set.jazzcash : "Not Configured";
+      const currentCycle = set.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+      document.title = `${hName} — Official Accommodation Portal`;
       document.getElementById("pubHostelName").innerText = hName;
       document.getElementById("heroHostelTitle").innerText = hName;
       document.getElementById("contactHostelName").innerText = hName;
-      document.getElementById("statJazzCash").innerText = set.jazzcash || "Contact Admin";
-      document.getElementById("contactPhone").innerText = set.jazzcash || "Contact Admin";
+      document.getElementById("topPhoneText").innerText = contactAcc;
+      document.getElementById("topBillingCycle").innerText = currentCycle;
+      document.getElementById("statJazzCash").innerText = contactAcc;
+      document.getElementById("contactPhone").innerText = contactAcc;
+      document.getElementById("contactMonth").innerText = currentCycle;
 
-      // Setup Hero WhatsApp Inquiry Button
+      // Show WhatsApp button only if Admin has entered a valid phone/WhatsApp number
       const rawPhone = (set.adminWhatsApp || set.jazzcash || "").replace(/[^0-9]/g, "");
-      const waPhone = rawPhone ? ("92" + rawPhone.replace(/^0/, "")) : "";
       const waBtn = document.getElementById("heroWhatsAppBtn");
-      if (waPhone.length > 5) {
-        waBtn.href = `https://wa.me/${waPhone}?text=${encodeURIComponent("Salam! I visited the website of " + hName + " and want to inquire about room admission.")}`;
+      if (rawPhone.length >= 10) {
+        const cleanWa = "92" + rawPhone.replace(/^0/, "");
+        waBtn.href = `https://wa.me/${cleanWa}?text=${encodeURIComponent("Salam, I am inquiring about admission at " + hName)}`;
+        waBtn.classList.remove("hidden");
+        waBtn.classList.add("inline-flex");
       } else {
-        waBtn.onclick = (e) => { e.preventDefault(); openAdmissionModal(); };
+        waBtn.classList.add("hidden");
       }
 
-      // 2. Update Hero Live Occupancy Stats
+      // 2. Live Numerical Summary
+      document.getElementById("statTotalRooms").innerText = rooms.length;
       document.getElementById("statTotalBeds").innerText = m.totalCapacity;
       document.getElementById("statOccupiedBeds").innerText = m.occupiedBeds;
       document.getElementById("statEmptyBeds").innerText = m.emptyBeds;
 
-      // 3. Render Visual Rooms & Cinema-Style Bed Map + Populate Dropdown
+      // 3. Render Live Rooms & Bed Map (100% from db.rooms)
       const roomsGrid = document.getElementById("publicRoomsGrid");
       const roomSelect = document.getElementById("appRoomSelect");
-      const activeStudents = (db.students || []).filter(s => s.status === "Active");
-
       roomsGrid.innerHTML = "";
-      roomSelect.innerHTML = `<option value="">-- Select Available Room --</option>`;
+      roomSelect.innerHTML = `<option value="">-- Choose Available Room --</option>`;
 
-      if (!db.rooms || db.rooms.length === 0) {
-        roomsGrid.innerHTML = `<div class="col-span-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-xs">Rooms are being updated by Administration. You can still submit an Online Admission request!</div>`;
-        roomSelect.innerHTML = `<option value="Any Available">Any Available Room</option>`;
+      if (rooms.length === 0) {
+        roomsGrid.innerHTML = `
+          <div class="col-span-full bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500 text-sm">
+            No rooms have been published by the administration yet.
+          </div>`;
+        roomSelect.innerHTML = `<option value="General Waiting List">General Application (Room to be allotted by Admin)</option>`;
       } else {
-        db.rooms.forEach(room => {
+        rooms.forEach(room => {
           const cap = Number(room.capacity || 0);
           const occList = activeStudents.filter(s => String(s.room) === String(room.no));
           const freeBeds = Math.max(0, cap - occList.length);
           const isFull = freeBeds === 0;
+          const rentAmount = Number(room.rent || 0);
 
           if (!isFull) {
-            roomSelect.innerHTML += `<option value="${room.no}">Room ${room.no} (${room.type || 'Standard'} — ${freeBeds} Beds Free — Rs. ${room.rent || 0})</option>`;
+            roomSelect.innerHTML += `<option value="${room.no}">Room ${room.no} (${freeBeds} bed${freeBeds > 1 ? 's' : ''} vacant${rentAmount > 0 ? ' — Rs. ' + rentAmount.toLocaleString() : ''})</option>`;
           }
 
           let bedsHTML = "";
@@ -394,29 +406,31 @@
             const isOccupied = i < occList.length;
             if (isOccupied) {
               bedsHTML += `
-                <div class="bg-rose-950/30 border border-rose-500/30 rounded-xl p-2.5 flex items-center justify-between text-xs opacity-75">
-                  <span class="font-bold text-rose-300"><i class="fa-solid fa-bed mr-1.5"></i> Bed #${bedNum}</span>
-                  <span class="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">Occupied</span>
+                <div class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between text-xs text-slate-500">
+                  <span class="font-medium"><i class="fa-solid fa-bed mr-1.5 text-slate-400"></i> Bed #${bedNum}</span>
+                  <span class="text-[11px] font-semibold bg-slate-200 text-slate-600 px-2 py-0.5 rounded">Occupied</span>
                 </div>`;
             } else {
               bedsHTML += `
-                <button type="button" onclick="openAdmissionModal('${room.no}')" class="w-full bg-emerald-950/30 hover:bg-emerald-600 border border-dashed border-emerald-500/50 hover:border-emerald-400 rounded-xl p-2.5 flex items-center justify-between text-xs text-emerald-300 hover:text-white transition group">
-                  <span class="font-bold"><i class="fa-solid fa-bed mr-1.5"></i> Bed #${bedNum} — Vacant</span>
-                  <span class="text-[10px] bg-emerald-500/20 group-hover:bg-white/20 px-2 py-0.5 rounded font-extrabold">Book Bed →</span>
+                <button type="button" onclick="openAdmissionModal('${room.no}')" class="w-full bg-emerald-50 hover:bg-blue-900 border border-emerald-300 hover:border-blue-900 rounded-lg px-3 py-2 flex items-center justify-between text-xs text-emerald-900 hover:text-white transition group">
+                  <span class="font-bold"><i class="fa-solid fa-bed mr-1.5 text-emerald-700 group-hover:text-white"></i> Bed #${bedNum} — Vacant</span>
+                  <span class="text-[11px] font-bold underline">Apply →</span>
                 </button>`;
             }
           }
 
           roomsGrid.innerHTML += `
-            <div class="bg-slate-900 border ${isFull ? 'border-slate-800' : 'border-emerald-500/30'} rounded-2xl p-5 space-y-4 flex flex-col justify-between shadow-lg">
-              <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+              <div class="flex justify-between items-start border-b border-slate-100 pb-3">
                 <div>
-                  <span class="text-[10px] uppercase font-extrabold text-indigo-400">${room.type || 'Standard Room'}</span>
-                  <h3 class="text-lg font-black text-white">Room ${room.no}</h3>
-                  <p class="text-xs text-slate-400">Monthly Rent: <strong class="text-emerald-400">Rs. ${Number(room.rent || 0).toLocaleString()}</strong> / bed</p>
+                  <span class="text-[11px] font-bold uppercase text-slate-400">${room.type || 'Room'}</span>
+                  <h3 class="text-lg font-bold text-slate-900">Room ${room.no}</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    ${rentAmount > 0 ? `Fee: <strong class="text-slate-800">Rs. ${rentAmount.toLocaleString()}</strong> / bed` : `Capacity: ${cap} Beds`}
+                  </p>
                 </div>
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${isFull ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}">
-                  ${isFull ? '🔴 FULL' : `🟢 ${freeBeds} BEDS AVAILABLE`}
+                <span class="px-2.5 py-1 rounded text-[11px] font-bold ${isFull ? 'bg-slate-100 text-slate-600 border border-slate-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}">
+                  ${isFull ? 'Full' : `${freeBeds} Vacant`}
                 </span>
               </div>
               <div class="space-y-2">${bedsHTML}</div>
@@ -425,29 +439,29 @@
         });
       }
 
-      // 4. Render Weekly Mess Menu
+      // 4. Render Mess Menu (Strictly from db.messMenu - No Fake Dish Names!)
       const messTbody = document.getElementById("publicMessTable");
-      const defaultMess = [
-        { day: "Monday", b: "Paratha, Omelette & Tea", l: "Seasonal Veg & Roti", d: "Chicken Qorma & Naan" },
-        { day: "Tuesday", b: "Chana, Naan & Tea", l: "Daal Chawal & Salad", d: "Aloo Qeema & Roti" },
-        { day: "Wednesday", b: "Paratha, Fried Egg & Tea", l: "Kari Pakora & Rice", d: "Chicken Biryani & Raita" },
-        { day: "Thursday", b: "Halwa Puri / Chana & Tea", l: "Mix Sabzi & Roti", d: "Daal Mash Fry & Roti" },
-        { day: "Friday", b: "Paratha, Anda & Tea", l: "Special Beef/Chicken Pulao", d: "Chicken Karahi & Naan" },
-        { day: "Saturday", b: "Aloo Paratha & Yogurt", l: "White Chana & Roti", d: "Kofta Curry & Roti" },
-        { day: "Sunday", b: "Special Sunday Nashta", l: "Light Lunch / Fruit", d: "Special BBQ / Zarda & Biryani" }
-      ];
-      const menuList = (db.messMenu && db.messMenu.length > 0) ? db.messMenu : defaultMess;
-      messTbody.innerHTML = menuList.map(m => `
-        <tr class="hover:bg-slate-800/40">
-          <td class="p-3.5 font-extrabold text-indigo-300">${m.day}</td>
-          <td class="p-3.5 text-slate-300">${m.b || m.breakfast || '-'}</td>
-          <td class="p-3.5 text-slate-300">${m.l || m.lunch || '-'}</td>
-          <td class="p-3.5 font-semibold text-emerald-300">${m.d || m.dinner || '-'}</td>
-        </tr>
-      `).join("");
+      const menuList = db.messMenu || [];
+      if (menuList.length === 0) {
+        messTbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="p-6 text-center text-slate-500 text-xs">
+              Weekly mess menu has not been published by the administration yet.
+            </td>
+          </tr>`;
+      } else {
+        messTbody.innerHTML = menuList.map(m => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3.5 font-bold text-slate-900">${m.day || '—'}</td>
+            <td class="p-3.5 text-slate-600">${m.b || m.breakfast || '—'}</td>
+            <td class="p-3.5 text-slate-600">${m.l || m.lunch || '—'}</td>
+            <td class="p-3.5 font-medium text-slate-800">${m.d || m.dinner || '—'}</td>
+          </tr>
+        `).join("");
+      }
     }
 
-    // Submit Online Admission Application to Cloud DB
+    // Submit Application directly to Cloud DB
     function submitOnlineAdmission(e) {
       e.preventDefault();
       const db = getDB();
@@ -467,14 +481,13 @@
       };
 
       db.applications.unshift(newApp);
-      saveDB(db, `New Online Admission Application from ${newApp.name} for Room ${newApp.room}`, "Public Website");
+      saveDB(db, `Online Admission Application submitted by ${newApp.name} for Room ${newApp.room}`, "Applicant");
 
       closeAdmissionModal();
       e.target.reset();
-      alert(`🎉 Application Submitted Successfully!\n\nApplication ID: ${newApp.id}\nPreferred Room: ${newApp.room}\n\nHostel Administration will review your request and approve your seat shortly!`);
+      alert(`Application Submitted Successfully!\n\nTracking ID: ${newApp.id}\nPreferred Room: ${newApp.room}\n\nYour application has been sent to the Hostel Administration.`);
     }
 
-    // Alias so db.js refreshCurrentPortalUI() works seamlessly
     window.renderPublicPage = loadPublicSite;
     window.addEventListener("DOMContentLoaded", loadPublicSite);
   </script>
