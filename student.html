@@ -1,286 +1,599 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4f46e5">
-  <link rel="manifest" href="manifest.json">
-  <title>Student Self-Service Portal</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resident Student Portal — Hostel ERP</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- HTML2PDF for Vouchers, QR ID & Clearance -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="db.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
+    #saasBrandingFooter { display: none !important; }
+    #globalLiveNoticeBanner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+<body class="antialiased h-screen w-screen overflow-hidden">
 
-  <!-- Clean Student Navbar -->
-  <nav class="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-2">
-      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">
-        <i class="fa-solid fa-user-graduate"></i>
-      </div>
-      <span class="font-bold text-sm sm:text-base text-white">Student Self-Service Portal</span>
-    </div>
-    <div class="flex items-center space-x-2 text-xs">
-      <button onclick="installHostelPWA()" class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-lg font-semibold">
-        <i class="fa-solid fa-download mr-1"></i> Install App
-      </button>
-      <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg">← Public Home</a>
-    </div>
-  </nav>
-
-  <!-- STUDENT LOGIN -->
-  <div id="studentLoginBox" class="max-w-md mx-auto mt-14 bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-5">
-    <div class="text-center">
-      <div class="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl mx-auto mb-3">
-        <i class="fa-solid fa-id-card"></i>
-      </div>
-      <h1 class="text-xl font-bold">Student Portal Login</h1>
-      <p class="text-xs text-slate-400">Enter your Hostel Roll ID (e.g. ST-101) & Password</p>
-    </div>
-    <form onsubmit="loginStudent(event)" class="space-y-4 text-xs sm:text-sm">
-      <input id="stuId" required type="text" placeholder="Enter Roll ID (e.g. ST-101)" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
-      <input id="stuPass" required type="password" placeholder="Enter Password" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white">
-      <p id="stuErr" class="text-rose-400 text-xs hidden">Invalid Roll ID or Password!</p>
-      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl">Login to My Account</button>
-    </form>
-  </div>
-
-  <!-- STUDENT DASHBOARD -->
-  <div id="studentApp" class="hidden max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-    
-    <!-- Top Student Banner with Voucher + QR ID Card Buttons -->
-    <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div>
-        <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 rounded uppercase">Verified Resident</span>
-        <h2 id="sName" class="text-2xl font-bold text-white mt-1"></h2>
-        <p id="sMeta" class="text-xs text-slate-400"></p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button id="sQrBtn" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg flex items-center">
-          <i class="fa-solid fa-qrcode mr-2 text-base"></i> My QR ID Card
-        </button>
-        <button id="sVoucherBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg flex items-center">
-          <i class="fa-solid fa-file-pdf mr-2 text-base"></i> Download Fee Voucher
-        </button>
-        <button onclick="location.reload()" class="bg-slate-800 hover:bg-rose-600 px-3 py-2.5 rounded-xl text-xs">Logout</button>
-      </div>
-    </div>
-
-    <!-- Fee Summary Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-slate-400">Monthly Room Rent</span>
-        <p id="sRent" class="text-lg font-bold text-white mt-1">Rs. 0</p>
-      </div>
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-slate-400">Monthly Mess Fee</span>
-        <p id="sMess" class="text-lg font-bold text-white mt-1">Rs. 0</p>
-      </div>
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-slate-400">Electricity & Fine</span>
-        <p id="sElec" class="text-lg font-bold text-amber-400 mt-1">Rs. 0</p>
-      </div>
-      <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
-        <span class="text-slate-400">Net Payable & Status</span>
-        <p id="sTotal" class="text-lg font-bold mt-1">Rs. 0</p>
-      </div>
-    </div>
-
-    <!-- JAZZCASH / EASYPAISA PAYMENT PROOF UPLOAD SECTION -->
-    <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-5 space-y-3">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <h3 class="text-base font-bold text-emerald-400"><i class="fa-solid fa-receipt mr-2"></i> Submit Online Fee Payment Proof (JazzCash / Easypaisa / Bank)</h3>
-          <p class="text-xs text-slate-400">Transfer your fee to <strong id="sAdminJazz" class="text-white"></strong> and upload your Transaction ID (TID) & Screenshot below for Admin verification.</p>
+  <!-- ===================================================================== -->
+  <!-- 🎓 RESIDENT STUDENT LOGIN GATE                                        -->
+  <!-- ===================================================================== -->
+  <div id="studentLoginGate" class="fixed inset-0 bg-zinc-900/95 z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-zinc-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center gap-3 border-b border-zinc-100 pb-4">
+        <div class="w-10 h-10 rounded-lg bg-emerald-700 text-white flex items-center justify-center text-base font-bold">
+          <i class="fa-solid fa-user-graduate"></i>
         </div>
-        <span id="sProofBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300">No Proof Uploaded</span>
+        <div>
+          <h2 id="stuGateHostelName" class="text-base font-extrabold text-zinc-900 leading-tight">Resident Student Portal</h2>
+          <p class="text-xs text-zinc-500">Sign in with your Roll ID, CNIC, or Phone</p>
+        </div>
       </div>
-      <form onsubmit="submitPaymentProof(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2">
-        <input id="payTid" required type="text" placeholder="Enter Transaction ID (e.g. TID 04928173621) *" class="bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white">
-        <input id="payFile" type="file" accept="image/*" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-300">
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl px-4 py-2.5 shadow-lg">
-          <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Submit Payment Proof to Admin
+
+      <form onsubmit="handleStudentLogin(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-zinc-700 mb-1.5">Enter Roll ID (e.g. ST-101), CNIC, or Phone *</label>
+          <input id="stuLoginInput" type="text" required placeholder="e.g., ST-101 or 03001234567" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
+        </div>
+
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition">
+          Access Resident Portal →
         </button>
       </form>
-    </div>
 
-    <!-- Complaints & Leave Passes -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h3 class="text-base font-bold">Submit Maintenance Complaint</h3>
-        <form onsubmit="submitStudentComplaint(event)" class="space-y-3 text-xs">
-          <div class="grid grid-cols-2 gap-2">
-            <select id="cCat" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-              <option>Electricity / AC</option>
-              <option>Water / Plumbing</option>
-              <option>Internet / Wi-Fi</option>
-              <option>Mess / Food</option>
-            </select>
-            <select id="cPrio" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-              <option value="Normal">Normal</option>
-              <option value="High">High Priority</option>
-            </select>
-          </div>
-          <input id="cIssue" required placeholder="Describe your issue..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-          <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold">Submit Complaint</button>
-        </form>
-        <div id="myComplaintsList" class="space-y-2 text-xs pt-2"></div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-        <h3 class="text-base font-bold">Request Outing / Home Leave Pass</h3>
-        <form onsubmit="submitStudentLeave(event)" class="space-y-3 text-xs">
-          <input id="lvReason" required placeholder="Destination & Reason" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-          <div class="grid grid-cols-2 gap-2">
-            <input id="lvFrom" required placeholder="From Date" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-            <input id="lvTo" required placeholder="Return Date" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white">
-          </div>
-          <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold">Send Leave Request</button>
-        </form>
-        <div id="myLeavesList" class="space-y-2 text-xs pt-2"></div>
+      <div class="pt-3 border-t border-zinc-100 flex justify-between text-xs text-zinc-500 font-medium">
+        <a href="index" class="hover:text-zinc-900">← Public Website</a>
+        <a href="index#tracker" class="text-emerald-700 hover:underline font-bold">Check Admission Status</a>
       </div>
     </div>
   </div>
 
-  <script src="db.js"></script>
+  <!-- ===================================================================== -->
+  <!-- 🖥️ FULL-SCREEN STUDENT ERP WORKSPACE                                  -->
+  <!-- ===================================================================== -->
+  <div class="flex h-screen w-screen overflow-hidden">
+
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
+    <aside class="w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full">
+      <div>
+        <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
+          <div class="flex items-center gap-2.5 truncate">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div class="truncate">
+              <h1 id="stuSidebarHostel" class="text-sm font-bold text-white truncate">Resident Portal</h1>
+              <span id="stuSidebarRoll" class="text-[10px] text-emerald-400 font-mono font-bold block">Roll ID: —</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Navigation Menu -->
+        <div class="p-3 space-y-1 text-xs font-semibold">
+          <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Resident Menu</p>
+
+          <button onclick="switchStuTab('overview')" id="snav-overview" class="stu-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-wallet w-4 text-center text-emerald-400"></i> Fee & Payment TID</span>
+          </button>
+
+          <button onclick="switchStuTab('documents')" id="snav-documents" class="stu-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-id-card w-4 text-center"></i> Voucher, QR ID & Docs</span>
+          </button>
+
+          <button onclick="switchStuTab('complaints')" id="snav-complaints" class="stu-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-screwdriver-wrench w-4 text-center"></i> Complaints & Leaves</span>
+          </button>
+
+          <button onclick="switchStuTab('mess')" id="snav-mess" class="stu-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-utensils w-4 text-center"></i> Weekly Mess & Room</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Actions -->
+      <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
+        <a href="index" class="w-full block text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded font-medium">
+          ← Public Website
+        </a>
+        <button onclick="logoutStudent()" class="w-full flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-500/10 py-1.5 rounded font-bold transition">
+          <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- 🖥️ RIGHT MAIN STUDENT WORKSPACE -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
+
+      <!-- Top Header -->
+      <header class="h-16 bg-white border-b border-zinc-200 px-6 flex items-center justify-between shrink-0 w-full">
+        <div>
+          <h2 id="stuHeaderName" class="text-base font-extrabold text-zinc-900">Welcome, Resident</h2>
+          <p id="stuHeaderMeta" class="text-xs text-zinc-500">Room — • Roll ID: —</p>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <button onclick="openStudentVoucher(window.loggedStudent.id)" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-3 py-2 rounded-lg font-bold transition">
+            <i class="fa-solid fa-file-invoice mr-1"></i> Fee Voucher
+          </button>
+          <button onclick="openStudentQRCard(window.loggedStudent.id)" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3.5 py-2 rounded-lg font-bold transition">
+            <i class="fa-solid fa-qrcode text-emerald-400 mr-1"></i> QR Gate Pass
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable View Area -->
+      <main class="flex-1 overflow-y-auto p-6 w-full custom-scroll">
+
+        <!-- =============================================================== -->
+        <!-- TAB 1: FEE BREAKDOWN & ONLINE PAYMENT TID SUBMISSION            -->
+        <!-- =============================================================== -->
+        <div id="stuView-overview" class="space-y-6 w-full">
+
+          <!-- Resident Summary Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Allotted Room</span>
+              <strong id="cardStuRoom" class="text-xl font-extrabold text-zinc-900 block mt-1">Room —</strong>
+              <span id="cardStuId" class="text-[11px] font-mono font-bold text-emerald-700">ID: —</span>
+            </div>
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Billing Month</span>
+              <strong id="cardStuMonth" class="text-xl font-extrabold text-zinc-900 block mt-1">—</strong>
+              <span class="text-[11px] text-rose-600 font-semibold">Due Date: 5th of Month</span>
+            </div>
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Net Payable Dues</span>
+              <strong id="cardStuTotal" class="text-xl font-extrabold text-zinc-900 block mt-1">Rs. 0</strong>
+              <span id="cardStuDisc" class="text-[11px] text-emerald-700 font-semibold">Rebate/Discount: Rs. 0</span>
+            </div>
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Current Fee Status</span>
+              <div id="cardStuStatusBadge" class="mt-1.5"></div>
+              <span id="cardStuSec" class="text-[11px] text-zinc-500 block mt-1">Security Held: Rs. 0</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+            
+            <!-- Left 7 Cols: Itemized Monthly Bill Statement -->
+            <div class="lg:col-span-7 bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+              <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div>
+                  <h3 class="text-sm font-bold text-zinc-900">Itemized Monthly Fee Statement</h3>
+                  <p class="text-xs text-zinc-500">Breakdown of room rent, mess charges, electricity share, and rebates.</p>
+                </div>
+                <button onclick="openStudentVoucher(window.loggedStudent.id)" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold">
+                  <i class="fa-solid fa-print mr-1"></i> Print 2-Copy Challan
+                </button>
+              </div>
+
+              <div class="border border-zinc-200 rounded-lg overflow-hidden text-xs">
+                <table class="w-full text-left">
+                  <tbody class="divide-y divide-zinc-200">
+                    <tr><td class="p-3 text-zinc-600">1. Monthly Agreed Room / Bed Rent</td><td id="billRent" class="p-3 text-right font-bold text-zinc-900">Rs. 0</td></tr>
+                    <tr><td class="p-3 text-zinc-600">2. Monthly Mess / Dining Charges</td><td id="billMess" class="p-3 text-right font-bold text-zinc-900">Rs. 0</td></tr>
+                    <tr><td class="p-3 text-zinc-600">3. Room Sub-Meter Electricity Share</td><td id="billElec" class="p-3 text-right font-bold text-zinc-900">Rs. 0</td></tr>
+                    <tr><td class="p-3 text-rose-600">4. Late Fine / Previous Arrears (Rs. 200 after 5th)</td><td id="billFine" class="p-3 text-right font-bold text-rose-600">Rs. 0</td></tr>
+                    <tr><td class="p-3 text-emerald-700">5. Mess-Off Rebate / Scholarship Discount</td><td id="billDisc" class="p-3 text-right font-bold text-emerald-700">- Rs. 0</td></tr>
+                    <tr class="bg-zinc-900 text-white text-sm"><td class="p-3.5 font-extrabold">NET PAYABLE AMOUNT</td><td id="billNetTotal" class="p-3.5 text-right font-extrabold">Rs. 0</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right 5 Cols: Online JazzCash / Easypaisa TID Submission -->
+            <div class="lg:col-span-5 bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="border-b border-zinc-100 pb-3">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Online Fee Verification</span>
+                  <h3 class="text-sm font-bold text-zinc-900 mt-0.5">Submit JazzCash / Bank Transaction ID (TID)</h3>
+                </div>
+
+                <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3.5 text-xs space-y-1.5">
+                  <span class="text-zinc-500 block">Send your payable fee to Official Hostel Account:</span>
+                  <strong id="payAccountBox" class="text-sm font-mono font-extrabold text-zinc-900 block">—</strong>
+                </div>
+
+                <form onsubmit="submitPaymentTid(event)" class="space-y-3 text-xs">
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Enter 11/12-Digit Transaction ID (TID) & Channel *</label>
+                    <input id="stuTidInput" type="text" required placeholder="e.g., TID 08451239871 via JazzCash" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900 font-mono focus:border-zinc-900 outline-none" />
+                  </div>
+                  <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-lg font-bold transition">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Submit TID to Administration
+                  </button>
+                </form>
+              </div>
+
+              <div class="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                <span class="text-zinc-500">Submitted TID: <strong id="submittedTidText" class="text-zinc-900 font-mono">None</strong></span>
+                <button onclick="sendPaymentProofWhatsApp()" class="text-emerald-700 hover:underline font-bold">
+                  <i class="fa-brands fa-whatsapp mr-1"></i> Send Proof on WhatsApp ↗
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- TAB 2: OFFICIAL DOCUMENTS (VOUCHER, QR PASS & CLEARANCE)        -->
+        <!-- =============================================================== -->
+        <div id="stuView-documents" class="hidden space-y-6 w-full">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
+            
+            <div class="bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
+              <div class="space-y-2">
+                <div class="w-10 h-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-base"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <h3 class="text-base font-bold text-zinc-900">2-Copy Official Fee Voucher</h3>
+                <p class="text-xs text-zinc-500 leading-relaxed">Generate printable Admin & Student copy fee challan with itemized rent, mess, electricity, and due date.</p>
+              </div>
+              <button onclick="openStudentVoucher(window.loggedStudent.id)" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-lg text-xs font-bold">
+                Open & Download Voucher PDF
+              </button>
+            </div>
+
+            <div class="bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
+              <div class="space-y-2">
+                <div class="w-10 h-10 rounded-lg bg-emerald-700 text-white flex items-center justify-center text-base"><i class="fa-solid fa-qrcode"></i></div>
+                <h3 class="text-base font-bold text-zinc-900">Digital QR Gate Pass ID Card</h3>
+                <p class="text-xs text-zinc-500 leading-relaxed">Official resident identification card with scannable QR code for gate entry/exit and mess verification.</p>
+              </div>
+              <button onclick="openStudentQRCard(window.loggedStudent.id)" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-lg text-xs font-bold">
+                Open & Download QR ID Card
+              </button>
+            </div>
+
+            <div class="bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
+              <div class="space-y-2">
+                <div class="w-10 h-10 rounded-lg bg-zinc-200 text-zinc-800 flex items-center justify-center text-base"><i class="fa-solid fa-stamp"></i></div>
+                <h3 class="text-base font-bold text-zinc-900">No-Dues & Security Refund Statement</h3>
+                <p class="text-xs text-zinc-500 leading-relaxed">Preview your refundable security deposit settlement and official hostel leaving clearance certificate.</p>
+              </div>
+              <button onclick="openClearanceCertificate(window.loggedStudent.id)" class="w-full bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-2.5 rounded-lg text-xs font-bold">
+                Preview Clearance Certificate
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- TAB 3: MAINTENANCE COMPLAINTS & LEAVE / MESS-OFF REQUESTS       -->
+        <!-- =============================================================== -->
+        <div id="stuView-complaints" class="hidden space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+            
+            <!-- Register Maintenance Complaint -->
+            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm font-bold text-zinc-900">Lodge Maintenance / Room Complaint</h3>
+                <p class="text-xs text-zinc-500">Report electrical, plumbing, Wi-Fi, or room cleaning issues directly to Warden & Admin.</p>
+              </div>
+
+              <form onsubmit="submitStudentComplaint(event)" class="flex gap-2 text-xs">
+                <input id="stuCompInput" type="text" required placeholder="Describe issue (e.g., Room fan capacitor needs replacement)..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900 outline-none focus:border-zinc-900" />
+                <button type="submit" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg font-bold whitespace-nowrap">
+                  Submit Issue
+                </button>
+              </form>
+
+              <div id="stuComplaintsList" class="space-y-2 max-h-72 overflow-y-auto text-xs custom-scroll"></div>
+            </div>
+
+            <!-- Apply for Leave / Mess-Off -->
+            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm font-bold text-zinc-900">Apply for Leave / Mess-Off Rebate</h3>
+                <p class="text-xs text-zinc-500">Going home? Submit your leave dates for gate pass approval and mess rebate calculation.</p>
+              </div>
+
+              <form onsubmit="submitStudentLeave(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <input id="leaveFrom" type="date" required class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" title="From Date" />
+                <input id="leaveTo" type="date" required class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" title="Return Date" />
+                <input id="leaveReason" type="text" required placeholder="Reason (e.g., Going home)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
+                <button type="submit" class="sm:col-span-3 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold">
+                  Submit Leave Request
+                </button>
+              </form>
+
+              <div id="stuLeavesList" class="space-y-2 max-h-60 overflow-y-auto text-xs custom-scroll"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- TAB 4: WEEKLY MESS MENU & ROOMMATES DIRECTORY                   -->
+        <!-- =============================================================== -->
+        <div id="stuView-mess" class="hidden space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+            
+            <!-- Roommates List -->
+            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-3">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm font-bold text-zinc-900">Your Roommates Directory</h3>
+                <p class="text-xs text-zinc-500">Residents currently allotted to your room.</p>
+              </div>
+              <div id="stuRoommatesList" class="space-y-2 text-xs"></div>
+            </div>
+
+            <!-- Weekly Mess Schedule -->
+            <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-3">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm font-bold text-zinc-900">Official Weekly Mess Schedule</h3>
+                <p class="text-xs text-zinc-500">Live dining schedule updated by Hostel Administration.</p>
+              </div>
+              <div class="border border-zinc-200 rounded-lg overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-zinc-50 text-zinc-600 uppercase border-b border-zinc-200 font-bold">
+                    <tr><th class="p-3">Day</th><th class="p-3">Breakfast</th><th class="p-3">Lunch</th><th class="p-3">Dinner</th></tr>
+                  </thead>
+                  <tbody id="stuMessTable" class="divide-y divide-zinc-200"></tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🚀 STUDENT PORTAL CONTROLLER                                          -->
+  <!-- ===================================================================== -->
   <script>
     window.loggedStudent = null;
 
-    function loginStudent(e) {
-      e.preventDefault();
-      const id = document.getElementById("stuId").value.trim().toUpperCase();
-      const pass = document.getElementById("stuPass").value.trim();
+    function initStudentPortal() {
       const db = getDB();
-      const found = db.students.find(s => s.id.toUpperCase() === id && s.pass === pass);
-      if (!found) {
-        document.getElementById("stuErr").classList.remove("hidden");
-        return;
+      const hName = (db.settings && db.settings.hostelName) || "Resident Student Portal";
+      document.getElementById("stuGateHostelName").innerText = hName;
+      document.getElementById("stuSidebarHostel").innerText = hName;
+
+      const savedId = sessionStorage.getItem("STU_AUTH_" + TENANT_ID);
+      if (savedId) {
+        const found = (db.students || []).find(s => s.status === "Active" && s.id === savedId);
+        if (found) {
+          window.loggedStudent = found;
+          document.getElementById("studentLoginGate").classList.add("hidden");
+          renderStudentDashboard();
+        }
       }
+    }
+
+    function handleStudentLogin(e) {
+      e.preventDefault();
+      const q = document.getElementById("stuLoginInput").value.trim().toLowerCase();
+      if (!q) return;
+
+      const db = getDB();
+      const found = (db.students || []).find(s =>
+        s.status === "Active" && (
+          String(s.id || "").toLowerCase() === q ||
+          String(s.cnic || "").toLowerCase() === q ||
+          String(s.phone || "").toLowerCase() === q
+        )
+      );
+
+      if (!found) {
+        return alert("No active resident found with that Roll ID, CNIC, or Phone number! If you recently applied online, please wait for Admin approval.");
+      }
+
       window.loggedStudent = found;
-      document.getElementById("studentLoginBox").classList.add("hidden");
-      document.getElementById("studentApp").classList.remove("hidden");
+      sessionStorage.setItem("STU_AUTH_" + TENANT_ID, found.id);
+      document.getElementById("studentLoginGate").classList.add("hidden");
+      renderStudentDashboard();
+    }
+
+    function logoutStudent() {
+      sessionStorage.removeItem("STU_AUTH_" + TENANT_ID);
+      window.loggedStudent = null;
+      location.reload();
+    }
+
+    function switchStuTab(tabId) {
+      ["overview", "documents", "complaints", "mess"].forEach(id => {
+        document.getElementById("stuView-" + id).classList.toggle("hidden", id !== tabId);
+        const btn = document.getElementById("snav-" + id);
+        if (btn) {
+          btn.className = id === tabId
+            ? "stu-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition"
+            : "stu-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+        }
+      });
       renderStudentDashboard();
     }
 
     function renderStudentDashboard() {
       const db = getDB();
-      const s = db.students.find(st => st.id === window.loggedStudent.id);
-      if (!s) return;
-      const extra = Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
-      const total = Number(s.rent || 0) + Number(s.mess || 0) + extra;
+      if (!window.loggedStudent) return;
 
-      document.getElementById("sName").innerText = s.name;
-      document.getElementById("sMeta").innerText = `Roll ID: ${s.id} | Room: ${s.room} | Security Held: Rs. ${Number(s.security || 0).toLocaleString()}`;
-      document.getElementById("sAdminJazz").innerText = db.settings.jazzcash;
-      document.getElementById("sRent").innerText = `Rs. ${Number(s.rent).toLocaleString()}`;
-      document.getElementById("sMess").innerText = `Rs. ${Number(s.mess).toLocaleString()}`;
-      document.getElementById("sElec").innerText = `Rs. ${extra.toLocaleString()}`;
-      document.getElementById("sTotal").innerHTML = `Rs. ${total.toLocaleString()} <span class="text-xs px-2 py-0.5 rounded ${s.feeStatus === 'Paid' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">${s.feeStatus}</span>`;
+      // Always pull fresh student data from cloud DB
+      const fresh = (db.students || []).find(s => s.id === window.loggedStudent.id);
+      if (!fresh) return logoutStudent();
+      window.loggedStudent = fresh;
 
-      document.getElementById("sVoucherBtn").onclick = () => openStudentVoucher(s.id);
-      document.getElementById("sQrBtn").onclick = () => openStudentQRCard(s.id);
+      const s = fresh;
+      const set = db.settings || {};
+      const month = set.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
-      const badge = document.getElementById("sProofBadge");
-      if (s.feeStatus === "Paid") {
-        badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300";
-        badge.innerText = "Verified & Paid ✓";
-      } else if (s.paymentTid) {
-        badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300";
-        badge.innerText = `Pending Admin Verification (${s.paymentTid})`;
-      }
+      const rent = Number(s.rent || 0), mess = Number(s.mess || 0), elec = Number(s.elec || 0), fine = Number(s.otherCharges || 0), disc = Number(s.discount || 0);
+      const total = rent + mess + elec + fine - disc;
+      const isPaid = s.feeStatus === "Paid";
 
-      document.getElementById("myComplaintsList").innerHTML = db.complaints.filter(c => c.studentId === s.id).map(c => `
-        <div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between">
-          <span><strong>${c.category}:</strong> ${c.issue}</span>
-          <span class="text-amber-400 font-bold">${c.status}</span>
+      document.getElementById("stuSidebarHostel").innerText = set.hostelName || "Resident Portal";
+      document.getElementById("stuSidebarRoll").innerText = `Roll ID: ${s.id}`;
+      document.getElementById("stuHeaderName").innerText = `${s.name}`;
+      document.getElementById("stuHeaderMeta").innerText = `Room ${s.room} • Roll ID: ${s.id} • CNIC: ${s.cnic || '—'}`;
+
+      document.getElementById("cardStuRoom").innerText = `Room ${s.room}`;
+      document.getElementById("cardStuId").innerText = `Roll ID: ${s.id}`;
+      document.getElementById("cardStuMonth").innerText = month;
+      document.getElementById("cardStuTotal").innerText = `Rs. ${total.toLocaleString()}`;
+      document.getElementById("cardStuDisc").innerText = `Rebate/Discount: Rs. ${disc.toLocaleString()}`;
+      document.getElementById("cardStuSec").innerText = `Security Deposit: Rs. ${Number(s.security || 0).toLocaleString()}`;
+
+      document.getElementById("cardStuStatusBadge").innerHTML = isPaid
+        ? `<span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1 rounded-md text-xs font-extrabold inline-block">✓ PAID</span>`
+        : `<span class="bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-md text-xs font-extrabold inline-block">UNPAID</span>`;
+
+      document.getElementById("billRent").innerText = `Rs. ${rent.toLocaleString()}`;
+      document.getElementById("billMess").innerText = `Rs. ${mess.toLocaleString()}`;
+      document.getElementById("billElec").innerText = `Rs. ${elec.toLocaleString()}`;
+      document.getElementById("billFine").innerText = `Rs. ${fine.toLocaleString()}`;
+      document.getElementById("billDisc").innerText = `- Rs. ${disc.toLocaleString()}`;
+      document.getElementById("billNetTotal").innerText = `Rs. ${total.toLocaleString()}`;
+
+      document.getElementById("payAccountBox").innerText = set.jazzcash || "Contact Admin Office";
+      document.getElementById("submittedTidText").innerText = s.paymentTid || "None submitted yet";
+
+      // Complaints List
+      const myComps = (db.complaints || []).filter(c => c.studentId === s.id);
+      document.getElementById("stuComplaintsList").innerHTML = myComps.length === 0
+        ? `<p class="text-zinc-400 py-4 text-center">You have not submitted any complaints.</p>`
+        : myComps.map(c => `
+          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between">
+            <div>
+              <p class="font-semibold text-zinc-900">${c.issue || c.text}</p>
+              <span class="text-[10px] text-zinc-400">${c.date || ''}</span>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold ${c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}">
+              ${c.status || 'Pending'}
+            </span>
+          </div>
+        `).join("");
+
+      // Leaves List
+      const myLeaves = (db.leaves || []).filter(l => l.studentId === s.id);
+      document.getElementById("stuLeavesList").innerHTML = myLeaves.length === 0
+        ? `<p class="text-zinc-400 py-4 text-center">No leave requests submitted.</p>`
+        : myLeaves.map(l => `
+          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between">
+            <div>
+              <strong class="text-zinc-900">${l.reason}</strong>
+              <p class="text-[11px] text-zinc-500">${l.from} to ${l.to}</p>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}">
+              ${l.status || 'Pending'}
+            </span>
+          </div>
+        `).join("");
+
+      // Roommates
+      const mates = (db.students || []).filter(st => st.status === "Active" && String(st.room) === String(s.room));
+      document.getElementById("stuRoommatesList").innerHTML = mates.map(m => `
+        <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between">
+          <div>
+            <strong class="text-zinc-900 block">${m.name} ${m.id === s.id ? '(You)' : ''}</strong>
+            <span class="text-[11px] text-zinc-500">${m.uni || 'Resident'}</span>
+          </div>
+          <span class="font-mono text-[11px] font-bold text-emerald-800">${m.id}</span>
         </div>
       `).join("");
 
-      document.getElementById("myLeavesList").innerHTML = db.leaves.filter(l => l.studentId === s.id).map(l => `
-        <div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between">
-          <span><strong>${l.reason}</strong> (${l.fromDate} - ${l.returnDate})</span>
-          <span class="text-emerald-400 font-bold">${l.status}</span>
-        </div>
-      `).join("");
+      // Mess Schedule
+      const menuList = db.messMenu || [];
+      document.getElementById("stuMessTable").innerHTML = menuList.length === 0
+        ? `<tr><td colspan="4" class="p-6 text-center text-zinc-400">Mess schedule has not been updated by Admin yet.</td></tr>`
+        : menuList.map(m => `
+          <tr>
+            <td class="p-3 font-bold text-zinc-900">${m.day}</td>
+            <td class="p-3 text-zinc-600">${m.b || m.breakfast || '—'}</td>
+            <td class="p-3 text-zinc-600">${m.l || m.lunch || '—'}</td>
+            <td class="p-3 font-semibold text-zinc-800">${m.d || m.dinner || '—'}</td>
+          </tr>
+        `).join("");
     }
 
-    // COMPRESS & UPLOAD SCREENSHOT + TID TO CLOUD FIRESTORE
-    function submitPaymentProof(e) {
+    function submitPaymentTid(e) {
       e.preventDefault();
-      const tid = document.getElementById("payTid").value.trim();
-      const fileInput = document.getElementById("payFile");
+      if (!window.loggedStudent) return;
+      const tid = document.getElementById("stuTidInput").value.trim();
+      if (!tid) return;
 
-      const saveProofToDB = (base64Img) => {
-        const db = getDB();
-        const s = db.students.find(st => st.id === window.loggedStudent.id);
-        if (!s) return;
-        s.paymentTid = tid;
-        if (base64Img) s.paymentImg = base64Img;
-        saveDB(db, `Student ${s.name} (${s.id}) uploaded Fee Payment Proof TID: ${tid}`, "Student");
-        alert("Payment Proof Submitted! Admin will verify your receipt and mark your fee Paid.");
-        e.target.reset();
-        renderStudentDashboard();
-      };
+      const db = getDB();
+      const s = (db.students || []).find(st => st.id === window.loggedStudent.id);
+      if (!s) return;
 
-      if (fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          const img = new Image();
-          img.onload = function() {
-            const canvas = document.createElement("canvas");
-            const maxW = 500;
-            const scale = Math.min(1, maxW / img.width);
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
-            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-            saveProofToDB(canvas.toDataURL("image/jpeg", 0.65));
-          };
-          img.src = evt.target.result;
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-      } else {
-        saveProofToDB(null);
-      }
+      s.paymentTid = tid;
+      saveDB(db, `Resident ${s.name} (${s.id}) submitted fee payment TID: ${tid}`, s.name);
+      document.getElementById("stuTidInput").value = "";
+      renderStudentDashboard();
+      alert("✅ Transaction ID (TID) submitted to Administration! Your fee status will update to PAID once verified.");
+    }
+
+    function sendPaymentProofWhatsApp() {
+      if (!window.loggedStudent) return;
+      const db = getDB();
+      const s = window.loggedStudent;
+      const rawPhone = (db.settings.adminWhatsApp || db.settings.jazzcash || "").replace(/[^0-9]/g, "");
+      if (rawPhone.length < 10) return alert("Admin WhatsApp number is not configured in settings yet.");
+      const cleanWa = "92" + rawPhone.replace(/^0/, "");
+      const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
+      const msg = `*FEE PAYMENT PROOF — ${db.settings.hostelName}*\n\nSalam Admin,\nI have paid my hostel dues.\n\n👤 *Name:* ${s.name} (${s.id})\n🚪 *Room:* ${s.room}\n💰 *Amount:* Rs. ${total.toLocaleString()}\n🧾 *TID:* ${s.paymentTid || 'Attached'}`;
+      window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(msg)}`, "_blank");
     }
 
     function submitStudentComplaint(e) {
       e.preventDefault();
+      if (!window.loggedStudent) return;
+      const text = document.getElementById("stuCompInput").value.trim();
+      if (!text) return;
+
       const db = getDB();
+      db.complaints = db.complaints || [];
       db.complaints.unshift({
-        id: "CMP-" + Math.floor(100 + Math.random() * 900),
+        id: "CMP-" + Date.now(),
         studentId: window.loggedStudent.id,
         studentName: window.loggedStudent.name,
         room: window.loggedStudent.room,
-        category: document.getElementById("cCat").value,
-        issue: document.getElementById("cIssue").value,
-        priority: document.getElementById("cPrio").value,
-        status: "Pending"
+        issue: text,
+        date: new Date().toLocaleDateString("en-GB"),
+        status: "Open"
       });
-      saveDB(db, `Student ${window.loggedStudent.id} submitted complaint`, "Student");
+      saveDB(db, `Complaint lodged by ${window.loggedStudent.name} (Room ${window.loggedStudent.room})`, window.loggedStudent.name);
       e.target.reset();
       renderStudentDashboard();
     }
 
     function submitStudentLeave(e) {
       e.preventDefault();
+      if (!window.loggedStudent) return;
+      const from = document.getElementById("leaveFrom").value;
+      const to = document.getElementById("leaveTo").value;
+      const reason = document.getElementById("leaveReason").value.trim();
+
       const db = getDB();
+      db.leaves = db.leaves || [];
       db.leaves.unshift({
-        id: "LV-" + Math.floor(100 + Math.random() * 900),
+        id: "LV-" + Date.now(),
         studentId: window.loggedStudent.id,
         studentName: window.loggedStudent.name,
         room: window.loggedStudent.room,
-        reason: document.getElementById("lvReason").value,
-        fromDate: document.getElementById("lvFrom").value,
-        returnDate: document.getElementById("lvTo").value,
+        from,
+        to,
+        reason,
         status: "Pending"
       });
-      saveDB(db, `Student ${window.loggedStudent.id} requested leave`, "Student");
+      saveDB(db, `Leave request submitted by ${window.loggedStudent.name} (${from} to ${to})`, window.loggedStudent.name);
       e.target.reset();
       renderStudentDashboard();
+      alert("✅ Leave request submitted to Warden & Admin!");
     }
+
+    window.addEventListener("DOMContentLoaded", initStudentPortal);
   </script>
 </body>
 </html>
