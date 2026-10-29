@@ -495,7 +495,6 @@ function shiftStudentRoom(studentId) {
   const s = db.students.find(st => st.id === studentId);
   if (!s) return;
 
-  // Calculate available beds in each room
   const availRooms = db.rooms.map(r => {
     const occ = db.students.filter(st => st.status === "Active" && String(st.room) === String(r.no)).length;
     const free = Number(r.capacity || 0) - occ;
@@ -676,3 +675,21 @@ function enhanceAdminUI() {
     wipeBtn.parentNode.insertAdjacentElement("beforebegin", backupBox);
   }
 }
+
+// 5. ⚡ AUTO-RUN TRIGGERS (Ye lines pichle code mein reh gayi thin!)
+setTimeout(checkAndApplyAutoLateFine, 1500);
+
+window.addEventListener("DOMContentLoaded", () => {
+  enhanceAdminUI();
+  const observer = new MutationObserver(() => enhanceAdminUI());
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Clean SaaS Footer at the very bottom
+  if (!location.pathname.includes("master") && !document.getElementById("saasBrandingFooter")) {
+    const footer = document.createElement("footer");
+    footer.id = "saasBrandingFooter";
+    footer.className = "text-center py-4 px-4 mt-12 border-t border-slate-800/80 text-[11px] text-slate-400";
+    footer.innerHTML = `⚡ Powered by <strong class="text-indigo-400">${SAAS_BRAND_NAME}</strong> — <a href="https://wa.me/${SAAS_FOUNDER_WHATSAPP}" target="_blank" class="text-emerald-400 hover:underline font-bold">Get this Software for your Hostel ↗</a>`;
+    document.body.appendChild(footer);
+  }
+});
