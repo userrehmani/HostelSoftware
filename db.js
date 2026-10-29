@@ -485,9 +485,142 @@ function importHostelBackupJSON(event) {
   reader.readAsText(file);
 }
 
-// 4. 🎯 AUTO-INJECT BUTTONS NEXT TO EACH STUDENT & BACKUP INSIDE SETTINGS
+// ============================================================================
+// 🚀 MAJOR ERP UPGRADE: 1-CLICK ROOM SHIFT, MESS-OFF REBATE & P&L AUDIT PDF
+// ============================================================================
+
+// 1. 🔄 1-CLICK ROOM SHIFTING ENGINE
+function shiftStudentRoom(studentId) {
+  const db = getDB();
+  const s = db.students.find(st => st.id === studentId);
+  if (!s) return;
+
+  // Calculate available beds in each room
+  const availRooms = db.rooms.map(r => {
+    const occ = db.students.filter(st => st.status === "Active" && String(st.room) === String(r.no)).length;
+    const free = Number(r.capacity || 0) - occ;
+    return free > 0 ? `Room ${r.no} (${free} beds free - Rs.${r.rent || s.rent})` : null;
+  }).filter(Boolean).join("\n");
+
+  const newRoomNo = prompt(
+    `🔄 SHIFT ROOM FOR: ${s.name} (Current Room: ${s.room})\n\nAvailable Rooms:\n${availRooms || "No rooms with free beds!"}\n\nEnter New Room Number:`,
+    s.room
+  );
+  if (!newRoomNo || String(newRoomNo).trim() === String(s.room)) return;
+
+  const targetRoom = db.rooms.find(r => String(r.no) === String(newRoomNo).trim());
+  if (!targetRoom) return alert(`Room "${newRoomNo}" does not exist!`);
+
+  const occupied = db.students.filter(st => st.status === "Active" && String(st.room) === String(targetRoom.no)).length;
+  if (occupied >= Number(targetRoom.capacity || 0)) {
+    return alert(`❌ Room ${targetRoom.no} is already FULL (${occupied}/${targetRoom.capacity} beds occupied)!`);
+  }
+
+  const oldRoom = s.room;
+  s.room = targetRoom.no;
+  if (targetRoom.rent && confirm(`Update ${s.name}'s monthly rent to Room ${targetRoom.no}'s rate (Rs. ${targetRoom.rent})?`)) {
+    s.rent = Number(targetRoom.rent);
+  }
+
+  saveDB(db, `Shifted ${s.name} (${s.id}) from Room ${oldRoom} to Room ${targetRoom.no}`, "Admin");
+  refreshCurrentPortalUI();
+  alert(`✅ ${s.name} successfully shifted to Room ${targetRoom.no}!`);
+}
+
+// 2. 🍲 SMART MESS-OFF REBATE (LEAVE DISCOUNT) CALCULATOR
+function applyMessRebate(studentId) {
+  const db = getDB();
+  const s = db.students.find(st => st.id === studentId);
+  if (!s) return;
+
+  const days = Number(prompt(`🍲 MESS-OFF REBATE CALCULATOR\nStudent: ${s.name} (${s.id})\n\nEnter number of Mess-Off / Leave days:`, "5"));
+  if (!days || days <= 0) return;
+
+  const perDayRate = Number(prompt(`Enter Per-Day Mess Deduction Rate (Rs.):`, "250"));
+  if (!perDayRate || perDayRate <= 0) return;
+
+  const rebateAmount = days * perDayRate;
+  s.discount = Number(s.discount || 0) + rebateAmount;
+
+  saveDB(db, `Applied Rs. ${rebateAmount} Mess-Off Rebate (${days} days @ Rs.${perDayRate}/day) to ${s.name}`, "Admin");
+  refreshCurrentPortalUI();
+  alert(`✅ Rs. ${rebateAmount.toLocaleString()} Mess Rebate added to ${s.name}'s fee voucher discount!`);
+}
+
+// 3. 📈 MONTHLY PROFIT & LOSS (P&L) AUDIT PDF GENERATOR
+function openMonthlyAuditPDF() {
+  injectUniversalModal();
+  const db = getDB();
+  const m = getLiveMetrics();
+  const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+  const expRows = (db.expenses || []).map((e, i) => `
+    <tr>
+      <td class="p-1.5 border border-slate-300">${i + 1}</td>
+      <td class="p-1.5 border border-slate-300 font-semibold">${e.title || e.category || 'Expense'}</td>
+      <td class="p-1.5 border border-slate-300">${e.date || '-'}</td>
+      <td class="p-1.5 border border-slate-300 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="4" class="p-2 text-center text-slate-400">No expenses recorded this month</td></tr>`;
+
+  document.getElementById("uniModalTitle").innerText = `Official Monthly Financial Audit Report (${billingMonth})`;
+  document.getElementById("uniPrintArea").innerHTML = `
+    <div class="border-2 border-slate-800 p-6 rounded-xl space-y-4 text-xs max-w-3xl mx-auto">
+      <div class="flex justify-between items-start border-b-2 border-slate-800 pb-3">
+        <div>
+          <h2 class="text-xl font-extrabold uppercase text-slate-900">${db.settings.hostelName}</h2>
+          <p class="text-xs font-bold text-indigo-700 uppercase">Monthly Profit & Loss (P&L) Financial Audit Statement</p>
+        </div>
+        <div class="text-right">
+          <span class="bg-slate-900 text-white px-3 py-1 rounded font-bold text-xs">${billingMonth}</span>
+          <p class="text-[10px] text-slate-500 mt-1">Generated: ${new Date().toLocaleDateString("en-GB")}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-3 text-center bg-slate-100 p-3 rounded-xl border border-slate-300">
+        <div><span class="text-[10px] text-slate-500 block">Occupancy</span><strong class="text-sm text-slate-900">${m.occupiedBeds} / ${m.totalCapacity} Beds</strong></div>
+        <div><span class="text-[10px] text-slate-500 block">Collected Revenue</span><strong class="text-sm text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-slate-500 block">Total Expenses</span><strong class="text-sm text-rose-600">Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-slate-500 block">Net Profit / Loss</span><strong class="text-sm ${m.netProfit >= 0 ? 'text-indigo-700' : 'text-rose-700'}">Rs. ${m.netProfit.toLocaleString()}</strong></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="border border-slate-300 rounded-lg p-3 space-y-1.5">
+          <h4 class="font-bold text-emerald-800 border-b pb-1">A. REVENUE BREAKDOWN</h4>
+          <div class="flex justify-between"><span>Paid Students (${m.paidCount}):</span><strong class="text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
+          <div class="flex justify-between"><span>Pending Dues (${m.unpaidCount}):</span><strong class="text-amber-600">Rs. ${m.pendingFee.toLocaleString()}</strong></div>
+          <div class="flex justify-between"><span>Refundable Security Held:</span><strong>Rs. ${m.totalSecurity.toLocaleString()}</strong></div>
+        </div>
+        <div class="border border-slate-300 rounded-lg p-3 space-y-1.5">
+          <h4 class="font-bold text-indigo-800 border-b pb-1">B. FINAL SETTLEMENT</h4>
+          <div class="flex justify-between"><span>Gross Collected Cash:</span><strong>Rs. ${m.collectedFee.toLocaleString()}</strong></div>
+          <div class="flex justify-between"><span>Less Operational Expenses:</span><strong class="text-rose-600">- Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
+          <div class="flex justify-between border-t pt-1 text-sm font-extrabold"><span>NET DISTRIBUTABLE PROFIT:</span><span class="${m.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">Rs. ${m.netProfit.toLocaleString()}</span></div>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-bold text-slate-800 mb-1">C. ITEMIZED EXPENSE LEDGER</h4>
+        <table class="w-full text-left border-collapse border border-slate-300 text-[11px]">
+          <thead class="bg-slate-200">
+            <tr><th class="p-1.5 border border-slate-300">#</th><th class="p-1.5 border border-slate-300">Expense Head</th><th class="p-1.5 border border-slate-300">Date</th><th class="p-1.5 border border-slate-300 text-right">Amount</th></tr>
+          </thead>
+          <tbody>${expRows}</tbody>
+        </table>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-slate-600">
+        <div>______________________<br>Prepared By (Manager)</div>
+        <div>______________________<br>Verified By (Accountant)</div>
+        <div>______________________<br>Approved By (Owner / Partner)</div>
+      </div>
+    </div>
+  `;
+  showUniModal(`Financial_Audit_${billingMonth.replace(/\s+/g, "_")}.pdf`, "portrait");
+}
+
+// 4. 🎯 UPDATED AUTO-INJECTOR (Student Row Buttons + Settings Audit & Backup)
 function enhanceAdminUI() {
-  // A) Har Student ke Row mein (openStudentVoucher button ke bilkul sath) Remind & Parent buttons lagana:
   document.querySelectorAll("button[onclick*='openStudentVoucher(']").forEach(voucherBtn => {
     if (voucherBtn.dataset.waInjected) return;
     const match = voucherBtn.getAttribute("onclick").match(/openStudentVoucher\(['"]([^'"]+)['"]\)/);
@@ -495,25 +628,28 @@ function enhanceAdminUI() {
     const studentId = match[1];
     voucherBtn.dataset.waInjected = "true";
 
-    const remindBtn = document.createElement("button");
-    remindBtn.type = "button";
-    remindBtn.onclick = () => sendStudentFeeReminder(studentId);
-    remindBtn.className = "bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-2 py-1 rounded text-[11px] font-bold transition ml-1";
-    remindBtn.title = "Send WhatsApp Fee Reminder to Student";
-    remindBtn.innerHTML = `<i class="fa-brands fa-whatsapp"></i> Remind`;
+    const makeBtn = (html, title, cls, fn) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.onclick = fn;
+      b.className = `${cls} px-2 py-1 rounded text-[11px] font-bold transition ml-1`;
+      b.title = title;
+      b.innerHTML = html;
+      return b;
+    };
 
-    const parentBtn = document.createElement("button");
-    parentBtn.type = "button";
-    parentBtn.onclick = () => sendGuardianAlert(studentId);
-    parentBtn.className = "bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/30 px-2 py-1 rounded text-[11px] font-bold transition ml-1";
-    parentBtn.title = "Send WhatsApp Alert to Parent/Guardian";
-    parentBtn.innerHTML = `<i class="fa-solid fa-user-shield"></i> Parent`;
+    const remindBtn = makeBtn(`<i class="fa-brands fa-whatsapp"></i> Remind`, "WhatsApp Fee Reminder", "bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30", () => sendStudentFeeReminder(studentId));
+    const parentBtn = makeBtn(`<i class="fa-solid fa-user-shield"></i> Parent`, "WhatsApp Parent Alert", "bg-teal-600/20 hover:bg-teal-600 text-teal-300 hover:text-white border border-teal-500/30", () => sendGuardianAlert(studentId));
+    const shiftBtn  = makeBtn(`<i class="fa-solid fa-right-left"></i> Shift`, "Shift Student Room", "bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-white border border-amber-500/30", () => shiftStudentRoom(studentId));
+    const messBtn   = makeBtn(`<i class="fa-solid fa-utensils"></i> Mess Off`, "Deduct Leave Mess Rebate", "bg-purple-500/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30", () => applyMessRebate(studentId));
 
+    voucherBtn.insertAdjacentElement("afterend", messBtn);
+    voucherBtn.insertAdjacentElement("afterend", shiftBtn);
     voucherBtn.insertAdjacentElement("afterend", parentBtn);
     voucherBtn.insertAdjacentElement("afterend", remindBtn);
   });
 
-  // B) Settings Section ke andar (wipeAllData button ke sath) Backup & Restore lagana:
+  // Inject Audit PDF + Backup & Restore right next to Wipe All inside Settings
   const wipeBtn = document.querySelector("button[onclick*='wipeAllData']");
   if (wipeBtn && !document.getElementById("settingsBackupBox")) {
     const backupBox = document.createElement("div");
@@ -521,15 +657,18 @@ function enhanceAdminUI() {
     backupBox.className = "mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3";
     backupBox.innerHTML = `
       <div>
-        <h4 class="text-xs font-bold text-white"><i class="fa-solid fa-cloud-arrow-down text-indigo-400 mr-1"></i> Cloud Database Backup & Restore</h4>
-        <p class="text-[11px] text-slate-400">Download a safe copy of all hostel records or restore from a file.</p>
+        <h4 class="text-xs font-bold text-white"><i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i> Audit Report & Cloud Database Backup</h4>
+        <p class="text-[11px] text-slate-400">Export monthly Profit & Loss PDF statement or backup/restore hostel data.</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="openMonthlyAuditPDF()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
+          <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Monthly P&L Audit PDF
+        </button>
         <button type="button" onclick="exportHostelBackupJSON()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-download mr-1"></i> Download Backup (.json)
+          <i class="fa-solid fa-download mr-1"></i> Backup (.json)
         </button>
         <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition">
-          <i class="fa-solid fa-upload mr-1"></i> Restore Backup
+          <i class="fa-solid fa-upload mr-1"></i> Restore
           <input type="file" accept=".json" onchange="importHostelBackupJSON(event)" class="hidden" />
         </label>
       </div>
@@ -537,19 +676,3 @@ function enhanceAdminUI() {
     wipeBtn.parentNode.insertAdjacentElement("beforebegin", backupBox);
   }
 }
-
-// Jab bhi Admin table render ho ya data update ho, buttons khud lag jayein:
-window.addEventListener("DOMContentLoaded", () => {
-  enhanceAdminUI();
-  const observer = new MutationObserver(() => enhanceAdminUI());
-  observer.observe(document.body, { childList: true, subtree: true });
-
-  // Clean SaaS Footer at the very bottom
-  if (!location.pathname.includes("master") && !document.getElementById("saasBrandingFooter")) {
-    const footer = document.createElement("footer");
-    footer.id = "saasBrandingFooter";
-    footer.className = "text-center py-4 px-4 mt-12 border-t border-slate-800/80 text-[11px] text-slate-400";
-    footer.innerHTML = `⚡ Powered by <strong class="text-indigo-400">${SAAS_BRAND_NAME}</strong> — <a href="https://wa.me/${SAAS_FOUNDER_WHATSAPP}" target="_blank" class="text-emerald-400 hover:underline font-bold">Get this Software for your Hostel ↗</a>`;
-    document.body.appendChild(footer);
-  }
-});
