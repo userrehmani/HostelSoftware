@@ -618,7 +618,69 @@ function openMonthlyAuditPDF() {
   showUniModal(`Financial_Audit_${billingMonth.replace(/\s+/g, "_")}.pdf`, "portrait");
 }
 
-// 4. 🎯 UPDATED AUTO-INJECTOR (Student Row Buttons + Settings Audit & Backup)
+/// ============================================================================
+// 📢 LIVE DIGITAL NOTICE BOARD ENGINE (Broadcasts to Student, Public & Warden)
+// ============================================================================
+function saveLiveNotice() {
+  const input = document.getElementById("adminNoticeInput");
+  if (!input) return;
+  const text = input.value.trim();
+  const db = getDB();
+  db.settings = db.settings || {};
+  db.settings.liveNotice = text;
+  db.settings.noticeTime = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  saveDB(db, text ? `Broadcasted Live Notice: "${text}"` : "Cleared Live Notice Banner", "Admin");
+  renderLiveNoticeBanner();
+  alert(text ? "✅ Live Notice broadcasted to all portals!" : "🗑️ Live Notice cleared!");
+}
+
+function clearLiveNotice() {
+  const input = document.getElementById("adminNoticeInput");
+  if (input) input.value = "";
+  saveLiveNotice();
+}
+
+function renderLiveNoticeBanner() {
+  const path = window.location.pathname.toLowerCase();
+  if (path.includes("master")) return;
+
+  const db = getDB();
+  const notice = (db.settings && db.settings.liveNotice) ? db.settings.liveNotice.trim() : "";
+  const time = (db.settings && db.settings.noticeTime) || "";
+
+  // Sync Notice Input inside Admin Settings if present
+  const adminInput = document.getElementById("adminNoticeInput");
+  if (adminInput && document.activeElement !== adminInput) {
+    adminInput.value = notice;
+  }
+
+  let banner = document.getElementById("globalLiveNoticeBanner");
+  if (!notice) {
+    if (banner) banner.remove();
+    return;
+  }
+
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "globalLiveNoticeBanner";
+    banner.className = "bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-indigo-500/20 border-b border-amber-500/40 text-amber-200 px-4 py-2.5 text-xs shadow-md";
+    document.body.insertBefore(banner, document.body.firstChild);
+  }
+
+  banner.innerHTML = `
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="bg-amber-500 text-slate-950 font-extrabold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider animate-pulse">
+          <i class="fa-solid fa-bullhorn mr-1"></i> Notice
+        </span>
+        <span class="font-semibold text-white">${notice}</span>
+      </div>
+      <span class="text-[10px] text-slate-400 whitespace-nowrap hidden sm:inline">${time}</span>
+    </div>
+  `;
+}
+
+// 4. 🎯 UPDATED AUTO-INJECTOR (Student Row Buttons + Settings Notice, Audit & Backup)
 function enhanceAdminUI() {
   document.querySelectorAll("button[onclick*='openStudentVoucher(']").forEach(voucherBtn => {
     if (voucherBtn.dataset.waInjected) return;
@@ -648,40 +710,70 @@ function enhanceAdminUI() {
     voucherBtn.insertAdjacentElement("afterend", remindBtn);
   });
 
-  // Inject Audit PDF + Backup & Restore right next to Wipe All inside Settings
+  // Inject Live Notice Board + Audit PDF + Backup & Restore inside Settings
   const wipeBtn = document.querySelector("button[onclick*='wipeAllData']");
   if (wipeBtn && !document.getElementById("settingsBackupBox")) {
+    const db = getDB();
+    const currentNotice = (db.settings && db.settings.liveNotice) || "";
+
     const backupBox = document.createElement("div");
     backupBox.id = "settingsBackupBox";
-    backupBox.className = "mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3";
+    backupBox.className = "mt-4 pt-4 border-t border-slate-800 space-y-4";
     backupBox.innerHTML = `
-      <div>
-        <h4 class="text-xs font-bold text-white"><i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i> Audit Report & Cloud Database Backup</h4>
-        <p class="text-[11px] text-slate-400">Export monthly Profit & Loss PDF statement or backup/restore hostel data.</p>
+      <!-- 📢 Live Notice Board Control -->
+      <div class="bg-slate-950/70 border border-amber-500/30 rounded-xl p-3.5 space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-amber-300"><i class="fa-solid fa-bullhorn mr-1.5"></i> Live Digital Notice Banner (Student & Public Portals)</h4>
+          <span class="text-[10px] text-slate-400">Real-time Cloud Broadcast</span>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input id="adminNoticeInput" type="text" value="${currentNotice.replace(/"/g, '&quot;')}" placeholder="e.g., Dinner timing tonight is 8:30 PM / Submit dues before 5th..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 outline-none" />
+          <div class="flex gap-2">
+            <button type="button" onclick="saveLiveNotice()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-extrabold transition whitespace-nowrap">
+              <i class="fa-solid fa-paper-plane mr-1"></i> Post Notice
+            </button>
+            <button type="button" onclick="clearLiveNotice()" class="bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white px-3 py-2 rounded-xl text-xs font-bold transition">
+              Clear
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" onclick="openMonthlyAuditPDF()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Monthly P&L Audit PDF
-        </button>
-        <button type="button" onclick="exportHostelBackupJSON()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-download mr-1"></i> Backup (.json)
-        </button>
-        <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition">
-          <i class="fa-solid fa-upload mr-1"></i> Restore
-          <input type="file" accept=".json" onchange="importHostelBackupJSON(event)" class="hidden" />
-        </label>
+
+      <!-- 📊 Audit Report & Backup Controls -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <div>
+          <h4 class="text-xs font-bold text-white"><i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i> Audit Report & Cloud Database Backup</h4>
+          <p class="text-[11px] text-slate-400">Export monthly Profit & Loss PDF statement or backup/restore hostel data.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="openMonthlyAuditPDF()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
+            <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Monthly P&L Audit PDF
+          </button>
+          <button type="button" onclick="exportHostelBackupJSON()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
+            <i class="fa-solid fa-download mr-1"></i> Backup (.json)
+          </button>
+          <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition">
+            <i class="fa-solid fa-upload mr-1"></i> Restore
+            <input type="file" accept=".json" onchange="importHostelBackupJSON(event)" class="hidden" />
+          </label>
+        </div>
       </div>
     `;
     wipeBtn.parentNode.insertAdjacentElement("beforebegin", backupBox);
   }
 }
 
-// 5. ⚡ AUTO-RUN TRIGGERS (Ye lines pichle code mein reh gayi thin!)
+// 5. ⚡ AUTO-RUN TRIGGERS & REAL-TIME BANNER SYNC
 setTimeout(checkAndApplyAutoLateFine, 1500);
 
 window.addEventListener("DOMContentLoaded", () => {
   enhanceAdminUI();
-  const observer = new MutationObserver(() => enhanceAdminUI());
+  renderLiveNoticeBanner();
+
+  const observer = new MutationObserver(() => {
+    enhanceAdminUI();
+    renderLiveNoticeBanner();
+  });
   observer.observe(document.body, { childList: true, subtree: true });
 
   // Clean SaaS Footer at the very bottom
