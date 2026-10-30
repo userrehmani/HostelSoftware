@@ -6,6 +6,7 @@
   <title>Master SaaS HQ — Multi-Tenant Cloud Control Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -38,7 +39,7 @@
       <form onsubmit="verifyMasterPin(event)" class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-zinc-700 mb-1.5">Founder Security PIN *</label>
-          <input id="masterPinInput" type="password" required placeholder="Enter  PIN " class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-mono tracking-widest text-center font-extrabold focus:border-zinc-900 focus:bg-white outline-none" />
+          <input id="masterPinInput" type="password" required placeholder="Enter PIN (4426)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-mono tracking-widest text-center font-extrabold focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
         <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
           Unlock Master HQ →
@@ -296,7 +297,7 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 🚀 MASTER SAAS HQ CONTROLLER                                          -->
+  <!-- 🚀 MASTER SAAS HQ CONTROLLER (FIXED)                                  -->
   <!-- ===================================================================== -->
   <script>
     const MASTER_PIN = "4426";
@@ -331,7 +332,7 @@
         document.getElementById("masterLoginGate").classList.add("hidden");
         loadAllCloudTenants();
       } else {
-        alert("❌ Invalid Founder Security PIN!");
+        alert("❌ Invalid Founder Security PIN! Default PIN is: 4426");
       }
     }
 
@@ -411,40 +412,14 @@
       document.getElementById("badgeTotalTenants").innerText = total;
     }
 
-   function renderTenants Table()
-
-const tbody = document.getElementById("tenantsTableBody");
-const q = (document.getElementById("searchTenantInput").value || "").toLowerCase().trim();
-const filtered allTenantsCache.filter(t => {
-const hName = ((t.data.settings && t.data.settings.hostelName) || "").toLowerCase();
-return
-
-  
-    async function masterChangeClientPassword(tenantId) {
-      const found = allTenantsCache.find(t => t.tenantId === tenantId);
-      if (!found) return;
-      const currentAdmin = found.data.settings?.adminPass || "";
-      const currentWarden = found.data.settings?.wardenPass || "";
-
-      const newAdmin = prompt(`🔑 CHANGE CREDENTIALS FOR: ${tenantId}\n\nEnter New Admin Password:`, currentAdmin);
-      if (newAdmin === null) return;
-      const newWarden = prompt(`Enter New Warden Password:`, currentWarden);
-      if (newWarden === null) return;
-
-      try {
-        await firebase.firestore().collection("hostel_system").doc(tenantId).set({
-          settings: {
-            adminPass: newAdmin.trim() || "123",
-            wardenPass: newWarden.trim() || "123"
-          }
-        }, { merge: true });
-
-        await loadAllCloudTenants();
-        alert(`✅ Passwords successfully updated for tenant "${tenantId}"!`);
-      } catch (err) {
-        alert("Failed to update passwords: " + err.message);
-      }
-    }
+    function renderTenantsTable() {
+      const tbody = document.getElementById("tenantsTableBody");
+      const q = (document.getElementById("searchTenantInput").value || "").toLowerCase().trim();
+      const filtered = allTenantsCache.filter(t => {
+        const hName = ((t.data.settings && t.data.settings.hostelName) || "").toLowerCase();
+        const tId = (t.tenantId || "").toLowerCase();
+        return hName.includes(q) || tId.includes(q);
+      });
 
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-zinc-400">No matching hostel clients found. Click "+ Onboard New Hostel" to create one.</td></tr>`;
@@ -474,6 +449,7 @@ return
             <td class="p-3.5 whitespace-nowrap font-mono text-[11px]">
               <div>Admin: <strong class="text-zinc-900">${set.adminPass || '123'}</strong></div>
               <div>Warden: <strong class="text-zinc-700">${set.wardenPass || '123'}</strong></div>
+              <button onclick="masterChangeClientPassword('${id}')" class="text-[10px] text-emerald-700 hover:underline font-semibold block mt-1">Change Key</button>
             </td>
             <td class="p-3.5 whitespace-nowrap">
               <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${isSuspended ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'}">
@@ -497,6 +473,32 @@ return
           </tr>
         `;
       }).join("");
+    }
+
+    async function masterChangeClientPassword(tenantId) {
+      const found = allTenantsCache.find(t => t.tenantId === tenantId);
+      if (!found) return;
+      const currentAdmin = found.data.settings?.adminPass || "";
+      const currentWarden = found.data.settings?.wardenPass || "";
+
+      const newAdmin = prompt(`🔑 CHANGE CREDENTIALS FOR: ${tenantId}\n\nEnter New Admin Password:`, currentAdmin);
+      if (newAdmin === null) return;
+      const newWarden = prompt(`Enter New Warden Password:`, currentWarden);
+      if (newWarden === null) return;
+
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).set({
+          settings: {
+            adminPass: newAdmin.trim() || "123",
+            wardenPass: newWarden.trim() || "123"
+          }
+        }, { merge: true });
+
+        await loadAllCloudTenants();
+        alert(`✅ Passwords successfully updated for tenant "${tenantId}"!`);
+      } catch (err) {
+        alert("Failed to update passwords: " + err.message);
+      }
     }
 
     // 2. Auto-Suggest Clean Tenant Slug from Hostel Name
@@ -571,91 +573,4 @@ return
       const pubUrl = `${base}/index?hostel=${tenantId}`;
       const admUrl = `${base}/admin?hostel=${tenantId}`;
       const stuUrl = `${base}/student?hostel=${tenantId}`;
-      const warUrl = `${base}/warden?hostel=${tenantId}`;
-
-      selectedClientPackage = {
-        tenantId,
-        hostelName: set.hostelName || tenantId,
-        ownerPhone: set.adminWhatsApp || set.jazzcash || "",
-        adminPass: set.adminPass || "123",
-        wardenPass: set.wardenPass || "123",
-        pubUrl, admUrl, stuUrl, warUrl
-      };
-
-      document.getElementById("genBoxTitle").innerText = selectedClientPackage.hostelName;
-      document.getElementById("genTenantBadge").innerText = `?hostel=${tenantId}`;
-      document.getElementById("generatedActionsBar").classList.remove("hidden");
-
-      const makeRow = (label, icon, url, extra) => `
-        <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2">
-          <div class="min-w-0">
-            <span class="text-[11px] font-bold text-zinc-900 block"><i class="${icon} text-emerald-700 mr-1.5"></i> ${label} ${extra ? `<span class="text-zinc-500 font-mono">(${extra})</span>` : ''}</span>
-            <a href="${url}" target="_blank" class="text-[11px] font-mono text-emerald-800 hover:underline truncate block mt-0.5">${url}</a>
-          </div>
-          <button type="button" onclick="navigator.clipboard.writeText('${url}');alert('Link copied!');" class="bg-white hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 py-1.5 rounded-lg text-[11px] font-bold shrink-0">
-            Copy
-          </button>
-        </div>
-      `;
-
-      document.getElementById("generatedLinksContainer").innerHTML =
-        makeRow("1. Public Website & Online Admission", "fa-solid fa-globe", pubUrl, "") +
-        makeRow("2. Executive Admin ERP Console", "fa-solid fa-sliders", admUrl, `Pass: ${selectedClientPackage.adminPass}`) +
-        makeRow("3. Resident Student Portal", "fa-solid fa-user-graduate", stuUrl, "Roll ID Login") +
-        makeRow("4. Security Warden Console", "fa-solid fa-user-shield", warUrl, `Pass: ${selectedClientPackage.wardenPass}`);
-    }
-
-    function buildWelcomeText() {
-      if (!selectedClientPackage) return "";
-      const p = selectedClientPackage;
-      return `*WELCOME TO HOSTELCLOUD ERP — ${p.hostelName.toUpperCase()}*\n\nYour cloud hostel management software is live! Below are your official links and login credentials:\n\n🌐 *1. Public Website & Online Admission:*\n${p.pubUrl}\n\n👑 *2. Admin ERP Console (Owner):*\n${p.admUrl}\n🔑 *Admin Password:* ${p.adminPass}\n\n🎓 *3. Resident Student Portal:*\n${p.stuUrl}\n*(Students login with Roll ID or CNIC)*\n\n👮 *4. Security Warden Console:*\n${p.warUrl}\n🔑 *Warden Password:* ${p.wardenPass}`;
-    }
-
-    function copyCompleteWelcomePackage() {
-      const txt = buildWelcomeText();
-      if (!txt) return;
-      navigator.clipboard.writeText(txt);
-      alert("✅ Complete Welcome Package copied to clipboard!");
-    }
-
-    function sendWelcomePackageWhatsApp() {
-      if (!selectedClientPackage) return;
-      const raw = (selectedClientPackage.ownerPhone || "").replace(/[^0-9]/g, "");
-      const cleanPhone = raw.length >= 10 ? ("92" + raw.replace(/^0/, "")) : prompt("Enter Hostel Owner WhatsApp Number (e.g. 923001234567):", "923");
-      if (!cleanPhone) return;
-      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(buildWelcomeText())}`, "_blank");
-    }
-
-    // 4. Remote Kill-Switch (Suspend / Unlock License)
-    async function toggleTenantSuspension(tenantId, currentlySuspended) {
-      const actionName = currentlySuspended ? "UNLOCK / ACTIVATE" : "SUSPEND (LOCK)";
-      if (!confirm(`Are you sure you want to ${actionName} the software license for "${tenantId}"?`)) return;
-
-      try {
-        await firebase.firestore().collection("hostel_system").doc(tenantId).set({
-          settings: { isSuspended: !currentlySuspended }
-        }, { merge: true });
-        await loadAllCloudTenants();
-      } catch (err) {
-        alert("Failed to update license status: " + err.message);
-      }
-    }
-
-    // 5. Delete Tenant Client Permanently
-    async function deleteTenantClient(tenantId) {
-      const conf = prompt(`⚠️ DANGER: Type "${tenantId}" to permanently delete this hostel client and all its cloud data:`);
-      if (conf !== tenantId) return;
-
-      try {
-        await firebase.firestore().collection("hostel_system").doc(tenantId).delete();
-        await loadAllCloudTenants();
-        alert(`🗑️ Deleted tenant "${tenantId}" from Cloud.`);
-      } catch (err) {
-        alert("Delete failed: " + err.message);
-      }
-    }
-
-    window.addEventListener("DOMContentLoaded", checkMasterSession);
-  </script>
-</body>
-</html>
+      const warUrl = `${base}/warden?hostel=${tenantId
