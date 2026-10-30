@@ -2,38 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Security Warden Console — Hostel ERP</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <!-- HTML2PDF for Gate Pass / Reports -->
+  <!-- HTML2PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="db.js"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
-    #saasBrandingFooter { display: none !important; }
-    #globalLiveNoticeBanner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; }
-    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    #saasBrandingFooter, #wardenScannerBtn { display: none !important; }
+    #globalLiveNoticeBanner { position: fixed; top: 0; left: 0; right: 0; z-index: 45; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
   </style>
 </head>
-<body class="antialiased h-screen w-screen overflow-hidden">
+<body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
   <!-- 🔒 SECURITY WARDEN LOGIN GATE                                         -->
   <!-- ===================================================================== -->
   <div id="wardenLoginGate" class="fixed inset-0 bg-zinc-900/95 z-50 flex items-center justify-center p-4">
-    <div class="bg-white border border-zinc-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
       <div class="flex items-center gap-3 border-b border-zinc-100 pb-4">
-        <div class="w-10 h-10 rounded-lg bg-emerald-700 text-white flex items-center justify-center text-base font-bold">
+        <div class="w-11 h-11 rounded-xl bg-emerald-700 text-white flex items-center justify-center text-base font-bold shrink-0">
           <i class="fa-solid fa-user-shield"></i>
         </div>
-        <div>
-          <h2 id="wardenGateHostelName" class="text-base font-extrabold text-zinc-900 leading-tight">Warden Console</h2>
+        <div class="min-w-0">
+          <h2 id="wardenGateHostelName" class="text-base font-extrabold text-zinc-900 truncate">Warden Console</h2>
           <p class="text-xs text-zinc-500">Gate Security & Resident Discipline</p>
         </div>
       </div>
@@ -41,10 +41,10 @@
       <form onsubmit="handleWardenLogin(event)" class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-zinc-700 mb-1.5">Warden Console Password *</label>
-          <input id="wardenPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
+          <input id="wardenPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
 
-        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition">
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
           Unlock Warden Console →
         </button>
       </form>
@@ -57,12 +57,17 @@
   </div>
 
   <!-- ===================================================================== -->
+  <!-- 📱 MOBILE SIDEBAR BACKDROP OVERLAY                                    -->
+  <!-- ===================================================================== -->
+  <div id="wardenSidebarBackdrop" onclick="toggleWardenMobileMenu()" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
+
+  <!-- ===================================================================== -->
   <!-- 🖥️ FULL-SCREEN WARDEN ERP WORKSPACE                                   -->
   <!-- ===================================================================== -->
-  <div class="flex h-screen w-screen overflow-hidden">
+  <div class="flex h-dvh w-screen overflow-hidden">
 
-    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
-    <aside class="w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full">
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION (SLIDE-OUT ON MOBILE, FIXED ON DESKTOP) -->
+    <aside id="wardenSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
         <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
           <div class="flex items-center gap-2.5 truncate">
@@ -74,22 +79,26 @@
               <span class="text-[10px] text-emerald-400 font-semibold block">● Live Gate Security</span>
             </div>
           </div>
+          <!-- Mobile Close Drawer Button -->
+          <button onclick="toggleWardenMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white text-lg px-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
         <!-- Warden Navigation Menu -->
-        <div class="p-3 space-y-1 text-xs font-semibold">
+        <div class="p-3 space-y-1.5 text-xs font-semibold">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Security & Discipline</p>
 
-          <button onclick="switchWardenTab('gate')" id="wnav-gate" class="wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition">
-            <span class="flex items-center gap-2.5"><i class="fa-solid fa-qrcode w-4 text-center text-emerald-400"></i> Gate Pass & Scanner</span>
+          <button onclick="switchWardenTab('gate')" id="wnav-gate" class="wnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-zinc-800 text-white font-bold transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-qrcode w-4 text-center text-emerald-400"></i> Gate Pass & Visitors</span>
           </button>
 
-          <button onclick="switchWardenTab('residents')" id="wnav-residents" class="wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchWardenTab('residents')" id="wnav-residents" class="wnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-users w-4 text-center"></i> Residents Directory</span>
             <span id="badgeWardenResidents" class="text-[10px] text-zinc-400">0</span>
           </button>
 
-          <button onclick="switchWardenTab('operations')" id="wnav-operations" class="wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchWardenTab('operations')" id="wnav-operations" class="wnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-check w-4 text-center"></i> Complaints & Leaves</span>
             <span id="badgeWardenOps" class="bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded text-[10px]">0</span>
           </button>
@@ -98,11 +107,11 @@
 
       <!-- Bottom Actions -->
       <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
-        <a href="index" class="w-full block text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded font-medium">
+        <a href="index" class="w-full block text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded-lg font-medium">
           ← Public Website
         </a>
-        <button onclick="logoutWarden()" class="w-full flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-500/10 py-1.5 rounded font-bold transition">
-          <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Sign Out
+        <button onclick="logoutWarden()" class="w-full flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-500/10 py-2 rounded-lg font-bold transition">
+          <i class="fa-solid fa-right-from-bracket text-xs"></i> Sign Out
         </button>
       </div>
     </aside>
@@ -110,62 +119,97 @@
     <!-- 🖥️ RIGHT MAIN WARDEN WORKSPACE -->
     <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-      <!-- Top Header -->
-      <header class="h-16 bg-white border-b border-zinc-200 px-6 flex items-center justify-between shrink-0 w-full">
-        <div>
-          <h2 id="wardenViewTitle" class="text-base font-extrabold text-zinc-900">Gate Pass Scanner & Resident Verification</h2>
-          <p class="text-xs text-zinc-500">Security & Discipline Management Console</p>
+      <!-- Top Mobile & Desktop Header -->
+      <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <!-- Mobile Hamburger Drawer Button -->
+          <button onclick="toggleWardenMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bars text-sm"></i>
+          </button>
+          <div class="min-w-0">
+            <h2 id="wardenViewTitle" class="text-sm sm:text-base font-extrabold text-zinc-900 truncate">Gate Pass & Visitor Security</h2>
+            <p class="text-[11px] text-zinc-500 truncate">Security & Discipline Management Console</p>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 text-xs">
-          <button onclick="openWardenGateScanner()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-bold shadow-2xs transition">
-            <i class="fa-solid fa-qrcode mr-1.5"></i> Scan / Verify Roll ID
+        <div class="flex items-center gap-2 text-xs shrink-0">
+          <button onclick="openWardenGateScanner()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg font-bold shadow-2xs transition">
+            <i class="fa-solid fa-qrcode sm:mr-1"></i> <span class="hidden sm:inline">Quick Scan ID</span>
           </button>
         </div>
       </header>
 
-      <!-- Scrollable View Area -->
-      <main class="flex-1 overflow-y-auto p-6 w-full custom-scroll space-y-6">
-
-        <!-- KPI Strip -->
-        <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
-          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
-            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Active Residents</span>
-            <strong id="kpiWardenResidents" class="text-xl font-extrabold text-zinc-900 block mt-1">0</strong>
-          </div>
-          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
-            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Open Complaints</span>
-            <strong id="kpiWardenComps" class="text-xl font-extrabold text-amber-600 block mt-1">0</strong>
-          </div>
-          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
-            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Pending Leaves</span>
-            <strong id="kpiWardenLeaves" class="text-xl font-extrabold text-rose-600 block mt-1">0</strong>
-          </div>
-          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
-            <span class="text-[11px] font-semibold text-zinc-500 uppercase">Gate Status</span>
-            <strong class="text-xl font-extrabold text-emerald-700 block mt-1">Secure ●</strong>
-          </div>
-        </section>
+      <!-- Scrollable View Area (pb-24 on mobile for Bottom App Nav) -->
+      <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll">
 
         <!-- =============================================================== -->
-        <!-- VIEW 1: GATE PASS & QUICK ROLL ID VERIFIER                      -->
+        <!-- VIEW 1: GATE PASS VERIFIER & VISITOR SECURITY REGISTER          -->
         <!-- =============================================================== -->
-        <div id="wardenView-gate" class="space-y-6 w-full">
-          
-          <div class="bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs max-w-2xl space-y-5">
-            <div class="border-b border-zinc-100 pb-3">
-              <h3 class="text-base font-bold text-zinc-900"><i class="fa-solid fa-qrcode text-emerald-700 mr-2"></i> Gate Security Entry & Exit Verifier</h3>
-              <p class="text-xs text-zinc-500">Scan student QR code or type their Roll ID to instantly verify fee status and log campus movements.</p>
+        <div id="wardenView-gate" class="space-y-4 sm:space-y-6 w-full">
+
+          <!-- 4-Card KPI Strip (2x2 on Mobile, 4 Cols on Desktop) -->
+          <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+            <div class="bg-white border border-zinc-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Active Residents</span>
+              <strong id="kpiWardenResidents" class="text-base sm:text-xl font-extrabold text-zinc-900 block mt-0.5">0</strong>
+            </div>
+            <div class="bg-white border border-zinc-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Open Complaints</span>
+              <strong id="kpiWardenComps" class="text-base sm:text-xl font-extrabold text-amber-600 block mt-0.5">0</strong>
+            </div>
+            <div class="bg-white border border-zinc-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Pending Leaves</span>
+              <strong id="kpiWardenLeaves" class="text-base sm:text-xl font-extrabold text-rose-600 block mt-0.5">0</strong>
+            </div>
+            <div class="bg-white border border-zinc-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Gate Status</span>
+              <strong class="text-base sm:text-xl font-extrabold text-emerald-700 block mt-0.5">Secure ●</strong>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 w-full">
+            
+            <!-- Left 6 Cols: Gate Pass QR / Roll ID Verifier -->
+            <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm sm:text-base font-bold text-zinc-900"><i class="fa-solid fa-qrcode text-emerald-700 mr-1.5"></i> Gate Security Entry & Exit Verifier</h3>
+                <p class="text-xs text-zinc-500">Enter student Roll ID, CNIC, or Phone to verify fee clearance and log gate movements.</p>
+              </div>
+
+              <div class="flex gap-2">
+                <input id="quickScanInput" type="text" placeholder="Enter Roll ID (e.g. ST-101)..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 font-mono outline-none focus:border-zinc-900" />
+                <button onclick="verifyRollIdManual()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap">
+                  Verify Pass
+                </button>
+              </div>
+
+              <div id="scanResultBox" class="hidden bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-3 text-xs"></div>
             </div>
 
-            <div class="flex gap-2">
-              <input id="quickScanInput" type="text" placeholder="Enter Roll ID (e.g. ST-101)..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-sm text-zinc-900 font-mono outline-none focus:border-zinc-900" />
-              <button onclick="verifyRollIdManual()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold whitespace-nowrap">
-                Verify Pass
-              </button>
+            <!-- Right 6 Cols: Gate Visitor Security Register -->
+            <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <h3 class="text-sm sm:text-base font-bold text-zinc-900"><i class="fa-solid fa-user-check text-zinc-700 mr-1.5"></i> Gate Visitor Security Log</h3>
+                <p class="text-xs text-zinc-500">Record guests visiting hostel residents.</p>
+              </div>
+
+              <form onsubmit="addWardenVisitor(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                <input id="wVisName" type="text" required placeholder="Visitor Name & CNIC" class="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" />
+                <input id="wVisStudent" type="text" required placeholder="Host Student / Room #" class="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" />
+                <input id="wVisRelation" type="text" required placeholder="Relation / Purpose" class="bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2" />
+                <button type="submit" class="sm:col-span-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold py-2.5">+ Log Visitor Entry</button>
+              </form>
+
+              <div class="border border-zinc-200 rounded-xl overflow-x-auto max-h-56 custom-scroll">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200">
+                    <tr><th class="p-2.5">Visitor</th><th class="p-2.5">Student / Room</th><th class="p-2.5">Time</th></tr>
+                  </thead>
+                  <tbody id="wardenVisitorsTable" class="divide-y divide-zinc-200"></tbody>
+                </table>
+              </div>
             </div>
 
-            <div id="scanResultBox" class="hidden bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-3 text-xs"></div>
           </div>
 
         </div>
@@ -173,14 +217,14 @@
         <!-- =============================================================== -->
         <!-- VIEW 2: RESIDENTS DIRECTORY (QUICK EMERGENCY CONTACTS)          -->
         <!-- =============================================================== -->
-        <div id="wardenView-residents" class="hidden space-y-6 w-full">
+        <div id="wardenView-residents" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Hostel Residents Emergency Directory</h3>
-                <p class="text-xs text-zinc-500">Quick access to student phone numbers, guardian contacts, and room numbers.</p>
+                <p class="text-xs text-zinc-500">Tap any phone number to dial student or parent/guardian directly.</p>
               </div>
-              <input id="searchWardenStu" oninput="renderWardenResidents()" type="text" placeholder="Search name, ID, room..." class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs w-60 outline-none" />
+              <input id="searchWardenStu" oninput="renderWardenResidents()" type="text" placeholder="Search name, ID, room..." class="bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2 text-xs w-full sm:w-60 outline-none focus:border-zinc-900" />
             </div>
 
             <div class="overflow-x-auto">
@@ -203,10 +247,10 @@
         <!-- =============================================================== -->
         <!-- VIEW 3: COMPLAINTS & LEAVES                                     -->
         <!-- =============================================================== -->
-        <div id="wardenView-operations" class="hidden space-y-6 w-full">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <div id="wardenView-operations" class="hidden space-y-4 sm:space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
             
-            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Resident Maintenance Complaints</h3>
                 <p class="text-xs text-zinc-500">Mark resolved once maintenance work is completed.</p>
@@ -214,10 +258,10 @@
               <div id="wardenComplaintsList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
             </div>
 
-            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
-                <h3 class="text-sm font-bold text-zinc-900">Leave Requests</h3>
-                <p class="text-xs text-zinc-500">Approve student leave applications.</p>
+                <h3 class="text-sm font-bold text-zinc-900">Leave Requests & Parent Alert</h3>
+                <p class="text-xs text-zinc-500">Approve student leave applications and notify parents on WhatsApp.</p>
               </div>
               <div id="wardenLeavesList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
             </div>
@@ -226,6 +270,25 @@
         </div>
 
       </main>
+
+      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR (ONLY ON MOBILE)              -->
+      <!-- ================================================================= -->
+      <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-3 z-30 shadow-lg">
+        <button onclick="switchWardenTab('gate')" id="wbnav-gate" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[11px]">
+          <i class="fa-solid fa-qrcode text-base"></i>
+          <span>Gate & Visitors</span>
+        </button>
+        <button onclick="switchWardenTab('residents')" id="wbnav-residents" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]">
+          <i class="fa-solid fa-users text-base"></i>
+          <span>Directory</span>
+        </button>
+        <button onclick="switchWardenTab('operations')" id="wbnav-operations" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]">
+          <i class="fa-solid fa-clipboard-check text-base"></i>
+          <span>Issues & Leaves</span>
+        </button>
+      </nav>
+
     </div>
 
   </div>
@@ -235,10 +298,23 @@
   <!-- ===================================================================== -->
   <script>
     const WARDEN_TITLES = {
-      gate: "Gate Pass Scanner & Resident Verification",
+      gate: "Gate Pass & Visitor Security",
       residents: "Residents Emergency Directory",
       operations: "Maintenance Complaints & Leave Requests"
     };
+
+    function toggleWardenMobileMenu() {
+      const sb = document.getElementById("wardenSidebar");
+      const bd = document.getElementById("wardenSidebarBackdrop");
+      const isHidden = sb.classList.contains("-translate-x-full");
+      if (isHidden) {
+        sb.classList.remove("-translate-x-full");
+        bd.classList.remove("hidden");
+      } else {
+        sb.classList.add("-translate-x-full");
+        bd.classList.add("hidden");
+      }
+    }
 
     function checkWardenSession() {
       const db = getDB();
@@ -269,13 +345,27 @@
     function switchWardenTab(viewId) {
       ["gate", "residents", "operations"].forEach(id => {
         document.getElementById("wardenView-" + id).classList.toggle("hidden", id !== viewId);
+
         const nav = document.getElementById("wnav-" + id);
         if (nav) {
           nav.className = id === viewId
-            ? "wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition"
-            : "wnav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+            ? "wnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-zinc-800 text-white font-bold transition"
+            : "wnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+        }
+
+        const bnav = document.getElementById("wbnav-" + id);
+        if (bnav) {
+          bnav.className = id === viewId
+            ? "flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[11px]"
+            : "flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]";
         }
       });
+
+      const sb = document.getElementById("wardenSidebar");
+      if (sb && !sb.classList.contains("-translate-x-full")) {
+        toggleWardenMobileMenu();
+      }
+
       document.getElementById("wardenViewTitle").innerText = WARDEN_TITLES[viewId] || "Warden Console";
       renderWardenConsole();
     }
@@ -295,6 +385,7 @@
       document.getElementById("badgeWardenResidents").innerText = activeStudents.length;
       document.getElementById("badgeWardenOps").innerText = openComps + pendingLeaves;
 
+      renderWardenVisitors();
       renderWardenResidents();
       renderWardenOperations();
     }
@@ -332,17 +423,17 @@
             </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 text-zinc-600">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-zinc-600">
             <div>Student Phone: <strong>${s.phone || '—'}</strong></div>
             <div>Guardian: <strong>${s.guardian || '—'}</strong></div>
           </div>
 
           <div class="pt-2 flex gap-2">
-            <button onclick="logWardenGateMovement('${s.id}', 'IN')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold">
-              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Log IN (Entering)
+            <button onclick="logWardenGateMovement('${s.id}', 'IN')" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-lg font-bold">
+              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Log IN (Entry)
             </button>
-            <button onclick="logWardenGateMovement('${s.id}', 'OUT')" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-2 rounded-lg font-bold">
-              <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Log OUT (Leaving)
+            <button onclick="logWardenGateMovement('${s.id}', 'OUT')" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-lg font-bold">
+              <i class="fa-solid fa-arrow-right-from-bracket mr-1"></i> Log OUT (Exit)
             </button>
           </div>
         </div>
@@ -352,9 +443,9 @@
     function openWardenGateScanner() {
       const id = prompt("📷 GATE PASS SCANNER\nEnter or Scan Student Roll ID (e.g. ST-101):");
       if (id) {
+        switchWardenTab("gate");
         document.getElementById("quickScanInput").value = id.trim();
         verifyRollIdManual();
-        switchWardenTab("gate");
       }
     }
 
@@ -363,9 +454,40 @@
       const s = (db.students || []).find(st => st.id === studentId);
       if (!s) return;
       saveDB(db, `Gate Pass Verified: ${s.name} (${s.id}) marked ${direction}`, "Warden");
-      alert(`✅ Gate Movement Logged!\n\n${s.name} (${s.id}) successfully marked ${direction} at ${new Date().toLocaleTimeString()}.`);
+      alert(`✅ Gate Movement Logged!\n\n${s.name} (${s.id}) marked ${direction} at ${new Date().toLocaleTimeString()}.`);
       document.getElementById("quickScanInput").value = "";
       document.getElementById("scanResultBox").classList.add("hidden");
+    }
+
+    function addWardenVisitor(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.visitors = db.visitors || [];
+      db.visitors.unshift({
+        name: document.getElementById("wVisName").value.trim(),
+        student: document.getElementById("wVisStudent").value.trim(),
+        relation: document.getElementById("wVisRelation").value.trim(),
+        time: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+      });
+      saveDB(db, `Warden logged gate visitor`, "Warden");
+      e.target.reset();
+      renderWardenConsole();
+    }
+
+    function renderWardenVisitors() {
+      const db = getDB();
+      const vis = db.visitors || [];
+      const tbody = document.getElementById("wardenVisitorsTable");
+      if (!tbody) return;
+      tbody.innerHTML = vis.length === 0
+        ? `<tr><td colspan="3" class="p-4 text-center text-zinc-400">No visitors logged yet.</td></tr>`
+        : vis.map(v => `
+          <tr>
+            <td class="p-2.5 font-semibold text-zinc-900">${v.name}<span class="block text-[10px] text-zinc-400">${v.relation || ''}</span></td>
+            <td class="p-2.5 text-zinc-600">${v.student}</td>
+            <td class="p-2.5 text-zinc-400 font-mono text-[10px] whitespace-nowrap">${v.time}</td>
+          </tr>
+        `).join("");
     }
 
     function renderWardenResidents() {
@@ -387,14 +509,14 @@
         const isPaid = s.feeStatus === "Paid";
         return `
           <tr class="hover:bg-zinc-50">
-            <td class="p-3.5">
+            <td class="p-3.5 whitespace-nowrap">
               <strong class="text-zinc-900 block">${s.name}</strong>
               <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span>
             </td>
-            <td class="p-3.5 font-bold text-zinc-900">Room ${s.room}</td>
-            <td class="p-3.5 font-semibold text-zinc-800"><a href="tel:${s.phone}" class="hover:underline"><i class="fa-solid fa-phone text-emerald-700 mr-1"></i> ${s.phone || '—'}</a></td>
-            <td class="p-3.5 text-zinc-600"><a href="tel:${s.guardian}" class="hover:underline"><i class="fa-solid fa-phone text-blue-700 mr-1"></i> ${s.guardian || '—'}</a></td>
-            <td class="p-3.5">
+            <td class="p-3.5 font-bold text-zinc-900 whitespace-nowrap">Room ${s.room}</td>
+            <td class="p-3.5 font-semibold text-zinc-800 whitespace-nowrap"><a href="tel:${s.phone}" class="hover:underline"><i class="fa-solid fa-phone text-emerald-700 mr-1"></i> ${s.phone || '—'}</a></td>
+            <td class="p-3.5 text-zinc-600 whitespace-nowrap"><a href="tel:${s.guardian}" class="hover:underline"><i class="fa-solid fa-phone text-zinc-700 mr-1"></i> ${s.guardian || '—'}</a></td>
+            <td class="p-3.5 whitespace-nowrap">
               <span class="px-2.5 py-0.5 rounded text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}">
                 ${isPaid ? 'Paid' : 'Unpaid'}
               </span>
@@ -410,10 +532,10 @@
       document.getElementById("wardenComplaintsList").innerHTML = comps.length === 0
         ? `<p class="text-zinc-400 text-center py-6">No complaints registered.</p>`
         : comps.map(c => `
-          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between gap-2">
-            <div>
-              <strong class="text-zinc-900">${c.studentName || c.studentId || 'Resident'} (Room ${c.room || '—'})</strong>
-              <p class="text-zinc-600 mt-0.5">${c.issue || c.text || ''}</p>
+          <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <strong class="text-zinc-900 block truncate">${c.studentName || c.studentId || 'Resident'} (Room ${c.room || '—'})</strong>
+              <p class="text-zinc-600 mt-0.5 break-words">${c.issue || c.text || ''}</p>
             </div>
             <button onclick="resolveWardenComplaint('${c.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold shrink-0 ${c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}">
               ${c.status === 'Resolved' ? '✓ Resolved' : 'Mark Resolved'}
@@ -425,14 +547,21 @@
       document.getElementById("wardenLeavesList").innerHTML = leaves.length === 0
         ? `<p class="text-zinc-400 text-center py-6">No leave requests.</p>`
         : leaves.map(l => `
-          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between gap-2">
-            <div>
-              <strong class="text-zinc-900">${l.studentName || l.studentId || 'Resident'}</strong>
+          <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <strong class="text-zinc-900 block truncate">${l.studentName || l.studentId || 'Resident'}</strong>
               <p class="text-zinc-600 text-[11px]">${l.reason || 'Leave'} • ${l.from || ''} to ${l.to || ''}</p>
             </div>
-            <button onclick="approveWardenLeave('${l.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold shrink-0 ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-900 text-white'}">
-              ${l.status === 'Approved' ? '✓ Approved' : 'Approve'}
-            </button>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="approveWardenLeave('${l.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-900 text-white'}">
+                ${l.status === 'Approved' ? '✓ Approved' : 'Approve'}
+              </button>
+              ${l.studentId ? `
+                <button onclick="sendGuardianAlert('${l.studentId}')" class="bg-teal-50 hover:bg-teal-600 text-teal-800 hover:text-white border border-teal-300 px-2 py-1 rounded text-[10px] font-bold" title="Notify Parent on WhatsApp">
+                  <i class="fa-brands fa-whatsapp"></i> Parent
+                </button>
+              ` : ''}
+            </div>
           </div>
         `).join("");
     }
