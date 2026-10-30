@@ -13,8 +13,8 @@ const emptyDB = {
     hostelName: "My Hostel (Update in Settings)",
     jazzcash: "Not Set",
     adminWhatsApp: "923098610965",
-    adminPass: "",
-    wardenPass: ""
+    adminPass: "4426",
+    wardenPass: "4426"
   },
   rooms: [],
   students: [],
