@@ -10,11 +10,11 @@ const firebaseConfig = {
 const MASTER_FOUNDER_EMAIL = "jameelfaisal177@gmail.com";
 const MASTER_FOUNDER_PASS = "Qwerty@12345";
 
-// Default initial credentials for main_hostel (https://hostelsoftware.vercel.app/admin)
 const emptyDB = {
   settings: {
     hostelName: "Hostel ERP Console",
-    jazzcash: "Not Set",
+    jazzcash: "JazzCash / Easypaisa: Not Set",
+    bankAccount: "Bank Account: Not Set",
     adminWhatsApp: "",
     adminEmail: MASTER_FOUNDER_EMAIL,
     adminPass: MASTER_FOUNDER_PASS,
@@ -54,9 +54,22 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+function isMasterPage() {
+  return location.pathname.toLowerCase().includes("master") || !!document.getElementById("masterLoginGate");
+}
+
 function startFirestoreListener() {
   try {
     const firestore = firebase.firestore();
+
+    // Master Panel manages all tenants — do NOT attach single-tenant listener that recreates deleted docs!
+    if (isMasterPage()) {
+      if (typeof loadAllCloudTenants === "function" && sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
+        loadAllCloudTenants();
+      }
+      return;
+    }
+
     cloudDocRef = firestore.collection("hostel_system").doc(TENANT_ID);
 
     cloudDocRef.onSnapshot((docSnap) => {
@@ -65,7 +78,7 @@ function startFirestoreListener() {
         cloudData.settings = cloudData.settings || {};
 
         // 🔒 REMOTE SAAS KILL-SWITCH
-        if (cloudData.settings.isSuspended === true && !location.pathname.includes("master")) {
+        if (cloudData.settings.isSuspended === true && !isMasterPage()) {
           document.body.innerHTML = `
             <div style="background:#020617;color:white;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px;">
               <div style="width:70px;height:70px;border-radius:20px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);display:flex;align-items:center;justify-content:center;font-size:32px;color:#f43f5e;margin-bottom:16px;">🔒</div>
@@ -79,17 +92,11 @@ function startFirestoreListener() {
 
         try { localStorage.setItem(DB_KEY, JSON.stringify(cloudData)); } catch (e) {}
         refreshCurrentPortalUI();
-      } else {
-        const initialData = getDB();
-        cloudDocRef.set(initialData).catch(e => console.warn("Auto-init cloud error:", e));
       }
+      // NOTE: Removed auto-recreation on delete so deleted clients never come back!
     }, (err) => {
       console.error("Firestore Sync Blocked:", err);
     });
-
-    if (typeof loadAllCloudTenants === "function" && sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
-      loadAllCloudTenants();
-    }
   } catch (err) {
     console.error("Firestore Listener Error:", err);
   }
@@ -132,11 +139,61 @@ function initSecureFirebase() {
 initSecureFirebase();
 
 // ============================================================================
-// 🔐 GOOGLE SIGN-IN + SET PASSWORD & EMAIL/PASS ENGINE FOR ALL PORTALS
+// 🔐 GOOGLE SIGN-IN + SET PASSWORD & 2-PAYMENT SETTINGS INJECTOR
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
   upgradePortalLoginGates();
+  upgradeAdminPaymentSettings();
 });
+
+function upgradeAdminPaymentSettings() {
+  // Inject 2nd Payment Option (Bank Account / 2nd Wallet) into Admin Settings Form automatically
+  const jcInput = document.getElementById("setJazzCash");
+  if (jcInput && !document.getElementById("setBankAccount")) {
+    const jcLabel = jcInput.previousElementSibling;
+    if (jcLabel) jcLabel.innerText = "Payment Option 1: JazzCash / Easypaisa *";
+    jcInput.placeholder = "e.g., JazzCash: 0300-1234567 (M. Ali)";
+
+    const bankDiv = document.createElement("div");
+    bankDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1">Payment Option 2: Bank Account / Easypaisa (Optional)</label>
+      <input id="setBankAccount" type="text" placeholder="e.g., Meezan Bank: 0102-010548921 (Hostel Account)" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-semibold" />
+    `;
+    jcInput.parentElement.insertAdjacentElement("afterend", bankDiv);
+
+    // Override populateSettingsForm & saveAdminSettings to include 2nd Payment Option & Emails
+    window.populateSettingsForm = function() {
+      const db = getDB();
+      const s = db.settings || {};
+      if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+      if (document.getElementById("setHostelName")) document.getElementById("setHostelName").value = s.hostelName || "";
+      if (document.getElementById("setJazzCash")) document.getElementById("setJazzCash").value = s.jazzcash || "";
+      if (document.getElementById("setBankAccount")) document.getElementById("setBankAccount").value = s.bankAccount || "";
+      if (document.getElementById("setWhatsApp")) document.getElementById("setWhatsApp").value = s.adminWhatsApp || "";
+      if (document.getElementById("setMonth")) document.getElementById("setMonth").value = s.currentMonth || "";
+      if (document.getElementById("setAdminPass")) document.getElementById("setAdminPass").value = s.adminPass || "";
+      if (document.getElementById("setWardenPass")) document.getElementById("setWardenPass").value = s.wardenPass || "";
+    };
+
+    window.saveAdminSettings = function(e) {
+      e.preventDefault();
+      const db = getDB();
+      db.settings = db.settings || {};
+      db.settings.hostelName = document.getElementById("setHostelName").value.trim();
+      db.settings.jazzcash = document.getElementById("setJazzCash").value.trim();
+      db.settings.bankAccount = (document.getElementById("setBankAccount")?.value || "").trim();
+      db.settings.adminWhatsApp = document.getElementById("setWhatsApp").value.trim();
+      db.settings.currentMonth = document.getElementById("setMonth").value.trim();
+      db.settings.adminPass = document.getElementById("setAdminPass").value.trim();
+      db.settings.wardenPass = document.getElementById("setWardenPass").value.trim();
+      saveDB(db, "Updated hostel profile & 2 payment channels", "Admin");
+      if (typeof renderAdminAll === "function") renderAdminAll();
+      alert("✅ Hostel Settings & Both Payment Options Saved!");
+    };
+
+    window.populateSettingsForm();
+  }
+}
 
 function upgradePortalLoginGates() {
   // 1. UPGRADE ADMIN LOGIN GATE
@@ -217,7 +274,6 @@ function upgradePortalLoginGates() {
   }
 }
 
-// 🚀 GOOGLE SIGN-IN -> SET PASSWORD MODAL WORKFLOW
 async function googlePortalSignUp(role) {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -225,7 +281,6 @@ async function googlePortalSignUp(role) {
     const gmail = (res.user && res.user.email || "").trim().toLowerCase();
     if (!gmail) return alert("Could not get Gmail from Google Sign-In!");
 
-    // Fetch fresh cloud DB
     let db = getDB();
     if (cloudDocRef) {
       try {
@@ -240,7 +295,6 @@ async function googlePortalSignUp(role) {
 
     if (role === "admin") {
       const existingEmail = (db.settings.adminEmail || "").trim().toLowerCase();
-      // If another Admin Gmail is already bound (and isn't default founder email), protect it!
       if (existingEmail && existingEmail !== gmail && existingEmail !== MASTER_FOUNDER_EMAIL.toLowerCase() && gmail !== MASTER_FOUNDER_EMAIL.toLowerCase()) {
         return alert(`❌ Access Denied!\nThis hostel's Admin Panel is registered to "${existingEmail}".`);
       }
@@ -331,7 +385,6 @@ async function googlePortalSignUp(role) {
 // 🔑 EMAIL + PASSWORD LOGIN HANDLERS (Admin, Warden & Student)
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
-  // 1. Admin Login (Email + Password)
   window.verifyAdminLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById("adminEmailInput");
@@ -355,7 +408,6 @@ window.addEventListener("DOMContentLoaded", () => {
     const savedEmail = (set.adminEmail || "").trim().toLowerCase();
     const savedPass = (set.adminPass || MASTER_FOUNDER_PASS).trim();
 
-    // Master Founder (jameelfaisal177@gmail.com / Qwerty@12345) can always access, OR matching tenant Admin Email + Pass
     const isFounder = (email === MASTER_FOUNDER_EMAIL.toLowerCase() && pass === MASTER_FOUNDER_PASS);
     const isTenantAdmin = (pass === savedPass && (!savedEmail || !email || email === savedEmail));
 
@@ -373,7 +425,6 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // 2. Warden Login (Email + Password)
   window.handleWardenLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById("wardenEmailInput");
@@ -414,7 +465,6 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // 3. Student Login (Gmail / Roll ID / Phone + Password)
   window.handleStudentLogin = async function(e) {
     if (e) e.preventDefault();
     const loginInput = document.getElementById("stuLoginInput");
@@ -474,7 +524,17 @@ function refreshCurrentPortalUI() {
   if (typeof loadPublicSite === "function") loadPublicSite();
   if (typeof renderPublicPage === "function") renderPublicPage();
   if (typeof renderWardenConsole === "function") renderWardenConsole();
-  if (typeof renderStudentDashboard === "function" && window.loggedStudent) renderStudentDashboard();
+  if (typeof renderStudentDashboard === "function" && window.loggedStudent) {
+    renderStudentDashboard();
+    // Show both payment options in Student Portal box if available
+    const payBox = document.getElementById("payAccountBox");
+    const db = getDB();
+    if (payBox && db.settings) {
+      const opt1 = db.settings.jazzcash || "Contact Admin Office";
+      const opt2 = db.settings.bankAccount ? `<div class="mt-1 pt-1 border-t border-zinc-200 text-emerald-800">${db.settings.bankAccount}</div>` : "";
+      payBox.innerHTML = `<div>${opt1}</div>${opt2}`;
+    }
+  }
 }
 
 function getDB() {
@@ -520,6 +580,7 @@ function wipeAllData() {
         ...fresh.settings,
         hostelName: currentDB.settings.hostelName || fresh.settings.hostelName,
         jazzcash: currentDB.settings.jazzcash || fresh.settings.jazzcash,
+        bankAccount: currentDB.settings.bankAccount || "",
         adminWhatsApp: currentDB.settings.adminWhatsApp || "",
         adminEmail: currentDB.settings.adminEmail || "",
         adminPass: currentDB.settings.adminPass || MASTER_FOUNDER_PASS,
@@ -609,24 +670,39 @@ function injectUniversalModal() {
   if (document.getElementById("universalDocModal")) return;
   const div = document.createElement("div");
   div.id = "universalDocModal";
-  div.className = "fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 overflow-y-auto";
+  div.className = "fixed inset-0 bg-zinc-950/85 backdrop-blur-xs hidden items-center justify-center z-50 p-3 sm:p-6 overflow-y-auto";
   div.innerHTML = `
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-4xl w-full p-5 space-y-4 my-8 text-slate-100">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 id="uniModalTitle" class="text-base font-bold text-white">Document Preview</h3>
-        <button onclick="document.getElementById('universalDocModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-xl">&times;</button>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-5xl w-full p-4 sm:p-6 space-y-4 my-8 text-zinc-100 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-file-shield"></i></span>
+          <h3 id="uniModalTitle" class="text-sm sm:text-base font-extrabold text-white">VIP Executive Document Preview</h3>
+        </div>
+        <button onclick="closeUniModal()" class="text-zinc-400 hover:text-white text-2xl leading-none px-2">&times;</button>
       </div>
-      <div id="uniPrintArea" class="bg-white text-slate-900 p-5 rounded-xl"></div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="document.getElementById('universalDocModal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-800 text-xs">Close</button>
-        <button onclick="window.print()" class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold"><i class="fa-solid fa-print mr-1"></i> Print</button>
-        <button id="uniDownloadBtn" class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg"><i class="fa-solid fa-file-pdf mr-1"></i> Download PDF</button>
+      <div id="uniPrintArea" class="bg-white text-zinc-900 p-4 sm:p-6 rounded-xl overflow-x-auto"></div>
+      <div class="flex flex-wrap justify-end gap-2.5 pt-2">
+        <button onclick="closeUniModal()" class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold">Close</button>
+        <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 text-xs font-extrabold"><i class="fa-solid fa-print mr-1.5"></i> Print Document</button>
+        <button id="uniDownloadBtn" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg"><i class="fa-solid fa-file-pdf mr-1.5"></i> Download Official PDF</button>
       </div>
     </div>
   `;
   document.body.appendChild(div);
 }
 
+function closeUniModal() {
+  const modal = document.getElementById("universalDocModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    modal.style.setProperty("display", "none", "important");
+  }
+}
+
+// ============================================================================
+// 💎 VIP EXECUTIVE 2-COPY FEE VOUCHER (With 2 Configurable Payment Channels)
+// ============================================================================
 function openStudentVoucher(studentId) {
   injectUniversalModal();
   const db = getDB();
@@ -635,53 +711,131 @@ function openStudentVoucher(studentId) {
 
   const rent = Number(s.rent || 0), mess = Number(s.mess || 0), elec = Number(s.elec || 0), other = Number(s.otherCharges || 0), disc = Number(s.discount || 0);
   const total = rent + mess + elec + other - disc;
-  const challanNo = "CH-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
+  const challanNo = "VIP-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
 
   const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const issueDate = new Date().toLocaleDateString("en-GB");
   const dueDateText = `05 ${billingMonth}`;
+  const isPaid = s.feeStatus === "Paid";
 
-  const buildCopy = (copyTitle, badgeColor) => `
-    <div class="border-2 border-dashed border-slate-400 p-4 rounded-lg text-xs space-y-2.5">
-      <div class="flex justify-between items-start border-b border-slate-300 pb-2">
-        <div>
-          <h4 class="font-bold text-sm uppercase text-slate-900">${db.settings.hostelName}</h4>
-          <p class="text-[10px] text-slate-600">JazzCash / Easypaisa / Bank: <strong>${db.settings.jazzcash}</strong></p>
+  const payOption1 = (db.settings && db.settings.jazzcash) ? db.settings.jazzcash : "Not Configured in Settings";
+  const payOption2 = (db.settings && db.settings.bankAccount) ? db.settings.bankAccount : "";
+
+  const qrData = encodeURIComponent(`VOUCHER:${challanNo}|HOSTEL:${db.settings.hostelName}|ID:${s.id}|NAME:${s.name}|ROOM:${s.room}|AMT:${total}|STATUS:${s.feeStatus}`);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${qrData}`;
+
+  const buildVIPCopy = (copyTitle, accentBg) => `
+    <div style="border: 2px solid #18181b; border-radius: 14px; overflow: hidden; background: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; display: flex; flex-direction: column; justify-content: space-between;">
+      <!-- Top Executive Banner -->
+      <div>
+        <div style="background: #18181b; color: #ffffff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #34d399; font-weight: 800; display: block;">OFFICIAL HOSTEL FEE CHALLAN</span>
+            <h4 style="font-size: 15px; font-weight: 800; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.3px;">${db.settings.hostelName || 'Hostel ERP'}</h4>
+          </div>
+          <span style="background: ${accentBg}; color: #ffffff; font-size: 9px; font-weight: 800; padding: 4px 9px; border-radius: 6px; letter-spacing: 0.8px; text-transform: uppercase;">
+            ${copyTitle}
+          </span>
         </div>
-        <span class="${badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded">${copyTitle}</span>
+
+        <div style="padding: 14px 16px; space-y: 12px;">
+          <!-- Voucher Meta & Status Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px;">
+            <div>
+              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Challan No.</span>
+              <strong style="color: #18181b; font-family: monospace; font-size: 12px;">${challanNo}</strong>
+            </div>
+            <div>
+              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Billing Month</span>
+              <strong style="color: #047857;">${billingMonth}</strong>
+            </div>
+            <div>
+              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span>
+              <strong style="color: #e11d48;">${dueDateText}</strong>
+            </div>
+            <div style="text-align: right;">
+              <span style="padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; background: ${isPaid ? '#d1fae5' : '#fef3c7'}; color: ${isPaid ? '#065f46' : '#92400e'}; border: 1px solid ${isPaid ? '#6ee7b7' : '#fcd34d'};">
+                ${isPaid ? '✓ PAID' : '● UNPAID'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Resident Profile Strip -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; border: 1px solid #e4e4e7; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+            <div><span style="color:#71717a;">Resident:</span> <strong style="color:#18181b;">${s.name}</strong></div>
+            <div><span style="color:#71717a;">Roll ID:</span> <strong style="color:#047857; font-family:monospace;">${s.id}</strong></div>
+            <div><span style="color:#71717a;">Room No:</span> <strong style="color:#18181b;">Room ${s.room}</strong></div>
+            <div><span style="color:#71717a;">Phone:</span> <strong style="color:#18181b;">${s.phone || '—'}</strong></div>
+          </div>
+
+          <!-- Itemized Fee Table -->
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
+            <thead>
+              <tr style="background: #f4f4f5; border-top: 1px solid #d4d4d8; border-bottom: 1px solid #d4d4d8; text-transform: uppercase; font-size: 9.5px; color: #52525b;">
+                <th style="padding: 6px 8px; text-align: left;">Description of Charges</th>
+                <th style="padding: 6px 8px; text-align: right;">Amount (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 6px 8px;">01. Monthly Room / Seat Rent</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${rent.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 6px 8px;">02. Mess & Dining Charges</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${mess.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 6px 8px;">03. Electricity Sub-Meter Share</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${elec.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5; color: #e11d48;"><td style="padding: 6px 8px;">04. Late Fine / Previous Arrears</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${other.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #e4e4e7; color: #047857;"><td style="padding: 6px 8px;">05. Mess-Off Rebate / Scholarship</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">- Rs. ${disc.toLocaleString()}</td></tr>
+            </tbody>
+          </table>
+
+          <!-- Net Payable VIP Ribbon -->
+          <div style="background: #18181b; color: #ffffff; padding: 10px 14px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div>
+              <span style="font-size: 9px; color: #a1a1aa; text-transform: uppercase; font-weight: 700; display: block;">Total Net Payable</span>
+              <span style="font-size: 10px; color: #fbbf24;">* Rs. 200 Fine after 5th</span>
+            </div>
+            <strong style="font-size: 16px; font-weight: 800; color: #34d399;">Rs. ${total.toLocaleString()}</strong>
+          </div>
+
+          <!-- 💳 PAYABLE THROUGH (2 ADMIN-CONFIGURED PAYMENT OPTIONS) -->
+          <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="font-size: 10.5px; line-height: 1.45; flex: 1;">
+              <span style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: #065f46; letter-spacing: 0.5px; display: block; margin-bottom: 3px;">
+                💳 PAYABLE THROUGH (OFFICIAL DEPOSIT CHANNELS):
+              </span>
+              <div style="color: #18181b; font-weight: 700;">
+                <span style="color: #047857;">● Option 1:</span> ${payOption1}
+              </div>
+              ${payOption2 ? `
+                <div style="color: #18181b; font-weight: 700; margin-top: 2px;">
+                  <span style="color: #047857;">● Option 2:</span> ${payOption2}
+                </div>
+              ` : `
+                <div style="color: #52525b; font-size: 9.5px; margin-top: 2px;">
+                  (Or deposit cash directly at the Hostel Admin Office)
+                </div>
+              `}
+              ${s.paymentTid ? `<div style="margin-top:4px; color:#1d4ed8; font-family:monospace; font-weight:700;">Submitted TID: ${s.paymentTid}</div>` : ''}
+            </div>
+            <img src="${qrUrl}" alt="QR" style="width: 56px; height: 56px; border: 1px solid #a7f3d0; border-radius: 8px; padding: 2px; background: #fff; flex-shrink: 0;" crossorigin="anonymous" />
+          </div>
+        </div>
       </div>
-      <div class="grid grid-cols-2 gap-1 text-[11px] bg-slate-100 p-2 rounded">
-        <div>Challan #: <strong>${challanNo}</strong></div>
-        <div>Billing Month: <strong class="text-indigo-700">${billingMonth}</strong></div>
-        <div>Due Date: <strong class="text-rose-600">${dueDateText}</strong></div>
-        <div>Status: <strong class="${s.feeStatus === 'Paid' ? 'text-emerald-700' : 'text-rose-600'}">${s.feeStatus.toUpperCase()}</strong></div>
-        <div>Student: <strong>${s.name} (${s.id})</strong></div>
-        <div>Room: <strong>${s.room}</strong></div>
-      </div>
-      <table class="w-full text-left text-[11px] border-t border-b border-slate-300 my-1">
-        <tbody class="divide-y divide-slate-200">
-          <tr><td class="py-1">1. Monthly Room / Bed Rent</td><td class="py-1 text-right font-semibold">Rs. ${rent.toLocaleString()}</td></tr>
-          <tr><td class="py-1">2. Mess / Meal Charges</td><td class="py-1 text-right font-semibold">Rs. ${mess.toLocaleString()}</td></tr>
-          <tr><td class="py-1">3. Electricity Sub-Meter Share</td><td class="py-1 text-right font-semibold">Rs. ${elec.toLocaleString()}</td></tr>
-          <tr><td class="py-1 text-rose-600">4. Late Fine / Arrears (Rs. 200 after 5th)</td><td class="py-1 text-right font-semibold text-rose-600">Rs. ${other.toLocaleString()}</td></tr>
-          <tr><td class="py-1 text-emerald-700">5. Discount / Scholarship</td><td class="py-1 text-right font-semibold text-emerald-700">- Rs. ${disc.toLocaleString()}</td></tr>
-        </tbody>
-      </table>
-      <div class="flex justify-between items-center text-sm font-bold bg-slate-900 text-white px-3 py-2 rounded">
-        <span>NET PAYABLE:</span>
-        <span>Rs. ${total.toLocaleString()}</span>
-      </div>
-      <p class="text-[10px] text-rose-600 font-semibold text-center">* Note: Rs. 200 Late Fine applies automatically after 5th of the month.</p>
-      ${s.paymentTid ? `<p class="text-[10px] text-indigo-700 font-semibold">Paid TID Submitted: ${s.paymentTid}</p>` : ''}
-      <div class="pt-2 flex justify-between text-[10px] text-slate-500">
-        <span>Depositor Sign: __________</span>
-        <span>Authorized Sign: __________</span>
+
+      <!-- Footer Signatures -->
+      <div style="padding: 10px 16px 12px 16px; border-top: 1px dashed #d4d4d8; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #71717a; background: #fafafa;">
+        <span>Issued: ${issueDate}</span>
+        <span>Depositor Sign: _____________</span>
+        <span>Cashier / Stamp: _____________</span>
       </div>
     </div>
   `;
 
-  document.getElementById("uniModalTitle").innerText = `Official 2-Copy Fee Voucher (${billingMonth})`;
-  document.getElementById("uniPrintArea").innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">${buildCopy("HOSTEL ADMIN COPY", "bg-slate-900") + buildCopy("STUDENT COPY", "bg-indigo-700")}</div>`;
-  showUniModal(`Fee_Voucher_${s.id}_${billingMonth.replace(/\s+/g, "_")}.pdf`, "landscape");
+  document.getElementById("uniModalTitle").innerText = `VIP Executive 2-Copy Fee Challan (${billingMonth})`;
+  document.getElementById("uniPrintArea").innerHTML = `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      ${buildVIPCopy("HOSTEL OFFICE COPY", "#059669")}
+      ${buildVIPCopy("RESIDENT STUDENT COPY", "#2563eb")}
+    </div>
+  `;
+  showUniModal(`VIP_Fee_Voucher_${s.id}_${billingMonth.replace(/\s+/g, "_")}.pdf`, "landscape");
 }
 
 function openStudentQRCard(studentId) {
@@ -695,20 +849,20 @@ function openStudentQRCard(studentId) {
 
   document.getElementById("uniModalTitle").innerText = "Digital Student QR Gate Pass ID Card";
   document.getElementById("uniPrintArea").innerHTML = `
-    <div class="max-w-sm mx-auto border-2 border-slate-800 rounded-2xl overflow-hidden shadow-lg bg-white text-slate-900">
-      <div class="bg-indigo-700 text-white p-4 text-center">
+    <div class="max-w-sm mx-auto border-2 border-zinc-900 rounded-2xl overflow-hidden shadow-lg bg-white text-zinc-900">
+      <div class="bg-zinc-900 text-white p-4 text-center">
         <h3 class="font-extrabold text-base uppercase tracking-wider">${db.settings.hostelName}</h3>
-        <span class="text-[10px] uppercase bg-indigo-900 px-2.5 py-0.5 rounded-full">Official Resident Gate Pass ID</span>
+        <span class="text-[10px] uppercase bg-emerald-600 text-white px-2.5 py-0.5 rounded-full font-bold">Official Resident Gate Pass ID</span>
       </div>
       <div class="p-5 text-center space-y-3">
-        <div class="w-16 h-16 rounded-full bg-indigo-100 text-indigo-800 font-extrabold text-2xl flex items-center justify-center mx-auto border-2 border-indigo-600">
+        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-900 font-extrabold text-2xl flex items-center justify-center mx-auto border-2 border-emerald-600">
           ${s.name.substring(0, 2).toUpperCase()}
         </div>
         <div>
-          <h4 class="text-lg font-bold text-slate-900">${s.name}</h4>
-          <p class="text-xs font-bold text-indigo-700">Roll ID: ${s.id} | Room: ${s.room}</p>
+          <h4 class="text-lg font-bold text-zinc-900">${s.name}</h4>
+          <p class="text-xs font-bold text-emerald-700">Roll ID: ${s.id} | Room: ${s.room}</p>
         </div>
-        <div class="bg-slate-100 p-3 rounded-xl text-left text-xs space-y-1">
+        <div class="bg-zinc-100 p-3 rounded-xl text-left text-xs space-y-1">
           <div><strong>CNIC:</strong> ${s.cnic}</div>
           <div><strong>Phone:</strong> ${s.phone}</div>
           <div><strong>Guardian Emergency:</strong> ${s.guardian || 'N/A'}</div>
@@ -716,7 +870,7 @@ function openStudentQRCard(studentId) {
         </div>
         <div class="py-2">
           <img src="${qrImgUrl}" alt="QR Code" class="w-32 h-32 mx-auto border p-1 rounded-lg" crossorigin="anonymous" />
-          <p class="text-[10px] text-slate-500 mt-1">Scan at Hostel Gate for Entry/Exit & Mess Verification</p>
+          <p class="text-[10px] text-zinc-500 mt-1">Scan at Hostel Gate for Entry/Exit & Mess Verification</p>
         </div>
       </div>
     </div>
@@ -736,26 +890,26 @@ function openClearanceCertificate(studentId) {
 
   document.getElementById("uniModalTitle").innerText = "Student No-Dues Clearance & Security Refund Certificate";
   document.getElementById("uniPrintArea").innerHTML = `
-    <div class="border-2 border-slate-800 p-6 rounded-xl space-y-4 text-xs max-w-2xl mx-auto">
-      <div class="text-center border-b-2 border-slate-300 pb-3">
+    <div class="border-2 border-zinc-900 p-6 rounded-xl space-y-4 text-xs max-w-2xl mx-auto">
+      <div class="text-center border-b-2 border-zinc-300 pb-3">
         <h2 class="text-xl font-extrabold uppercase">${db.settings.hostelName}</h2>
-        <p class="text-xs font-bold text-slate-600 uppercase mt-1">Official Leaving Clearance & Security Refund Certificate</p>
+        <p class="text-xs font-bold text-emerald-700 uppercase mt-1">Official Leaving Clearance & Security Refund Certificate</p>
       </div>
-      <div class="flex justify-between text-slate-600">
+      <div class="flex justify-between text-zinc-600">
         <span>Certificate Ref: <strong>CLR-${s.id}-${new Date().getFullYear()}</strong></span>
         <span>Issue Date: <strong>${new Date().toLocaleDateString("en-GB")}</strong></span>
       </div>
       <p class="text-sm leading-relaxed">
         This is to certify that <strong>${s.name}</strong> (Roll ID: <strong>${s.id}</strong>, CNIC: <strong>${s.cnic}</strong>), occupant of Room <strong>${s.room}</strong>, is checking out of the hostel. Below is the final settlement of their account and refundable security deposit:
       </p>
-      <table class="w-full text-left border border-slate-300">
-        <tbody class="divide-y divide-slate-200">
+      <table class="w-full text-left border border-zinc-300">
+        <tbody class="divide-y divide-zinc-200">
           <tr><td class="p-2 font-semibold">Refundable Security Deposit Held</td><td class="p-2 text-right font-bold text-emerald-700">Rs. ${securityHeld.toLocaleString()}</td></tr>
           <tr><td class="p-2 font-semibold">Pending Rent / Mess / Electricity Dues Deducted</td><td class="p-2 text-right font-bold text-rose-600">- Rs. ${unpaid.toLocaleString()}</td></tr>
-          <tr class="bg-slate-900 text-white text-sm"><td class="p-2.5 font-bold">NET SECURITY REFUNDABLE TO STUDENT</td><td class="p-2.5 text-right font-bold">Rs. ${netRefund.toLocaleString()}</td></tr>
+          <tr class="bg-zinc-900 text-white text-sm"><td class="p-2.5 font-bold">NET SECURITY REFUNDABLE TO STUDENT</td><td class="p-2.5 text-right font-bold">Rs. ${netRefund.toLocaleString()}</td></tr>
         </tbody>
       </table>
-      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-slate-600">
+      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-zinc-600">
         <div>______________________<br>Warden (Room Key & Assets)</div>
         <div>______________________<br>Accountant / Owner Stamp</div>
         <div>______________________<br>Student Receiving Sign</div>
@@ -769,10 +923,11 @@ function showUniModal(filename, orientation) {
   const modal = document.getElementById("universalDocModal");
   modal.classList.remove("hidden");
   modal.classList.add("flex");
+  modal.style.setProperty("display", "flex", "important");
   document.getElementById("uniDownloadBtn").onclick = () => {
     const el = document.getElementById("uniPrintArea");
     html2pdf().set({
-      margin: 0.3,
+      margin: 0.25,
       filename,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
@@ -786,7 +941,7 @@ function checkAndApplyAutoLateFine() {
   const currentDay = today.getDate();
   const currentMonthKey = today.getFullYear() + "-" + (today.getMonth() + 1);
 
-  if (currentDay > 5) {
+  if (currentDay > 5 && !isMasterPage()) {
     const db = getDB();
     let updated = false;
 
@@ -831,9 +986,6 @@ function startNewBillingMonth() {
   refreshCurrentPortalUI();
 }
 
-const SAAS_FOUNDER_WHATSAPP = "923000000000";
-const SAAS_BRAND_NAME = "HostelCloud SaaS";
-
 function sendStudentFeeReminder(studentId) {
   const db = getDB();
   const s = (db.students || []).find(st => st.id === studentId);
@@ -842,8 +994,10 @@ function sendStudentFeeReminder(studentId) {
   const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
   const month = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const cleanPhone = "92" + (s.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "");
+  const opt1 = db.settings.jazzcash || "Not Set";
+  const opt2 = db.settings.bankAccount ? `\n🏦 *Option 2:* ${db.settings.bankAccount}` : "";
 
-  const msg = `*FEE REMINDER — ${db.settings.hostelName}*\n\nSalam *${s.name}* (ID: ${s.id}, Room: ${s.room}),\nYour hostel fee for *${month}* is *${s.feeStatus.toUpperCase()}*.\n\n💰 *Payable:* Rs. ${total.toLocaleString()}\n📅 *Due Date:* 05 ${month}\n💳 *JazzCash/Easypaisa:* ${db.settings.jazzcash}\n\nStudent Portal: ${window.location.origin}/student?hostel=${TENANT_ID}`;
+  const msg = `*FEE REMINDER — ${db.settings.hostelName}*\n\nSalam *${s.name}* (ID: ${s.id}, Room: ${s.room}),\nYour hostel fee for *${month}* is *${s.feeStatus.toUpperCase()}*.\n\n💰 *Payable:* Rs. ${total.toLocaleString()}\n📅 *Due Date:* 05 ${month}\n\n*PAYABLE THROUGH:*\n💳 *Option 1:* ${opt1}${opt2}\n\nStudent Portal: ${window.location.origin}/student?hostel=${TENANT_ID}`;
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
@@ -955,43 +1109,43 @@ function openMonthlyAuditPDF() {
 
   const expRows = (db.expenses || []).map((e, i) => `
     <tr>
-      <td class="p-1.5 border border-slate-300">${i + 1}</td>
-      <td class="p-1.5 border border-slate-300 font-semibold">${e.title || e.category || 'Expense'}</td>
-      <td class="p-1.5 border border-slate-300">${e.date || '-'}</td>
-      <td class="p-1.5 border border-slate-300 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td>
+      <td class="p-1.5 border border-zinc-300">${i + 1}</td>
+      <td class="p-1.5 border border-zinc-300 font-semibold">${e.title || e.category || 'Expense'}</td>
+      <td class="p-1.5 border border-zinc-300">${e.date || '-'}</td>
+      <td class="p-1.5 border border-zinc-300 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td>
     </tr>
-  `).join("") || `<tr><td colspan="4" class="p-2 text-center text-slate-400">No expenses recorded this month</td></tr>`;
+  `).join("") || `<tr><td colspan="4" class="p-2 text-center text-zinc-400">No expenses recorded this month</td></tr>`;
 
   document.getElementById("uniModalTitle").innerText = `Official Monthly Financial Audit Report (${billingMonth})`;
   document.getElementById("uniPrintArea").innerHTML = `
-    <div class="border-2 border-slate-800 p-6 rounded-xl space-y-4 text-xs max-w-3xl mx-auto">
-      <div class="flex justify-between items-start border-b-2 border-slate-800 pb-3">
+    <div class="border-2 border-zinc-900 p-6 rounded-xl space-y-4 text-xs max-w-3xl mx-auto">
+      <div class="flex justify-between items-start border-b-2 border-zinc-900 pb-3">
         <div>
-          <h2 class="text-xl font-extrabold uppercase text-slate-900">${db.settings.hostelName}</h2>
-          <p class="text-xs font-bold text-indigo-700 uppercase">Monthly Profit & Loss (P&L) Financial Audit Statement</p>
+          <h2 class="text-xl font-extrabold uppercase text-zinc-900">${db.settings.hostelName}</h2>
+          <p class="text-xs font-bold text-emerald-700 uppercase">Monthly Profit & Loss (P&L) Financial Audit Statement</p>
         </div>
         <div class="text-right">
-          <span class="bg-slate-900 text-white px-3 py-1 rounded font-bold text-xs">${billingMonth}</span>
-          <p class="text-[10px] text-slate-500 mt-1">Generated: ${new Date().toLocaleDateString("en-GB")}</p>
+          <span class="bg-zinc-900 text-white px-3 py-1 rounded font-bold text-xs">${billingMonth}</span>
+          <p class="text-[10px] text-zinc-500 mt-1">Generated: ${new Date().toLocaleDateString("en-GB")}</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-3 text-center bg-slate-100 p-3 rounded-xl border border-slate-300">
-        <div><span class="text-[10px] text-slate-500 block">Occupancy</span><strong class="text-sm text-slate-900">${m.occupiedBeds} / ${m.totalCapacity} Beds</strong></div>
-        <div><span class="text-[10px] text-slate-500 block">Collected Revenue</span><strong class="text-sm text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
-        <div><span class="text-[10px] text-slate-500 block">Total Expenses</span><strong class="text-sm text-rose-600">Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
-        <div><span class="text-[10px] text-slate-500 block">Net Profit / Loss</span><strong class="text-sm ${m.netProfit >= 0 ? 'text-indigo-700' : 'text-rose-700'}">Rs. ${m.netProfit.toLocaleString()}</strong></div>
+      <div class="grid grid-cols-4 gap-3 text-center bg-zinc-100 p-3 rounded-xl border border-zinc-300">
+        <div><span class="text-[10px] text-zinc-500 block">Occupancy</span><strong class="text-sm text-zinc-900">${m.occupiedBeds} / ${m.totalCapacity} Beds</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Collected Revenue</span><strong class="text-sm text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Total Expenses</span><strong class="text-sm text-rose-600">Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Net Profit / Loss</span><strong class="text-sm ${m.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}">Rs. ${m.netProfit.toLocaleString()}</strong></div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
-        <div class="border border-slate-300 rounded-lg p-3 space-y-1.5">
+        <div class="border border-zinc-300 rounded-lg p-3 space-y-1.5">
           <h4 class="font-bold text-emerald-800 border-b pb-1">A. REVENUE BREAKDOWN</h4>
           <div class="flex justify-between"><span>Paid Students (${m.paidCount}):</span><strong class="text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
           <div class="flex justify-between"><span>Pending Dues (${m.unpaidCount}):</span><strong class="text-amber-600">Rs. ${m.pendingFee.toLocaleString()}</strong></div>
           <div class="flex justify-between"><span>Refundable Security Held:</span><strong>Rs. ${m.totalSecurity.toLocaleString()}</strong></div>
         </div>
-        <div class="border border-slate-300 rounded-lg p-3 space-y-1.5">
-          <h4 class="font-bold text-indigo-800 border-b pb-1">B. FINAL SETTLEMENT</h4>
+        <div class="border border-zinc-300 rounded-lg p-3 space-y-1.5">
+          <h4 class="font-bold text-zinc-800 border-b pb-1">B. FINAL SETTLEMENT</h4>
           <div class="flex justify-between"><span>Gross Collected Cash:</span><strong>Rs. ${m.collectedFee.toLocaleString()}</strong></div>
           <div class="flex justify-between"><span>Less Operational Expenses:</span><strong class="text-rose-600">- Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
           <div class="flex justify-between border-t pt-1 text-sm font-extrabold"><span>NET DISTRIBUTABLE PROFIT:</span><span class="${m.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">Rs. ${m.netProfit.toLocaleString()}</span></div>
@@ -999,16 +1153,16 @@ function openMonthlyAuditPDF() {
       </div>
 
       <div>
-        <h4 class="font-bold text-slate-800 mb-1">C. ITEMIZED EXPENSE LEDGER</h4>
-        <table class="w-full text-left border-collapse border border-slate-300 text-[11px]">
-          <thead class="bg-slate-200">
-            <tr><th class="p-1.5 border border-slate-300">#</th><th class="p-1.5 border border-slate-300">Expense Head</th><th class="p-1.5 border border-slate-300">Date</th><th class="p-1.5 border border-slate-300 text-right">Amount</th></tr>
+        <h4 class="font-bold text-zinc-800 mb-1">C. ITEMIZED EXPENSE LEDGER</h4>
+        <table class="w-full text-left border-collapse border border-zinc-300 text-[11px]">
+          <thead class="bg-zinc-200">
+            <tr><th class="p-1.5 border border-zinc-300">#</th><th class="p-1.5 border border-zinc-300">Expense Head</th><th class="p-1.5 border border-zinc-300">Date</th><th class="p-1.5 border border-zinc-300 text-right">Amount</th></tr>
           </thead>
           <tbody>${expRows}</tbody>
         </table>
       </div>
 
-      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-slate-600">
+      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-zinc-600">
         <div>______________________<br>Prepared By (Manager)</div>
         <div>______________________<br>Verified By (Accountant)</div>
         <div>______________________<br>Approved By (Owner / Partner)</div>
