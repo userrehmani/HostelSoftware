@@ -7,13 +7,15 @@ const firebaseConfig = {
   appId: "1:394742737685:web:a8faef1ab5bf69d84e971c"
 };
 
+// Default initial credentials for main_hostel (https://hostelsoftware.vercel.app/admin)
+// Can be changed anytime from Admin -> Settings or Master Panel!
 const emptyDB = {
   settings: {
-    hostelName: "My Hostel",
+    hostelName: "Hostel ERP Console",
     jazzcash: "Not Set",
     adminWhatsApp: "",
-    adminPass: "",
-    wardenPass: "",
+    adminPass: "4426",
+    wardenPass: "4426",
     isSuspended: false
   },
   rooms: [],
@@ -32,20 +34,10 @@ const emptyDB = {
 };
 
 // ============================================================================
-// SMART MULTI-TENANT SAAS ENGINE (Auto-Detects Your Created Hostel!)
+// MULTI-TENANT SAAS ENGINE & REMOTE KILL-SWITCH
 // ============================================================================
 const urlParams = new URLSearchParams(window.location.search);
-const urlHostel = urlParams.get("hostel");
-
-if (urlHostel) {
-  try { localStorage.setItem("LAST_ACTIVE_TENANT", urlHostel.toLowerCase().replace(/[^a-z0-9_-]/g, "")); } catch (e) {}
-}
-
-const savedTenant = (() => {
-  try { return localStorage.getItem("LAST_ACTIVE_TENANT"); } catch (e) { return null; }
-})();
-
-const TENANT_ID = (urlHostel || savedTenant || "main_hostel").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+const TENANT_ID = (urlParams.get("hostel") || "main_hostel").toLowerCase().replace(/[^a-z0-9_-]/g, "");
 const DB_KEY = "HOSTEL_SAAS_DB_" + TENANT_ID;
 let cloudDocRef = null;
 
@@ -68,8 +60,13 @@ try {
       if (docSnap.exists) {
         const cloudData = docSnap.data();
 
+        // Ensure settings & default fallback password exist if never set
+        cloudData.settings = cloudData.settings || {};
+        if (!cloudData.settings.adminPass) cloudData.settings.adminPass = "4426";
+        if (!cloudData.settings.wardenPass) cloudData.settings.wardenPass = "4426";
+
         // 🔒 REMOTE SAAS KILL-SWITCH
-        if (cloudData.settings && cloudData.settings.isSuspended === true && !location.pathname.includes("master")) {
+        if (cloudData.settings.isSuspended === true && !location.pathname.includes("master")) {
           document.body.innerHTML = `
             <div style="background:#020617;color:white;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px;">
               <div style="width:70px;height:70px;border-radius:20px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);display:flex;align-items:center;justify-content:center;font-size:32px;color:#f43f5e;margin-bottom:16px;">🔒</div>
@@ -83,6 +80,10 @@ try {
 
         try { localStorage.setItem(DB_KEY, JSON.stringify(cloudData)); } catch (e) {}
         refreshCurrentPortalUI();
+      } else {
+        // Automatically create main_hostel (or uninitialized tenant) in Cloud with initial 4426 password
+        const initialData = getDB();
+        cloudDocRef.set(initialData).catch(e => console.warn("Auto-init cloud error:", e));
       }
     }, (err) => {
       console.error("Firestore Sync Blocked:", err);
@@ -93,10 +94,10 @@ try {
 }
 
 // ============================================================================
-// 🔑 UNIVERSAL CLOUD-SYNCED LOGIN OVERRIDES (Fixes Stuck Popup & Password Sync!)
+// 🔑 UNIVERSAL CLOUD-SYNCED LOGIN HANDLERS (Admin, Warden & Student)
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
-  // 1. Force-Fix Admin Login (Checks Local + Live Firebase Cloud)
+  // 1. Admin Login (Default 4426 if not changed yet, or custom password from Settings/Master)
   window.verifyAdminLogin = async function(e) {
     if (e) e.preventDefault();
     const passInput = document.getElementById("adminPassInput");
@@ -104,22 +105,20 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!pass) return;
 
     let db = getDB();
-    let configuredPass = db.settings && db.settings.adminPass ? String(db.settings.adminPass).trim() : "";
+    let configuredPass = (db.settings && db.settings.adminPass) ? String(db.settings.adminPass).trim() : "4426";
 
-    // If local password doesn't match, fetch latest directly from Firebase Cloud!
+    // If local password doesn't match, fetch latest directly from Firebase Cloud
     if (pass !== configuredPass && cloudDocRef) {
       try {
         const snap = await cloudDocRef.get();
         if (snap.exists) {
           db = snap.data();
+          db.settings = db.settings || {};
+          if (!db.settings.adminPass) db.settings.adminPass = "4426";
           localStorage.setItem(DB_KEY, JSON.stringify(db));
-          configuredPass = db.settings && db.settings.adminPass ? String(db.settings.adminPass).trim() : "";
+          configuredPass = String(db.settings.adminPass).trim();
         }
       } catch (err) { console.warn("Cloud check error:", err); }
-    }
-
-    if (!configuredPass) {
-      return alert(`⚠️ Hostel "${TENANT_ID}" ka Admin Password abhi set nahi hai!\n\nMeharbani farma kar Master Panel (master.html) kholein aur "${TENANT_ID}" ka password set karein, ya Master Panel se "Admin ↗" button par click kar ke kholein.`);
     }
 
     if (pass === configuredPass) {
@@ -132,11 +131,11 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (typeof renderAdminAll === "function") renderAdminAll();
     } else {
-      alert(`❌ Galat Admin Password! (Active Hostel ID: ${TENANT_ID})`);
+      alert("❌ Incorrect Administrator Password!");
     }
   };
 
-  // 2. Force-Fix Warden Login (Checks Local + Live Firebase Cloud)
+  // 2. Warden Login (Default 4426 if not changed yet, or custom password from Settings/Master)
   window.handleWardenLogin = async function(e) {
     if (e) e.preventDefault();
     const passInput = document.getElementById("wardenPassInput");
@@ -144,21 +143,19 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!pass) return;
 
     let db = getDB();
-    let configuredPass = db.settings && db.settings.wardenPass ? String(db.settings.wardenPass).trim() : "";
+    let configuredPass = (db.settings && db.settings.wardenPass) ? String(db.settings.wardenPass).trim() : "4426";
 
     if (pass !== configuredPass && cloudDocRef) {
       try {
         const snap = await cloudDocRef.get();
         if (snap.exists) {
           db = snap.data();
+          db.settings = db.settings || {};
+          if (!db.settings.wardenPass) db.settings.wardenPass = "4426";
           localStorage.setItem(DB_KEY, JSON.stringify(db));
-          configuredPass = db.settings && db.settings.wardenPass ? String(db.settings.wardenPass).trim() : "";
+          configuredPass = String(db.settings.wardenPass).trim();
         }
       } catch (err) { console.warn("Cloud check error:", err); }
-    }
-
-    if (!configuredPass) {
-      return alert(`⚠️ Hostel "${TENANT_ID}" ka Warden Password abhi set nahi hai! Admin Panel ya Master Panel se set karein.`);
     }
 
     if (pass === configuredPass) {
@@ -171,11 +168,11 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (typeof renderWardenConsole === "function") renderWardenConsole();
     } else {
-      alert(`❌ Galat Warden Password! (Active Hostel ID: ${TENANT_ID})`);
+      alert("❌ Incorrect Warden Password!");
     }
   };
 
-  // 3. Force-Fix Student Login (Checks Local + Live Firebase Cloud)
+  // 3. Student Login (Roll ID + Student Password set in Admin Panel)
   window.handleStudentLogin = async function(e) {
     if (e) e.preventDefault();
     const loginInput = document.getElementById("stuLoginInput");
@@ -195,7 +192,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     let found = findStu(db);
 
-    // Always sync fresh from cloud if student not found or password mismatch
     if ((!found || (passInput && String(found.pass || "").trim() !== pass)) && cloudDocRef) {
       try {
         const snap = await cloudDocRef.get();
@@ -208,14 +204,13 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!found) {
-      return alert(`❌ Is Roll ID, CNIC ya Phone (${q}) ka koi Active Student "${TENANT_ID}" me nahi mila!`);
+      return alert("❌ No active resident found with that Roll ID, CNIC, or Phone number!");
     }
 
-    // Verify password if password box exists on page
     if (passInput) {
       const assignedPass = found.pass ? String(found.pass).trim() : "";
       if (assignedPass && pass !== assignedPass) {
-        return alert("❌ Galat Student Password! Apne Hostel Admin se sahi password maloom karein.");
+        return alert("❌ Incorrect Student Password!");
       }
     }
 
@@ -243,9 +238,15 @@ function getDB() {
   try {
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) {
-      return JSON.parse(JSON.stringify(emptyDB));
+      const fresh = JSON.parse(JSON.stringify(emptyDB));
+      localStorage.setItem(DB_KEY, JSON.stringify(fresh));
+      return fresh;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    parsed.settings = parsed.settings || {};
+    if (!parsed.settings.adminPass) parsed.settings.adminPass = "4426";
+    if (!parsed.settings.wardenPass) parsed.settings.wardenPass = "4426";
+    return parsed;
   } catch (e) {
     return JSON.parse(JSON.stringify(emptyDB));
   }
@@ -277,8 +278,8 @@ function wipeAllData() {
         hostelName: currentDB.settings.hostelName || fresh.settings.hostelName,
         jazzcash: currentDB.settings.jazzcash || fresh.settings.jazzcash,
         adminWhatsApp: currentDB.settings.adminWhatsApp || "",
-        adminPass: currentDB.settings.adminPass || "",
-        wardenPass: currentDB.settings.wardenPass || "",
+        adminPass: currentDB.settings.adminPass || "4426",
+        wardenPass: currentDB.settings.wardenPass || "4426",
         currentMonth: currentDB.settings.currentMonth || "",
         isSuspended: currentDB.settings.isSuspended || false
       };
