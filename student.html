@@ -24,7 +24,7 @@
 <body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
-  <!-- 🎓 RESIDENT STUDENT LOGIN GATE (100% MOBILE RESPONSIVE)               -->
+  <!-- 🎓 RESIDENT STUDENT LOGIN GATE (ROLL ID + ADMIN-ASSIGNED PASSWORD)    -->
   <!-- ===================================================================== -->
   <div id="studentLoginGate" class="fixed inset-0 bg-zinc-900/95 z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
@@ -34,14 +34,19 @@
         </div>
         <div class="min-w-0">
           <h2 id="stuGateHostelName" class="text-base font-extrabold text-zinc-900 truncate">Resident Student Portal</h2>
-          <p class="text-xs text-zinc-500">Sign in with your Roll ID, CNIC, or Phone</p>
+          <p class="text-xs text-zinc-500">Sign in with your Roll ID & Password</p>
         </div>
       </div>
 
       <form onsubmit="handleStudentLogin(event)" class="space-y-4 text-xs">
         <div>
-          <label class="block font-bold text-zinc-700 mb-1.5">Enter Roll ID (e.g. ST-101), CNIC, or Phone *</label>
+          <label class="block font-bold text-zinc-700 mb-1.5">Roll ID (e.g. ST-101), CNIC, or Phone *</label>
           <input id="stuLoginInput" type="text" required placeholder="e.g., ST-101 or 03001234567" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-zinc-700 mb-1.5">Student Password / PIN *</label>
+          <input id="stuPassInput" type="password" required placeholder="Enter password issued by Hostel Admin" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
 
         <button type="submit" class="w-full bg-zinc-900 active:bg-zinc-800 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm">
@@ -66,7 +71,7 @@
   <!-- ===================================================================== -->
   <div class="flex h-dvh w-screen overflow-hidden">
 
-    <!-- 🧭 SIDEBAR (SLIDE-OVER DRAWER ON MOBILE, FIXED ON DESKTOP) -->
+    <!-- 🧭 SIDEBAR -->
     <aside id="stuSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
         <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
@@ -79,13 +84,11 @@
               <span id="stuSidebarRoll" class="text-[10px] text-emerald-400 font-mono font-bold block">Roll ID: —</span>
             </div>
           </div>
-          <!-- Mobile Close Drawer Button -->
           <button onclick="toggleStudentMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white text-lg px-1">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        <!-- Student Navigation Menu -->
         <div class="p-3 space-y-1.5 text-xs font-semibold">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Resident Menu</p>
 
@@ -107,7 +110,6 @@
         </div>
       </div>
 
-      <!-- Bottom Actions -->
       <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
         <a href="index" class="w-full block text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded-lg font-medium">
           ← Public Website
@@ -121,10 +123,9 @@
     <!-- 🖥️ RIGHT MAIN STUDENT WORKSPACE -->
     <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-      <!-- Top Mobile & Desktop Header -->
+      <!-- Top Header -->
       <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <!-- Mobile Hamburger Button -->
           <button onclick="toggleStudentMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
             <i class="fa-solid fa-bars text-sm"></i>
           </button>
@@ -144,15 +145,12 @@
         </div>
       </header>
 
-      <!-- Scrollable View Area (Extra bottom padding on mobile for Bottom App Nav) -->
+      <!-- Scrollable View Area -->
       <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll">
 
-        <!-- =============================================================== -->
-        <!-- TAB 1: FEE BREAKDOWN & ONLINE PAYMENT TID SUBMISSION            -->
-        <!-- =============================================================== -->
+        <!-- TAB 1: FEE BREAKDOWN & ONLINE PAYMENT TID SUBMISSION -->
         <div id="stuView-overview" class="space-y-4 sm:space-y-6 w-full">
 
-          <!-- Resident Summary Cards (2x2 Grid on Mobile, 4 Cols on Desktop) -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
             <div class="bg-white border border-zinc-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
               <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Allotted Room</span>
@@ -177,8 +175,6 @@
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 w-full">
-            
-            <!-- Left 7 Cols: Itemized Monthly Bill Statement -->
             <div class="lg:col-span-7 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-3.5">
               <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
                 <div>
@@ -204,7 +200,6 @@
               </div>
             </div>
 
-            <!-- Right 5 Cols: Online JazzCash / Easypaisa TID Submission -->
             <div class="lg:col-span-5 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs flex flex-col justify-between space-y-4">
               <div class="space-y-3">
                 <div class="border-b border-zinc-100 pb-3">
@@ -235,16 +230,12 @@
                 </button>
               </div>
             </div>
-
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- TAB 2: OFFICIAL DOCUMENTS (VOUCHER, QR PASS & CLEARANCE)        -->
-        <!-- =============================================================== -->
+        <!-- TAB 2: OFFICIAL DOCUMENTS -->
         <div id="stuView-documents" class="hidden space-y-4 w-full">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            
             <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs flex flex-col justify-between space-y-4">
               <div class="space-y-2">
                 <div class="w-10 h-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-base"><i class="fa-solid fa-file-invoice-dollar"></i></div>
@@ -277,17 +268,12 @@
                 Preview Clearance Certificate
               </button>
             </div>
-
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- TAB 3: MAINTENANCE COMPLAINTS & LEAVE / MESS-OFF REQUESTS       -->
-        <!-- =============================================================== -->
+        <!-- TAB 3: MAINTENANCE COMPLAINTS & LEAVE / MESS-OFF REQUESTS -->
         <div id="stuView-complaints" class="hidden space-y-4 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
-            
-            <!-- Register Maintenance Complaint -->
             <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Lodge Maintenance / Room Complaint</h3>
@@ -304,7 +290,6 @@
               <div id="stuComplaintsList" class="space-y-2 max-h-72 overflow-y-auto text-xs custom-scroll"></div>
             </div>
 
-            <!-- Apply for Leave / Mess-Off -->
             <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Apply for Leave / Mess-Off Rebate</h3>
@@ -330,17 +315,12 @@
 
               <div id="stuLeavesList" class="space-y-2 max-h-60 overflow-y-auto text-xs custom-scroll"></div>
             </div>
-
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- TAB 4: WEEKLY MESS MENU & ROOMMATES DIRECTORY                   -->
-        <!-- =============================================================== -->
+        <!-- TAB 4: WEEKLY MESS MENU & ROOMMATES DIRECTORY -->
         <div id="stuView-mess" class="hidden space-y-4 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-            
-            <!-- Roommates List -->
             <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-3">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Your Roommates</h3>
@@ -349,7 +329,6 @@
               <div id="stuRoommatesList" class="space-y-2 text-xs"></div>
             </div>
 
-            <!-- Weekly Mess Schedule -->
             <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-3">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Weekly Mess Menu</h3>
@@ -364,15 +343,12 @@
                 </table>
               </div>
             </div>
-
           </div>
         </div>
 
       </main>
 
-      <!-- ================================================================= -->
-      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR (ONLY VISIBLE ON MOBILE)       -->
-      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR -->
       <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-4 z-30 shadow-lg">
         <button onclick="switchStuTab('overview')" id="bnav-overview" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-bold text-[11px]">
           <i class="fa-solid fa-wallet text-base"></i>
@@ -396,9 +372,7 @@
 
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 🚀 STUDENT PORTAL CONTROLLER                                          -->
-  <!-- ===================================================================== -->
+  <!-- 🚀 STUDENT PORTAL CONTROLLER -->
   <script>
     window.loggedStudent = null;
 
@@ -415,27 +389,39 @@
       }
     }
 
+    function hideStudentLoginGate() {
+      const gate = document.getElementById("studentLoginGate");
+      if (gate) {
+        gate.classList.remove("flex");
+        gate.classList.add("hidden");
+        gate.style.setProperty("display", "none", "important");
+      }
+    }
+
     function initStudentPortal() {
       const db = getDB();
       const hName = (db.settings && db.settings.hostelName) || "Resident Student Portal";
       document.getElementById("stuGateHostelName").innerText = hName;
       document.getElementById("stuSidebarHostel").innerText = hName;
 
-      const savedId = sessionStorage.getItem("STU_AUTH_" + TENANT_ID);
-      if (savedId) {
-        const found = (db.students || []).find(s => s.status === "Active" && s.id === savedId);
-        if (found) {
-          window.loggedStudent = found;
-          document.getElementById("studentLoginGate").classList.add("hidden");
-          renderStudentDashboard();
+      try {
+        const savedId = sessionStorage.getItem("STU_AUTH_" + TENANT_ID);
+        if (savedId) {
+          const found = (db.students || []).find(s => s.status === "Active" && s.id === savedId);
+          if (found) {
+            window.loggedStudent = found;
+            hideStudentLoginGate();
+            renderStudentDashboard();
+          }
         }
-      }
+      } catch (e) {}
     }
 
     function handleStudentLogin(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       const q = document.getElementById("stuLoginInput").value.trim().toLowerCase();
-      if (!q) return;
+      const pass = document.getElementById("stuPassInput").value.trim();
+      if (!q || !pass) return;
 
       const db = getDB();
       const found = (db.students || []).find(s =>
@@ -447,17 +433,30 @@
       );
 
       if (!found) {
-        return alert("No active resident found with that Roll ID, CNIC, or Phone number! If you recently applied online, please wait for Admin approval.");
+        return alert("❌ No active resident found with that Roll ID, CNIC, or Phone number!");
+      }
+
+      const assignedPass = found.pass ? String(found.pass).trim() : "";
+      if (!assignedPass) {
+        return alert("⚠️ Your portal password has not been set by your Hostel Admin yet. Please ask your Hostel Admin to set your password in the Residents table.");
+      }
+
+      if (pass !== assignedPass) {
+        return alert("❌ Incorrect Student Password!");
       }
 
       window.loggedStudent = found;
-      sessionStorage.setItem("STU_AUTH_" + TENANT_ID, found.id);
-      document.getElementById("studentLoginGate").classList.add("hidden");
+      try {
+        sessionStorage.setItem("STU_AUTH_" + TENANT_ID, found.id);
+      } catch (err) {}
+      hideStudentLoginGate();
       renderStudentDashboard();
     }
 
     function logoutStudent() {
-      sessionStorage.removeItem("STU_AUTH_" + TENANT_ID);
+      try {
+        sessionStorage.removeItem("STU_AUTH_" + TENANT_ID);
+      } catch (e) {}
       window.loggedStudent = null;
       location.reload();
     }
@@ -466,7 +465,6 @@
       ["overview", "documents", "complaints", "mess"].forEach(id => {
         document.getElementById("stuView-" + id).classList.toggle("hidden", id !== tabId);
 
-        // Update Desktop Sidebar Active State
         const btn = document.getElementById("snav-" + id);
         if (btn) {
           btn.className = id === tabId
@@ -474,7 +472,6 @@
             : "stu-nav w-full flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
         }
 
-        // Update Mobile Bottom Nav Active State
         const bbtn = document.getElementById("bnav-" + id);
         if (bbtn) {
           bbtn.className = id === tabId
@@ -483,7 +480,6 @@
         }
       });
 
-      // Close mobile drawer automatically if open
       const sb = document.getElementById("stuSidebar");
       if (sb && !sb.classList.contains("-translate-x-full")) {
         toggleStudentMobileMenu();
