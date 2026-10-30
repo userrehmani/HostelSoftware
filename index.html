@@ -15,13 +15,44 @@
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; }
     .hidden { display: none !important; }
+
+    /* Smooth Animations */
+    @keyframes fadeSlideUp {
+      0% { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes modalSpring {
+      0% { opacity: 0; transform: scale(0.90) translateY(18px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes backdropFade {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .animate-section { animation: fadeSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    #admissionModal:not(.hidden) { animation: backdropFade 0.25s ease-out forwards; }
+    #admissionModal:not(.hidden) > div { animation: modalSpring 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    #trackAppResult:not(.hidden), #pubMobileNav:not(.hidden) { animation: fadeSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    button, a[class*="rounded"] {
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background-color 0.2s ease !important;
+    }
+    button:hover, a[class*="rounded"]:hover { transform: translateY(-2px); }
+    button:active, a[class*="rounded"]:active { transform: scale(0.96) translateY(0) !important; }
+
+    .hover-card {
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+    .hover-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 28px -10px rgba(24, 24, 27, 0.12);
+    }
   </style>
 </head>
 <body class="antialiased selection:bg-zinc-900 selection:text-white flex flex-col min-h-screen">
 
-  <!-- ===================================================================== -->
-  <!-- 📢 LIVE NOTICE BANNER (ONLY SHOWS WHEN ADMIN POSTS A NOTICE)          -->
-  <!-- ===================================================================== -->
+  <!-- 📢 LIVE NOTICE BANNER -->
   <div id="pubNoticeBar" class="hidden bg-zinc-900 text-white text-xs border-b border-zinc-800 py-2 px-4">
     <div class="max-w-7xl mx-auto flex items-center justify-center gap-2 text-center">
       <span class="bg-emerald-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shrink-0">Announcement</span>
@@ -29,13 +60,10 @@
     </div>
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 🧭 CLEAN SINGLE EXECUTIVE HEADER (NO CROWDED TOP BAR)                 -->
-  <!-- ===================================================================== -->
+  <!-- 🧭 CLEAN SINGLE EXECUTIVE HEADER -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-2xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3">
       
-      <!-- Brand Identity -->
       <a href="#" class="flex items-center gap-3 min-w-0">
         <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-base sm:text-lg font-bold shadow-xs shrink-0">
           <i class="fa-solid fa-building-shield"></i>
@@ -43,14 +71,13 @@
         <div class="min-w-0">
           <h1 id="pubHostelName" class="text-sm sm:text-lg font-extrabold text-zinc-900 tracking-tight truncate">Hostel Portal</h1>
           <div class="flex items-center gap-2 text-[11px] text-zinc-500 font-medium">
-            <span class="inline-flex items-center gap-1 text-emerald-700 font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Live Portal</span>
+            <span class="inline-flex items-center gap-1 text-emerald-700 font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span> Live Portal</span>
             <span class="hidden sm:inline">•</span>
             <span id="topBillingCycle" class="hidden sm:inline truncate">Current Session</span>
           </div>
         </div>
       </a>
 
-      <!-- Center Navigation Links (Desktop) -->
       <nav class="hidden lg:flex items-center gap-6 text-xs font-bold text-zinc-600">
         <a href="#overview" class="hover:text-zinc-900 transition">Overview</a>
         <a href="#rooms" class="hover:text-zinc-900 transition">Live Rooms & Beds</a>
@@ -59,15 +86,13 @@
         <a href="#contact" class="hover:text-zinc-900 transition">Portals & Contact</a>
       </nav>
 
-      <!-- Right Action Buttons -->
       <div class="flex items-center gap-2 shrink-0">
-        <a href="student" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 text-xs font-bold transition">
+        <a href="student" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 text-xs font-bold">
           <i class="fa-solid fa-user-graduate text-emerald-700"></i> Student Login
         </a>
-        <button type="button" onclick="openAdmissionModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer">
+        <button type="button" onclick="openAdmissionModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
           <i class="fa-solid fa-file-signature mr-1"></i> Apply Online
         </button>
-        <!-- Mobile Menu Button -->
         <button type="button" onclick="togglePubMobileNav()" class="lg:hidden w-9 h-9 rounded-xl border border-zinc-300 bg-zinc-50 text-zinc-800 flex items-center justify-center">
           <i class="fa-solid fa-bars text-sm"></i>
         </button>
@@ -91,10 +116,8 @@
     </div>
   </header>
 
-  <!-- ===================================================================== -->
-  <!-- 🏢 HERO SECTION & LIVE ACCOMMODATION LEDGER CARD                      -->
-  <!-- ===================================================================== -->
-  <section id="overview" class="bg-white border-b border-zinc-200 py-10 sm:py-16">
+  <!-- 🏢 HERO SECTION & LIVE ACCOMMODATION LEDGER CARD -->
+  <section id="overview" class="bg-white border-b border-zinc-200 py-10 sm:py-16 animate-section">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
       
       <div class="lg:col-span-7 space-y-5">
@@ -111,27 +134,26 @@
         </p>
 
         <div class="flex flex-wrap items-center gap-3 pt-1">
-          <button type="button" onclick="openAdmissionModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm cursor-pointer">
+          <button type="button" onclick="openAdmissionModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer">
             <i class="fa-solid fa-paper-plane text-emerald-400 mr-1.5"></i> Apply for Admission
           </button>
-          <a href="#rooms" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-5 py-3.5 rounded-xl text-xs font-bold transition">
+          <a href="#rooms" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-5 py-3.5 rounded-xl text-xs font-bold">
             <i class="fa-solid fa-bed mr-1.5 text-zinc-600"></i> View Vacant Beds
           </a>
-          <a id="heroWhatsAppBtn" href="#" target="_blank" class="hidden items-center gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 px-4 py-3.5 rounded-xl text-xs font-bold transition">
+          <a id="heroWhatsAppBtn" href="#" target="_blank" class="hidden items-center gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 px-4 py-3.5 rounded-xl text-xs font-bold">
             <i class="fa-brands fa-whatsapp text-emerald-700 text-sm"></i> WhatsApp Desk
           </a>
         </div>
 
-        <!-- Quick Portal Access Pills -->
         <div class="pt-4 border-t border-zinc-100 flex flex-wrap items-center gap-2 text-xs">
           <span class="text-zinc-400 font-bold uppercase text-[10px] mr-1">Quick Portals:</span>
-          <a href="student" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold transition">
+          <a href="student" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold">
             <i class="fa-solid fa-user-graduate text-emerald-600 mr-1"></i> Resident Student Portal
           </a>
-          <a href="warden" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold transition">
+          <a href="warden" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold">
             <i class="fa-solid fa-user-shield text-zinc-500 mr-1"></i> Warden Gate Console
           </a>
-          <a href="admin" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold transition">
+          <a href="admin" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold">
             <i class="fa-solid fa-lock text-amber-600 mr-1"></i> Admin ERP
           </a>
         </div>
@@ -139,7 +161,7 @@
 
       <!-- Right 5 Cols: Live Occupancy Summary Card -->
       <div class="lg:col-span-5">
-        <div class="bg-zinc-900 text-white border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-5">
+        <div class="hover-card bg-zinc-900 text-white border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-5">
           <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
             <div>
               <span class="text-[10px] uppercase tracking-wider text-emerald-400 font-extrabold block">Real-Time Capacity</span>
@@ -176,7 +198,7 @@
             </div>
           </div>
 
-          <button type="button" onclick="openAdmissionModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider transition shadow-md cursor-pointer">
+          <button type="button" onclick="openAdmissionModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider shadow-md cursor-pointer">
             Reserve Your Seat Online →
           </button>
         </div>
@@ -186,28 +208,28 @@
 
     <!-- 4 FEATURE CARDS RIBBON -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-10 pt-8 border-t border-zinc-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
         <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-qrcode"></i></div>
         <div>
           <h4 class="text-xs font-extrabold text-zinc-900">Digital QR Gate Pass</h4>
           <p class="text-[11px] text-zinc-500 mt-0.5">24/7 Warden security with verifiable QR ID cards & visitor log.</p>
         </div>
       </div>
-      <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
         <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-file-invoice-dollar"></i></div>
         <div>
           <h4 class="text-xs font-extrabold text-zinc-900">Online Fee & Challan</h4>
           <p class="text-[11px] text-zinc-500 mt-0.5">Download 2-copy VIP vouchers & submit JazzCash/Bank TIDs online.</p>
         </div>
       </div>
-      <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
         <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-utensils"></i></div>
         <div>
           <h4 class="text-xs font-extrabold text-zinc-900">Hygienic Mess & Rebate</h4>
           <p class="text-[11px] text-zinc-500 mt-0.5">3-time quality meals with automatic leave mess-off rebate system.</p>
         </div>
       </div>
-      <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
         <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-screwdriver-wrench"></i></div>
         <div>
           <h4 class="text-xs font-extrabold text-zinc-900">1-Click Maintenance</h4>
@@ -217,9 +239,7 @@
     </div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- 🛏️ INTERACTIVE ROOM & BED AVAILABILITY DIRECTORY                     -->
-  <!-- ===================================================================== -->
+  <!-- 🛏️ INTERACTIVE ROOM & BED AVAILABILITY DIRECTORY -->
   <section id="rooms" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 w-full space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-zinc-200 pb-4">
       <div>
@@ -236,11 +256,9 @@
     <div id="publicRoomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- 🔍 ONLINE APPLICATION STATUS TRACKER CARD                             -->
-  <!-- ===================================================================== -->
+  <!-- 🔍 ONLINE APPLICATION STATUS TRACKER CARD -->
   <section id="tracker" class="py-6 max-w-7xl mx-auto px-4 sm:px-6 w-full">
-    <div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
+    <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Admission Status Lookup</span>
@@ -258,9 +276,7 @@
     </div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- 🍲 WEEKLY MESS SCHEDULE                                               -->
-  <!-- ===================================================================== -->
+  <!-- 🍲 WEEKLY MESS SCHEDULE -->
   <section id="mess" class="py-12 bg-white border-y border-zinc-200 mt-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 space-y-5">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -287,14 +303,11 @@
     </div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- 💳 PAYMENT CHANNELS & OFFICIAL PORTALS CARDS                          -->
-  <!-- ===================================================================== -->
+  <!-- 💳 PAYMENT CHANNELS & OFFICIAL PORTALS CARDS -->
   <section id="contact" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 w-full flex-1">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       
-      <!-- Left 7 Cols: Official Deposit Channels & Hostel Info Cards -->
-      <div class="lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
+      <div class="hover-card lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
         <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
             <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Verified Accounts</span>
@@ -329,8 +342,7 @@
         </div>
       </div>
 
-      <!-- Right 5 Cols: Official Portals Directory Card -->
-      <div class="lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
+      <div class="hover-card lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
         <div>
           <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Role-Based Access</span>
           <h3 class="text-base font-extrabold text-zinc-900 mt-0.5 border-b border-zinc-100 pb-3">
@@ -342,15 +354,15 @@
         </div>
 
         <div class="grid grid-cols-1 gap-2.5 text-xs font-bold">
-          <a href="student" class="bg-zinc-900 hover:bg-zinc-800 text-white py-3 px-4 rounded-xl flex items-center justify-between transition">
+          <a href="student" class="bg-zinc-900 hover:bg-zinc-800 text-white py-3 px-4 rounded-xl flex items-center justify-between">
             <span><i class="fa-solid fa-user-graduate text-emerald-400 mr-2"></i> Resident Student Portal</span>
             <span>Login →</span>
           </a>
           <div class="grid grid-cols-2 gap-2.5">
-            <a href="warden" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-3 px-4 rounded-xl text-center transition">
+            <a href="warden" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-3 px-4 rounded-xl text-center">
               <i class="fa-solid fa-user-shield text-emerald-700 mr-1"></i> Warden Console
             </a>
-            <a href="admin" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-3 px-4 rounded-xl text-center transition">
+            <a href="admin" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-3 px-4 rounded-xl text-center">
               <i class="fa-solid fa-sliders text-zinc-700 mr-1"></i> Admin ERP
             </a>
           </div>
@@ -360,9 +372,7 @@
     </div>
   </section>
 
-  <!-- ===================================================================== -->
-  <!-- 📝 ONLINE ADMISSION APPLICATION MODAL                                 -->
-  <!-- ===================================================================== -->
+  <!-- 📝 ONLINE ADMISSION APPLICATION MODAL (WITH SPRING ANIMATION) -->
   <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-xs hidden items-center justify-center z-50 p-4 overflow-y-auto">
     <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-8 text-zinc-800">
       <div class="flex justify-between items-start border-b border-zinc-200 pb-3.5">
@@ -422,9 +432,7 @@
     </div>
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 🚀 PUBLIC WEBSITE CONTROLLER                                          -->
-  <!-- ===================================================================== -->
+  <!-- 🚀 PUBLIC WEBSITE CONTROLLER -->
   <script>
     function togglePubMobileNav() {
       const nav = document.getElementById("pubMobileNav");
@@ -481,7 +489,6 @@
       }
       document.getElementById("contactMonth").innerText = `Cycle: ${currentCycle}`;
 
-      // Live Notice Bar
       const noticeBar = document.getElementById("pubNoticeBar");
       const noticeText = document.getElementById("pubNoticeText");
       if (set.liveNotice && set.liveNotice.trim()) {
@@ -552,7 +559,7 @@
           }
 
           roomsGrid.innerHTML += `
-            <div class="bg-white border border-zinc-200 rounded-2xl p-5 shadow-2xs flex flex-col justify-between space-y-4">
+            <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-5 shadow-2xs flex flex-col justify-between space-y-4">
               <div class="flex justify-between items-start border-b border-zinc-100 pb-3">
                 <div>
                   <span class="text-[10px] font-bold uppercase text-zinc-400">${room.type || 'Standard Room'}</span>
