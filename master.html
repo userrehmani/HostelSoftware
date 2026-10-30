@@ -22,7 +22,7 @@
 <body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
-  <!-- 🔒 MASTER FOUNDER PIN GATE (DEFAULT PIN: 4426)                        -->
+  <!-- 🔒 MASTER FOUNDER PIN GATE                                            -->
   <!-- ===================================================================== -->
   <div id="masterLoginGate" class="fixed inset-0 bg-zinc-900/95 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
@@ -38,8 +38,8 @@
 
       <form onsubmit="verifyMasterPin(event)" class="space-y-4 text-xs">
         <div>
-          <label class="block font-bold text-zinc-700 mb-1.5">Founder Security PIN *</label>
-          <input id="masterPinInput" type="password" required placeholder="Enter PIN (4426)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-mono tracking-widest text-center font-extrabold focus:border-zinc-900 focus:bg-white outline-none" />
+          <label class="block font-bold text-zinc-700 mb-1.5">Founder Security PIN (Default: 4426)</label>
+          <input id="masterPinInput" type="password" required placeholder="Enter PIN (4426)" autofocus class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-mono tracking-widest text-center font-extrabold focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
         <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
           Unlock Master HQ →
@@ -53,14 +53,10 @@
     </div>
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 📱 MOBILE SIDEBAR BACKDROP OVERLAY                                    -->
-  <!-- ===================================================================== -->
+  <!-- 📱 MOBILE SIDEBAR BACKDROP OVERLAY -->
   <div id="masterSidebarBackdrop" onclick="toggleMasterMobileMenu()" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
 
-  <!-- ===================================================================== -->
-  <!-- 🖥️ FULL-SCREEN MASTER WORKSPACE                                       -->
-  <!-- ===================================================================== -->
+  <!-- 🖥️ FULL-SCREEN MASTER WORKSPACE -->
   <div class="flex h-dvh w-screen overflow-hidden">
 
     <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
@@ -127,10 +123,10 @@
         </div>
       </header>
 
-      <!-- Scrollable Main Area -->
+      <!-- Main Area -->
       <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll space-y-6">
 
-        <!-- 4-Card SaaS Global KPI Ribbon -->
+        <!-- 4-Card Global Ribbon -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
           <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
             <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Total Hostel Clients</span>
@@ -154,15 +150,13 @@
           </div>
         </section>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 1: ACTIVE HOSTEL CLIENTS DIRECTORY & KILL-SWITCH           -->
-        <!-- =============================================================== -->
+        <!-- VIEW 1: ACTIVE CLIENTS -->
         <div id="masterView-tenants" class="space-y-4 w-full">
           <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 class="text-sm font-bold text-zinc-900">Enrolled Hostel Clients (Firestore Collection: <code class="text-emerald-700 font-mono">hostel_system</code>)</h3>
-                <p class="text-xs text-zinc-500">Manage tenant subscriptions, inspect credentials, or generate client portal links in 1 click.</p>
+                <h3 class="text-sm font-bold text-zinc-900">Enrolled Hostel Clients (Collection: <code class="text-emerald-700 font-mono">hostel_system</code>)</h3>
+                <p class="text-xs text-zinc-500">Manage tenant subscriptions, inspect credentials, or generate portal links.</p>
               </div>
               <input id="searchTenantInput" oninput="renderTenantsTable()" type="text" placeholder="Search hostel name or tenant ID..." class="bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2 text-xs w-full sm:w-64 outline-none focus:border-zinc-900" />
             </div>
@@ -187,18 +181,14 @@
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 2: 1-CLICK NEW CLIENT ONBOARDING & LINK GENERATOR          -->
-        <!-- =============================================================== -->
+        <!-- VIEW 2: ONBOARDING GENERATOR -->
         <div id="masterView-generator" class="hidden space-y-6 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
 
-            <!-- Left 6 Cols: Create New Hostel Client Form -->
             <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Instant Cloud Provisioning</span>
-                <h3 class="text-base font-extrabold text-zinc-900 mt-0.5">Create & Onboard New Hostel Client</h3>
-                <p class="text-xs text-zinc-500">Creates a dedicated isolated database in Firebase and generates all 4 client links immediately.</p>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Instant Provisioning</span>
+                <h3 class="text-base font-extrabold text-zinc-900 mt-0.5">Create & Onboard New Hostel</h3>
               </div>
 
               <form onsubmit="createNewHostelClient(event)" class="space-y-3.5 text-xs">
@@ -210,7 +200,6 @@
                 <div>
                   <label class="block font-bold text-zinc-700 mb-1">Unique Tenant ID (URL Slug) *</label>
                   <input id="newTenantId" type="text" required placeholder="e.g., almadina_multan" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-emerald-800 font-mono font-bold outline-none focus:border-zinc-900" />
-                  <span class="text-[10px] text-zinc-400 block mt-1">Only lowercase letters, numbers, and underscores allowed.</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -220,7 +209,7 @@
                   </div>
                   <div>
                     <label class="block font-bold text-zinc-700 mb-1">JazzCash / Bank Account</label>
-                    <input id="newJazzCash" type="text" placeholder="0300-1234567 (JazzCash)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 outline-none focus:border-zinc-900" />
+                    <input id="newJazzCash" type="text" placeholder="0300-1234567" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 outline-none focus:border-zinc-900" />
                   </div>
                 </div>
 
@@ -236,35 +225,34 @@
                 </div>
 
                 <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl font-bold uppercase tracking-wider transition shadow-sm">
-                  <i class="fa-solid fa-bolt text-emerald-400 mr-1.5"></i> Provision Cloud Database & Generate Links
+                  <i class="fa-solid fa-bolt text-emerald-400 mr-1.5"></i> Provision Database & Generate Links
                 </button>
               </form>
             </div>
 
-            <!-- Right 6 Cols: Generated Client Links & 1-Click WhatsApp Delivery -->
             <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col justify-between space-y-4">
               <div class="space-y-3">
                 <div class="border-b border-zinc-100 pb-3 flex items-center justify-between">
                   <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Client Delivery Package</span>
-                    <h3 id="genBoxTitle" class="text-base font-extrabold text-zinc-900 mt-0.5">Ready-to-Share Hostel Portal Links</h3>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Client Package</span>
+                    <h3 id="genBoxTitle" class="text-base font-extrabold text-zinc-900 mt-0.5">Ready-to-Share Links</h3>
                   </div>
                   <span id="genTenantBadge" class="bg-zinc-100 text-zinc-700 font-mono text-[11px] font-bold px-2.5 py-1 rounded">No Client Selected</span>
                 </div>
 
                 <div id="generatedLinksContainer" class="space-y-2.5 text-xs">
                   <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-6 text-center text-zinc-400">
-                    Create a new client on the left or click <strong>"🔗 Links"</strong> next to any existing hostel in the directory to generate their complete link package.
+                    Create a new client or click <strong>"🔗 Links"</strong> from the table to view links.
                   </div>
                 </div>
               </div>
 
               <div id="generatedActionsBar" class="hidden pt-3 border-t border-zinc-100 flex flex-col sm:flex-row gap-2.5 text-xs">
                 <button type="button" onclick="copyCompleteWelcomePackage()" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-xl font-bold transition">
-                  <i class="fa-solid fa-copy mr-1.5"></i> Copy Complete Welcome Message
+                  <i class="fa-solid fa-copy mr-1.5"></i> Copy Message
                 </button>
                 <button type="button" onclick="sendWelcomePackageWhatsApp()" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 px-4 rounded-xl font-bold transition">
-                  <i class="fa-brands fa-whatsapp mr-1.5"></i> Send Package to Owner on WhatsApp
+                  <i class="fa-brands fa-whatsapp mr-1.5"></i> Send WhatsApp
                 </button>
               </div>
             </div>
@@ -274,9 +262,7 @@
 
       </main>
 
-      <!-- ================================================================= -->
-      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR                               -->
-      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BAR -->
       <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-3 z-30 shadow-lg">
         <button onclick="switchMasterTab('tenants')" id="mbnav-tenants" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[11px]">
           <i class="fa-solid fa-building-shield text-base"></i>
@@ -288,7 +274,7 @@
         </button>
         <button onclick="loadAllCloudTenants()" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]">
           <i class="fa-solid fa-rotate text-base"></i>
-          <span>Sync Cloud</span>
+          <span>Sync</span>
         </button>
       </nav>
 
@@ -296,9 +282,6 @@
 
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 🚀 MASTER SAAS HQ CONTROLLER (FIXED)                                  -->
-  <!-- ===================================================================== -->
   <script>
     const MASTER_PIN = "4426";
     let allTenantsCache = [];
@@ -307,8 +290,7 @@
     function toggleMasterMobileMenu() {
       const sb = document.getElementById("masterSidebar");
       const bd = document.getElementById("masterSidebarBackdrop");
-      const isHidden = sb.classList.contains("-translate-x-full");
-      if (isHidden) {
+      if (sb.classList.contains("-translate-x-full")) {
         sb.classList.remove("-translate-x-full");
         bd.classList.remove("hidden");
       } else {
@@ -317,27 +299,48 @@
       }
     }
 
+    function hideLoginGate() {
+      const gate = document.getElementById("masterLoginGate");
+      if (gate) {
+        gate.classList.remove("flex");
+        gate.classList.add("hidden");
+        gate.style.setProperty("display", "none", "important");
+      }
+    }
+
     function checkMasterSession() {
-      if (sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
-        document.getElementById("masterLoginGate").classList.add("hidden");
-        loadAllCloudTenants();
+      try {
+        if (sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
+          hideLoginGate();
+          loadAllCloudTenants();
+        }
+      } catch (e) {
+        console.warn("Storage restricted", e);
       }
     }
 
     function verifyMasterPin(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       const pin = document.getElementById("masterPinInput").value.trim();
       if (pin === MASTER_PIN) {
-        sessionStorage.setItem("MASTER_HQ_AUTH", "true");
-        document.getElementById("masterLoginGate").classList.add("hidden");
-        loadAllCloudTenants();
+        try {
+          sessionStorage.setItem("MASTER_HQ_AUTH", "true");
+        } catch (err) {}
+        hideLoginGate();
+        try {
+          loadAllCloudTenants();
+        } catch (err) {
+          console.error(err);
+        }
       } else {
-        alert("❌ Invalid Founder Security PIN! Default PIN is: 4426");
+        alert("❌ Invalid PIN! Please enter: " + MASTER_PIN);
       }
     }
 
     function logoutMaster() {
-      sessionStorage.removeItem("MASTER_HQ_AUTH");
+      try {
+        sessionStorage.removeItem("MASTER_HQ_AUTH");
+      } catch (e) {}
       location.reload();
     }
 
@@ -370,12 +373,11 @@
       }
     }
 
-    // 1. Fetch All Hostel Clients from Firestore Collection `hostel_system`
     async function loadAllCloudTenants() {
       const tbody = document.getElementById("tenantsTableBody");
       try {
         if (typeof firebase === "undefined" || !firebase.apps.length) {
-          tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-600 font-bold">Firebase is not initialized. Check db.js configuration.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-600 font-bold">Firebase not configured. Please check db.js!</td></tr>`;
           return;
         }
 
@@ -389,7 +391,7 @@
         renderTenantsTable();
       } catch (err) {
         console.error("Master HQ Load Error:", err);
-        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-600">Error loading Firestore collection: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-600">Firestore error: ${err.message}</td></tr>`;
       }
     }
 
@@ -501,14 +503,12 @@
       }
     }
 
-    // 2. Auto-Suggest Clean Tenant Slug from Hostel Name
     function autoSuggestTenantId() {
       const name = document.getElementById("newHostelName").value;
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 28);
       document.getElementById("newTenantId").value = slug;
     }
 
-    // 3. Provision New Hostel Client in Firestore & Build Links Package
     async function createNewHostelClient(e) {
       e.preventDefault();
       const hostelName = document.getElementById("newHostelName").value.trim();
@@ -573,4 +573,89 @@
       const pubUrl = `${base}/index?hostel=${tenantId}`;
       const admUrl = `${base}/admin?hostel=${tenantId}`;
       const stuUrl = `${base}/student?hostel=${tenantId}`;
-      const warUrl = `${base}/warden?hostel=${tenantId
+      const warUrl = `${base}/warden?hostel=${tenantId}`;
+
+      selectedClientPackage = {
+        tenantId,
+        hostelName: set.hostelName || tenantId,
+        ownerPhone: set.adminWhatsApp || set.jazzcash || "",
+        adminPass: set.adminPass || "123",
+        wardenPass: set.wardenPass || "123",
+        pubUrl, admUrl, stuUrl, warUrl
+      };
+
+      document.getElementById("genBoxTitle").innerText = selectedClientPackage.hostelName;
+      document.getElementById("genTenantBadge").innerText = `?hostel=${tenantId}`;
+      document.getElementById("generatedActionsBar").classList.remove("hidden");
+
+      const makeRow = (label, icon, url, extra) => `
+        <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <span class="text-[11px] font-bold text-zinc-900 block"><i class="${icon} text-emerald-700 mr-1.5"></i> ${label} ${extra ? `<span class="text-zinc-500 font-mono">(${extra})</span>` : ''}</span>
+            <a href="${url}" target="_blank" class="text-[11px] font-mono text-emerald-800 hover:underline truncate block mt-0.5">${url}</a>
+          </div>
+          <button type="button" onclick="navigator.clipboard.writeText('${url}');alert('Link copied!');" class="bg-white hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 py-1.5 rounded-lg text-[11px] font-bold shrink-0">
+            Copy
+          </button>
+        </div>
+      `;
+
+      document.getElementById("generatedLinksContainer").innerHTML =
+        makeRow("1. Public Website & Online Admission", "fa-solid fa-globe", pubUrl, "") +
+        makeRow("2. Executive Admin ERP Console", "fa-solid fa-sliders", admUrl, `Pass: ${selectedClientPackage.adminPass}`) +
+        makeRow("3. Resident Student Portal", "fa-solid fa-user-graduate", stuUrl, "Roll ID Login") +
+        makeRow("4. Security Warden Console", "fa-solid fa-user-shield", warUrl, `Pass: ${selectedClientPackage.wardenPass}`);
+    }
+
+    function buildWelcomeText() {
+      if (!selectedClientPackage) return "";
+      const p = selectedClientPackage;
+      return `*WELCOME TO HOSTELCLOUD ERP — ${p.hostelName.toUpperCase()}*\n\nYour cloud hostel management software is live! Below are your official links and login credentials:\n\n🌐 *1. Public Website & Online Admission:*\n${p.pubUrl}\n\n👑 *2. Admin ERP Console (Owner):*\n${p.admUrl}\n🔑 *Admin Password:* ${p.adminPass}\n\n🎓 *3. Resident Student Portal:*\n${p.stuUrl}\n*(Students login with Roll ID or CNIC)*\n\n👮 *4. Security Warden Console:*\n${p.warUrl}\n🔑 *Warden Password:* ${p.wardenPass}`;
+    }
+
+    function copyCompleteWelcomePackage() {
+      const txt = buildWelcomeText();
+      if (!txt) return;
+      navigator.clipboard.writeText(txt);
+      alert("✅ Complete Welcome Package copied to clipboard!");
+    }
+
+    function sendWelcomePackageWhatsApp() {
+      if (!selectedClientPackage) return;
+      const raw = (selectedClientPackage.ownerPhone || "").replace(/[^0-9]/g, "");
+      const cleanPhone = raw.length >= 10 ? ("92" + raw.replace(/^0/, "")) : prompt("Enter Hostel Owner WhatsApp Number (e.g. 923001234567):", "923");
+      if (!cleanPhone) return;
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(buildWelcomeText())}`, "_blank");
+    }
+
+    async function toggleTenantSuspension(tenantId, currentlySuspended) {
+      const actionName = currentlySuspended ? "UNLOCK / ACTIVATE" : "SUSPEND (LOCK)";
+      if (!confirm(`Are you sure you want to ${actionName} the software license for "${tenantId}"?`)) return;
+
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).set({
+          settings: { isSuspended: !currentlySuspended }
+        }, { merge: true });
+        await loadAllCloudTenants();
+      } catch (err) {
+        alert("Failed to update license status: " + err.message);
+      }
+    }
+
+    async function deleteTenantClient(tenantId) {
+      const conf = prompt(`⚠️ DANGER: Type "${tenantId}" to permanently delete this hostel client and all its cloud data:`);
+      if (conf !== tenantId) return;
+
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).delete();
+        await loadAllCloudTenants();
+        alert(`🗑️ Deleted tenant "${tenantId}" from Cloud.`);
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", checkMasterSession);
+  </script>
+</body>
+</html>
