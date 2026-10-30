@@ -727,20 +727,26 @@
     }
 
     async function deleteTenantClient(tenantId) {
-      const conf = prompt(`⚠️ DANGER: Type "${tenantId}" to permanently delete this hostel client and all its cloud data:`);
-      if (conf !== tenantId) return;
+      if (!confirm(`⚠️ Are you sure you want to permanently DELETE hostel client "${tenantId}" and all its cloud data?`)) return;
 
       try {
+        // Remove from local memory & storage first so nothing re-uploads it
+        allTenantsCache = allTenantsCache.filter(t => t.tenantId !== tenantId);
+        try {
+          localStorage.removeItem("HOSTEL_SAAS_DB_" + tenantId);
+          if (localStorage.getItem("LAST_ACTIVE_TENANT") === tenantId) {
+            localStorage.removeItem("LAST_ACTIVE_TENANT");
+          }
+        } catch (e) {}
+
+        updateMasterKPIs();
+        renderTenantsTable();
+
+        // Permanently delete from Firebase Cloud
         await firebase.firestore().collection("hostel_system").doc(tenantId).delete();
-        try { localStorage.removeItem("HOSTEL_SAAS_DB_" + tenantId); } catch (e) {}
-        await loadAllCloudTenants();
-        alert(`🗑️ Deleted tenant "${tenantId}" from Cloud.`);
+        alert(`🗑️ Permanently deleted client "${tenantId}" from Cloud!`);
       } catch (err) {
         alert("Delete failed: " + err.message);
+        await loadAllCloudTenants();
       }
     }
-
-    window.addEventListener("DOMContentLoaded", checkMasterSession);
-  </script>
-</body>
-</html>
