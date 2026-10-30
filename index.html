@@ -383,7 +383,406 @@
         <button type="button" onclick="closeAdmissionModal()" class="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">&times;</button>
       </div>
 
-      <form id="onlineAdmissionForm" onsubmit="submitOnlineAdmission(event)" class="space-y-3.5 text-xs">
+      <!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Official Hostel Portal & Online Admission</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="db.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; }
+    .hidden { display: none !important; }
+
+    @keyframes fadeSlideUp {
+      0% { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes modalSpring {
+      0% { opacity: 0; transform: scale(0.90) translateY(18px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes backdropFade {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .animate-section { animation: fadeSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    #admissionModal:not(.hidden), #appSuccessModal:not(.hidden), #appSubmittingOverlay:not(.hidden) { animation: backdropFade 0.25s ease-out forwards; }
+    #admissionModal:not(.hidden) > div, #appSuccessModal:not(.hidden) > div, #appSubmittingOverlay:not(.hidden) > div { animation: modalSpring 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    #trackAppResult:not(.hidden), #pubMobileNav:not(.hidden) { animation: fadeSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    button, a[class*="rounded"] {
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background-color 0.2s ease !important;
+    }
+    button:hover:not(:disabled), a[class*="rounded"]:hover { transform: translateY(-2px); }
+    button:active:not(:disabled), a[class*="rounded"]:active { transform: scale(0.96) translateY(0) !important; }
+
+    .hover-card {
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+    .hover-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 28px -10px rgba(24, 24, 27, 0.12);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-zinc-900 selection:text-white flex flex-col min-h-screen">
+
+  <!-- ===================================================================== -->
+  <!-- 📢 LIVE NOTICE BANNER                                                 -->
+  <!-- ===================================================================== -->
+  <div id="pubNoticeBar" class="hidden bg-zinc-900 text-white text-xs border-b border-zinc-800 py-2 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-center gap-2 text-center">
+      <span class="bg-emerald-600 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shrink-0">Announcement</span>
+      <p id="pubNoticeText" class="font-semibold text-zinc-200 truncate"></p>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🧭 CLEAN SINGLE EXECUTIVE HEADER                                      -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-2xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3">
+      
+      <a href="#" class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-base sm:text-lg font-bold shadow-xs shrink-0">
+          <i class="fa-solid fa-building-shield"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 id="pubHostelName" class="text-sm sm:text-lg font-extrabold text-zinc-900 tracking-tight truncate">Hostel Portal</h1>
+          <div class="flex items-center gap-2 text-[11px] text-zinc-500 font-medium">
+            <span class="inline-flex items-center gap-1 text-emerald-700 font-bold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span> Live Portal</span>
+            <span class="hidden sm:inline">•</span>
+            <span id="topBillingCycle" class="hidden sm:inline truncate">Current Session</span>
+          </div>
+        </div>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-6 text-xs font-bold text-zinc-600">
+        <a href="#overview" class="hover:text-zinc-900 transition">Overview</a>
+        <a href="#rooms" class="hover:text-zinc-900 transition">Live Rooms & Beds</a>
+        <a href="#tracker" class="hover:text-zinc-900 transition">Track Admission</a>
+        <a href="#mess" class="hover:text-zinc-900 transition">Mess Menu</a>
+        <a href="#contact" class="hover:text-zinc-900 transition">Portals & Contact</a>
+      </nav>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="student" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 text-xs font-bold">
+          <i class="fa-solid fa-user-graduate text-emerald-700"></i> Student Login
+        </a>
+        <button type="button" onclick="openAdmissionModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+          <i class="fa-solid fa-file-signature mr-1"></i> Apply Online
+        </button>
+        <button type="button" onclick="togglePubMobileNav()" class="lg:hidden w-9 h-9 rounded-xl border border-zinc-300 bg-zinc-50 text-zinc-800 flex items-center justify-center">
+          <i class="fa-solid fa-bars text-sm"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Dropdown Navigation -->
+    <div id="pubMobileNav" class="hidden lg:hidden bg-white border-t border-zinc-200 px-4 py-4 space-y-3 text-xs font-bold">
+      <div class="grid grid-cols-2 gap-2 text-zinc-700">
+        <a href="#rooms" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-bed text-emerald-700 mr-1.5"></i> Vacant Rooms</a>
+        <a href="#tracker" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-magnifying-glass text-emerald-700 mr-1.5"></i> Track Status</a>
+        <a href="#mess" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-utensils text-emerald-700 mr-1.5"></i> Mess Menu</a>
+        <a href="#contact" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-phone text-emerald-700 mr-1.5"></i> Contact Info</a>
+      </div>
+      <div class="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 text-center">
+        <a href="student" class="bg-zinc-900 text-white py-2.5 rounded-lg">🎓 Student</a>
+        <a href="warden" class="bg-zinc-100 border border-zinc-300 text-zinc-800 py-2.5 rounded-lg">👮 Warden</a>
+        <a href="admin" class="bg-zinc-100 border border-zinc-300 text-zinc-800 py-2.5 rounded-lg">👑 Admin</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 🏢 HERO SECTION & LIVE ACCOMMODATION LEDGER CARD                      -->
+  <!-- ===================================================================== -->
+  <section id="overview" class="bg-white border-b border-zinc-200 py-10 sm:py-16 animate-section">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+      
+      <div class="lg:col-span-7 space-y-5">
+        <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1.5 rounded-lg text-xs font-bold">
+          <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span> Official Cloud Seat Reservation & Resident ERP
+        </div>
+
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-zinc-900 leading-tight">
+          Welcome to <span id="heroHostelTitle" class="text-emerald-700 underline decoration-emerald-500/40 decoration-4 underline-offset-4">—</span>
+        </h2>
+
+        <p class="text-zinc-600 text-sm sm:text-base leading-relaxed">
+          Check real-time room and bed availability below, inspect the weekly dining menu, or submit your online admission form with KYC documents in 1 click. Enrolled residents can access the Student Portal to download VIP fee vouchers and QR Gate Pass ID cards.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <button type="button" onclick="openAdmissionModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer">
+            <i class="fa-solid fa-paper-plane text-emerald-400 mr-1.5"></i> Apply for Admission
+          </button>
+          <a href="#rooms" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-5 py-3.5 rounded-xl text-xs font-bold">
+            <i class="fa-solid fa-bed mr-1.5 text-zinc-600"></i> View Vacant Beds
+          </a>
+          <a id="heroWhatsAppBtn" href="#" target="_blank" class="hidden items-center gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 px-4 py-3.5 rounded-xl text-xs font-bold">
+            <i class="fa-brands fa-whatsapp text-emerald-700 text-sm"></i> WhatsApp Desk
+          </a>
+        </div>
+
+        <div class="pt-4 border-t border-zinc-100 flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-zinc-400 font-bold uppercase text-[10px] mr-1">Quick Portals:</span>
+          <a href="student" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold">
+            <i class="fa-solid fa-user-graduate text-emerald-600 mr-1"></i> Resident Student Portal
+          </a>
+          <a href="warden" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold">
+            <i class="fa-solid fa-user-shield text-zinc-500 mr-1"></i> Warden Gate Console
+          </a>
+          <a href="admin" class="bg-zinc-50 hover:bg-zinc-900 hover:text-white border border-zinc-200 text-zinc-700 px-3 py-1.5 rounded-lg font-bold">
+            <i class="fa-solid fa-lock text-amber-600 mr-1"></i> Admin ERP
+          </a>
+        </div>
+      </div>
+
+      <div class="lg:col-span-5">
+        <div class="hover-card bg-zinc-900 text-white border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-5">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
+            <div>
+              <span class="text-[10px] uppercase tracking-wider text-emerald-400 font-extrabold block">Real-Time Capacity</span>
+              <h3 class="text-base font-extrabold text-white mt-0.5">Live Accommodation Ledger</h3>
+            </div>
+            <span class="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase">
+              ● Cloud Synced
+            </span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-zinc-800/90 border border-zinc-700/80 p-3.5 rounded-xl">
+              <span class="text-[11px] text-zinc-400 font-semibold block">Total Rooms</span>
+              <strong id="statTotalRooms" class="text-2xl font-extrabold text-white mt-0.5 block">0</strong>
+            </div>
+            <div class="bg-zinc-800/90 border border-zinc-700/80 p-3.5 rounded-xl">
+              <span class="text-[11px] text-zinc-400 font-semibold block">Total Beds</span>
+              <strong id="statTotalBeds" class="text-2xl font-extrabold text-white mt-0.5 block">0</strong>
+            </div>
+            <div class="bg-emerald-950/80 border border-emerald-500/40 p-3.5 rounded-xl">
+              <span class="text-[11px] text-emerald-300 font-bold block">Vacant Beds</span>
+              <strong id="statEmptyBeds" class="text-2xl font-extrabold text-emerald-400 mt-0.5 block">0</strong>
+            </div>
+          </div>
+
+          <div class="bg-zinc-800/60 border border-zinc-700/70 rounded-xl p-3.5 text-xs space-y-2 text-zinc-300">
+            <div class="flex justify-between">
+              <span>Enrolled Active Residents:</span>
+              <strong id="statOccupiedBeds" class="text-white">0 Students</strong>
+            </div>
+            <div class="flex justify-between border-t border-zinc-700/70 pt-2">
+              <span>Official Deposit Account:</span>
+              <strong id="statJazzCash" class="text-emerald-400 font-mono truncate max-w-[180px]">—</strong>
+            </div>
+          </div>
+
+          <button type="button" onclick="openAdmissionModal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-wider shadow-md cursor-pointer">
+            Reserve Your Seat Online →
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 4 FEATURE CARDS RIBBON -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 mt-10 pt-8 border-t border-zinc-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-qrcode"></i></div>
+        <div>
+          <h4 class="text-xs font-extrabold text-zinc-900">Digital QR Gate Pass</h4>
+          <p class="text-[11px] text-zinc-500 mt-0.5">24/7 Warden security with photo QR ID cards & visitor log.</p>
+        </div>
+      </div>
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+        <div>
+          <h4 class="text-xs font-extrabold text-zinc-900">Online Fee & Challan</h4>
+          <p class="text-[11px] text-zinc-500 mt-0.5">Download 2-copy VIP vouchers & submit JazzCash/Bank TIDs online.</p>
+        </div>
+      </div>
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-utensils"></i></div>
+        <div>
+          <h4 class="text-xs font-extrabold text-zinc-900">Hygienic Mess & Rebate</h4>
+          <p class="text-[11px] text-zinc-500 mt-0.5">3-time quality meals with automatic leave mess-off rebate system.</p>
+        </div>
+      </div>
+      <div class="hover-card bg-zinc-50 border border-zinc-200/80 rounded-xl p-4 flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center shrink-0 text-sm"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+        <div>
+          <h4 class="text-xs font-extrabold text-zinc-900">1-Click Maintenance</h4>
+          <p class="text-[11px] text-zinc-500 mt-0.5">Instant room complaint & leave approval directly from Student Portal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 🛏️ INTERACTIVE ROOM & BED AVAILABILITY DIRECTORY                     -->
+  <!-- ===================================================================== -->
+  <section id="rooms" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 w-full space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-zinc-200 pb-4">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Interactive Seat Map</span>
+        <h2 class="text-2xl font-extrabold text-zinc-900 mt-0.5">Live Room & Bed Availability</h2>
+        <p class="text-xs text-zinc-500 mt-1">Tap on any <strong class="text-emerald-800">🟢 Vacant Bed</strong> below to apply for that specific room.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+        <span class="bg-emerald-50 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg">🟢 Vacant Bed (Tap to Apply)</span>
+        <span class="bg-white border border-zinc-300 text-zinc-600 px-3 py-1.5 rounded-lg">👤 Occupied Seat</span>
+      </div>
+    </div>
+
+    <div id="publicRoomsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 🔍 ONLINE APPLICATION STATUS TRACKER CARD                             -->
+  <!-- ===================================================================== -->
+  <section id="tracker" class="py-6 max-w-7xl mx-auto px-4 sm:px-6 w-full">
+    <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Admission Status Lookup</span>
+          <h3 class="text-lg font-extrabold text-zinc-900 mt-0.5">Track Your Online Admission Application</h3>
+          <p class="text-xs text-zinc-500">Enter your Tracking ID (e.g. APP-1234), CNIC, or Phone number to check seat allotment & Roll ID.</p>
+        </div>
+        <div class="flex items-center gap-2 w-full md:w-96">
+          <input id="trackAppInput" type="text" placeholder="Enter APP ID, CNIC or Phone..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 outline-none focus:border-zinc-900" />
+          <button type="button" onclick="checkApplicationStatus()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer">
+            Check Status
+          </button>
+        </div>
+      </div>
+      <div id="trackAppResult" class="hidden pt-3 border-t border-zinc-100 text-xs"></div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 🍲 WEEKLY MESS SCHEDULE                                               -->
+  <!-- ===================================================================== -->
+  <section id="mess" class="py-12 bg-white border-y border-zinc-200 mt-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Hostel Dining</span>
+          <h2 class="text-2xl font-extrabold text-zinc-900 mt-0.5">Weekly Mess Menu Schedule</h2>
+        </div>
+        <span class="text-xs text-zinc-500 font-medium">Updated Live by Administration</span>
+      </div>
+
+      <div class="border border-zinc-200 rounded-2xl overflow-x-auto shadow-2xs">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-zinc-900 text-white uppercase font-bold">
+            <tr>
+              <th class="p-3.5">Day</th>
+              <th class="p-3.5">Breakfast</th>
+              <th class="p-3.5">Lunch</th>
+              <th class="p-3.5">Dinner</th>
+            </tr>
+          </thead>
+          <tbody id="publicMessTable" class="divide-y divide-zinc-200 bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 💳 PAYMENT CHANNELS & OFFICIAL PORTALS CARDS                          -->
+  <!-- ===================================================================== -->
+  <section id="contact" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 w-full flex-1">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <div class="hover-card lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
+        <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Verified Accounts</span>
+            <h3 class="text-base font-extrabold text-zinc-900 mt-0.5">Official Fee Deposit Channels</h3>
+          </div>
+          <span id="contactMonth" class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-1 rounded-lg text-[11px] font-bold">—</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+          <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-1">
+            <span class="text-[10px] font-bold uppercase text-emerald-700 block"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Payment Option 1 (Wallet)</span>
+            <strong id="contactPhone" class="text-sm font-extrabold text-zinc-900 font-mono block break-words">—</strong>
+            <span class="text-[11px] text-zinc-500 block">JazzCash / Easypaisa Transfer</span>
+          </div>
+
+          <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-1">
+            <span class="text-[10px] font-bold uppercase text-zinc-600 block"><i class="fa-solid fa-building-columns mr-1"></i> Payment Option 2 (Bank / IBAN)</span>
+            <strong id="contactBank" class="text-sm font-extrabold text-zinc-900 font-mono block break-words">—</strong>
+            <span class="text-[11px] text-zinc-500 block">Direct Bank / Online Deposit</span>
+          </div>
+        </div>
+
+        <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div>
+            <span class="text-zinc-500">Institution Title:</span>
+            <strong id="contactHostelName" class="text-zinc-900 ml-1">—</strong>
+          </div>
+          <div>
+            <span class="text-zinc-500">Admin Desk:</span>
+            <strong id="topPhoneText" class="text-emerald-800 font-mono ml-1">—</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="hover-card lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Role-Based Access</span>
+          <h3 class="text-base font-extrabold text-zinc-900 mt-0.5 border-b border-zinc-100 pb-3">
+            Official ERP Portals
+          </h3>
+          <p class="text-xs text-zinc-500 mt-2.5 leading-relaxed">
+            Authorized login consoles for enrolled residents, gate security warden, and hostel administration:
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2.5 text-xs font-bold">
+          <a href="student" class="bg-zinc-900 hover:bg-zinc-800 text-white py-3 px-4 rounded-xl flex items-center justify-between">
+            <span><i class="fa-solid fa-user-graduate text-emerald-400 mr-2"></i> Resident Student Portal</span>
+            <span>Login →</span>
+          </a>
+          <div class="grid grid-cols-2 gap-2.5">
+            <a href="warden" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-3 px-4 rounded-xl text-center">
+              <i class="fa-solid fa-user-shield text-emerald-700 mr-1"></i> Warden Console
+            </a>
+            <a href="admin" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-3 px-4 rounded-xl text-center">
+              <i class="fa-solid fa-sliders text-zinc-700 mr-1"></i> Admin ERP
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 📝 ONLINE ADMISSION APPLICATION MODAL (WITH PHOTO & CNIC FRONT/BACK)  -->
+  <!-- ===================================================================== -->
+  <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-xs hidden items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white border border-zinc-300 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8 text-zinc-800">
+      <div class="flex justify-between items-start border-b border-zinc-200 pb-3.5">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Online Seat Registration & KYC</span>
+          <h3 class="text-base font-extrabold text-zinc-900 mt-0.5">Hostel Admission Application Form</h3>
+        </div>
+        <button type="button" onclick="closeAdmissionModal()" class="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">&times;</button>
+      </div>
+
+      <form id="onlineAdmissionForm" onsubmit="submitOnlineAdmission(event)" class="space-y-4 text-xs">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-zinc-700 font-bold mb-1">Applicant Full Name *</label>
@@ -417,6 +816,43 @@
           </div>
         </div>
 
+        <!-- 📸 KYC PHOTO & CNIC (FRONT / BACK) UPLOAD CARDS -->
+        <div id="kycUploadBoxContainer" class="space-y-2 pt-1">
+          <label class="block text-zinc-800 font-extrabold text-xs">
+            <i class="fa-solid fa-id-card text-emerald-700 mr-1"></i> Upload Identity Documents (Passport Photo & CNIC) *
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            
+            <!-- 1. Student Photo -->
+            <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
+              <img id="prevStuPhoto" class="hidden w-12 h-12 rounded-full object-cover border-2 border-emerald-600 mx-auto mb-1" />
+              <i class="fa-solid fa-camera text-emerald-700 text-base"></i>
+              <span class="font-extrabold text-zinc-800 text-[11px] block">1. Student Photo *</span>
+              <span class="text-[10px] text-zinc-400">Tap to Upload</span>
+              <input type="file" accept="image/*" required onchange="handleKYCFileUpload(this, 'photo', 'prevStuPhoto')" class="hidden" />
+            </label>
+
+            <!-- 2. CNIC Front -->
+            <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
+              <img id="prevCnicFront" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
+              <i class="fa-solid fa-address-card text-zinc-700 text-base"></i>
+              <span class="font-extrabold text-zinc-800 text-[11px] block">2. CNIC Front *</span>
+              <span class="text-[10px] text-zinc-400">Front Picture</span>
+              <input type="file" accept="image/*" required onchange="handleKYCFileUpload(this, 'cnicFront', 'prevCnicFront')" class="hidden" />
+            </label>
+
+            <!-- 3. CNIC Back -->
+            <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
+              <img id="prevCnicBack" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
+              <i class="fa-solid fa-id-card-clip text-zinc-700 text-base"></i>
+              <span class="font-extrabold text-zinc-800 text-[11px] block">3. CNIC Back *</span>
+              <span class="text-[10px] text-zinc-400">Back Picture</span>
+              <input type="file" accept="image/*" required onchange="handleKYCFileUpload(this, 'cnicBack', 'prevCnicBack')" class="hidden" />
+            </label>
+
+          </div>
+        </div>
+
         <div>
           <label class="block text-zinc-700 font-bold mb-1">Additional Remarks / Note (Optional)</label>
           <input id="appNote" type="text" placeholder="Any specific preference" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 focus:border-zinc-900 outline-none" />
@@ -425,7 +861,7 @@
         <div class="pt-3 border-t border-zinc-200 flex justify-end gap-2">
           <button type="button" onclick="closeAdmissionModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold">Cancel</button>
           <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer">
-            Submit Application
+            Submit Application →
           </button>
         </div>
       </form>
@@ -433,7 +869,26 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- ✅ CUSTOM UI "APPLICATION SUBMITTED" RECEIPT MODAL (NO BROWSER ALERT) -->
+  <!-- ⏳ ANIMATED CLOUD LOADING OVERLAY (DURING APPLICATION SUBMISSION)     -->
+  <!-- ===================================================================== -->
+  <div id="appSubmittingOverlay" class="fixed inset-0 bg-zinc-950/80 backdrop-blur-xs hidden items-center justify-center z-[60] p-4">
+    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-md">
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+      </div>
+      <div class="space-y-1">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">Cloud KYC Verification</span>
+        <h4 id="loaderStepTitle" class="text-base font-extrabold text-zinc-900">Uploading Photo & CNIC...</h4>
+        <p id="loaderStepSub" class="text-xs text-zinc-500">Encrypting identity documents & reserving seat</p>
+      </div>
+      <div class="w-full bg-zinc-100 h-2.5 rounded-full overflow-hidden">
+        <div id="loaderProgressBar" class="bg-emerald-600 h-full transition-all duration-500" style="width: 30%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- ✅ CUSTOM UI "APPLICATION SUBMITTED" RECEIPT MODAL                    -->
   <!-- ===================================================================== -->
   <div id="appSuccessModal" class="fixed inset-0 bg-zinc-950/75 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5 text-center">
@@ -444,7 +899,7 @@
       <div class="space-y-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Online Registration Received</span>
         <h3 class="text-lg font-extrabold text-zinc-900">Application Submitted!</h3>
-        <p class="text-xs text-zinc-500">Your admission request has been sent to the Hostel Administration.</p>
+        <p class="text-xs text-zinc-500">Your admission form & KYC documents have been sent to the Hostel Administration.</p>
       </div>
 
       <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-left text-xs space-y-2">
@@ -478,7 +933,9 @@
     </div>
   </div>
 
-  <!-- 🚀 PUBLIC WEBSITE CONTROLLER -->
+  <!-- ===================================================================== -->
+  <!-- 🚀 PUBLIC WEBSITE CONTROLLER                                          -->
+  <!-- ===================================================================== -->
   <script>
     let lastSubmittedAppId = "";
 
@@ -668,40 +1125,89 @@
 
     function submitOnlineAdmission(e) {
       e.preventDefault();
-      const db = getDB();
-      db.applications = db.applications || [];
+      const uploads = window.kycTempUploads || {};
+      if (!uploads.photo || !uploads.cnicFront || !uploads.cnicBack) {
+        return alert("⚠️ Please upload your Student Photo, CNIC Front, and CNIC Back before submitting!");
+      }
 
-      const newApp = {
-        id: "APP-" + Math.floor(1000 + Math.random() * 9000),
-        name: document.getElementById("appName").value.trim(),
-        cnic: document.getElementById("appCnic").value.trim(),
-        phone: document.getElementById("appPhone").value.trim(),
-        guardian: document.getElementById("appGuardian").value.trim(),
-        uni: document.getElementById("appUni").value.trim(),
-        room: document.getElementById("appRoomSelect").value,
-        note: document.getElementById("appNote").value.trim(),
-        date: new Date().toLocaleDateString("en-GB"),
-        status: "Pending"
-      };
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      const origBtnHtml = submitBtn ? submitBtn.innerHTML : "Submit Application →";
 
-      db.applications.unshift(newApp);
-      saveDB(db, `Online Admission Application submitted by ${newApp.name} for Room ${newApp.room}`, "Applicant");
+      const loader = document.getElementById("appSubmittingOverlay");
+      const stepTitle = document.getElementById("loaderStepTitle");
+      const progBar = document.getElementById("loaderProgressBar");
 
-      closeAdmissionModal();
-      e.target.reset();
+      if (stepTitle) stepTitle.innerText = "Uploading Photo & CNIC...";
+      if (progBar) progBar.style.width = "30%";
 
-      // Show Custom UI Receipt Modal instead of browser alert!
-      lastSubmittedAppId = newApp.id;
-      document.getElementById("succAppId").innerText = newApp.id;
-      document.getElementById("succAppName").innerText = newApp.name;
-      document.getElementById("succAppRoom").innerText = `Room ${newApp.room}`;
-      const copyBtn = document.getElementById("copyTrackBtn");
-      if (copyBtn) copyBtn.innerText = "Copy";
+      loader.classList.remove("hidden");
+      loader.classList.add("flex");
+      loader.style.setProperty("display", "flex", "important");
 
-      const succModal = document.getElementById("appSuccessModal");
-      succModal.classList.remove("hidden");
-      succModal.classList.add("flex");
-      succModal.style.setProperty("display", "flex", "important");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i> Submitting...`;
+      }
+
+      setTimeout(() => {
+        if (stepTitle) stepTitle.innerText = "Syncing with Hostel Cloud ERP...";
+        if (progBar) progBar.style.width = "75%";
+      }, 650);
+
+      setTimeout(() => {
+        if (progBar) progBar.style.width = "100%";
+
+        const db = getDB();
+        db.applications = db.applications || [];
+
+        const newApp = {
+          id: "APP-" + Math.floor(1000 + Math.random() * 9000),
+          name: document.getElementById("appName").value.trim(),
+          cnic: document.getElementById("appCnic").value.trim(),
+          phone: document.getElementById("appPhone").value.trim(),
+          guardian: document.getElementById("appGuardian").value.trim(),
+          uni: document.getElementById("appUni").value.trim(),
+          room: document.getElementById("appRoomSelect").value,
+          note: document.getElementById("appNote").value.trim(),
+          photo: uploads.photo || "",
+          cnicFront: uploads.cnicFront || "",
+          cnicBack: uploads.cnicBack || "",
+          date: new Date().toLocaleDateString("en-GB"),
+          status: "Pending"
+        };
+
+        db.applications.unshift(newApp);
+        saveDB(db, `Online Admission Application (with KYC Photo & CNIC) submitted by ${newApp.name} for Room ${newApp.room}`, "Applicant");
+
+        window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
+        ["prevStuPhoto", "prevCnicFront", "prevCnicBack"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.classList.add("hidden"); el.style.display = "none"; }
+        });
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnHtml;
+        }
+        loader.classList.add("hidden");
+        loader.classList.remove("flex");
+        loader.style.setProperty("display", "none", "important");
+
+        closeAdmissionModal();
+        e.target.reset();
+
+        lastSubmittedAppId = newApp.id;
+        document.getElementById("succAppId").innerText = newApp.id;
+        document.getElementById("succAppName").innerText = newApp.name;
+        document.getElementById("succAppRoom").innerText = `Room ${newApp.room}`;
+        const copyBtn = document.getElementById("copyTrackBtn");
+        if (copyBtn) copyBtn.innerText = "Copy";
+
+        const succModal = document.getElementById("appSuccessModal");
+        succModal.classList.remove("hidden");
+        succModal.classList.add("flex");
+        succModal.style.setProperty("display", "flex", "important");
+      }, 1450);
     }
 
     function checkApplicationStatus() {
