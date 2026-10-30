@@ -16,7 +16,6 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; }
     .hidden { display: none !important; }
 
-    /* Smooth Animations */
     @keyframes fadeSlideUp {
       0% { opacity: 0; transform: translateY(16px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -31,8 +30,8 @@
     }
 
     .animate-section { animation: fadeSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
-    #admissionModal:not(.hidden) { animation: backdropFade 0.25s ease-out forwards; }
-    #admissionModal:not(.hidden) > div { animation: modalSpring 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    #admissionModal:not(.hidden), #appSuccessModal:not(.hidden) { animation: backdropFade 0.25s ease-out forwards; }
+    #admissionModal:not(.hidden) > div, #appSuccessModal:not(.hidden) > div { animation: modalSpring 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     #trackAppResult:not(.hidden), #pubMobileNav:not(.hidden) { animation: fadeSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
     button, a[class*="rounded"] {
@@ -159,7 +158,6 @@
         </div>
       </div>
 
-      <!-- Right 5 Cols: Live Occupancy Summary Card -->
       <div class="lg:col-span-5">
         <div class="hover-card bg-zinc-900 text-white border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-5">
           <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
@@ -372,7 +370,9 @@
     </div>
   </section>
 
-  <!-- 📝 ONLINE ADMISSION APPLICATION MODAL (WITH SPRING ANIMATION) -->
+  <!-- ===================================================================== -->
+  <!-- 📝 ONLINE ADMISSION APPLICATION MODAL                                 -->
+  <!-- ===================================================================== -->
   <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-xs hidden items-center justify-center z-50 p-4 overflow-y-auto">
     <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl my-8 text-zinc-800">
       <div class="flex justify-between items-start border-b border-zinc-200 pb-3.5">
@@ -432,8 +432,56 @@
     </div>
   </div>
 
+  <!-- ===================================================================== -->
+  <!-- ✅ CUSTOM UI "APPLICATION SUBMITTED" RECEIPT MODAL (NO BROWSER ALERT) -->
+  <!-- ===================================================================== -->
+  <div id="appSuccessModal" class="fixed inset-0 bg-zinc-950/75 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5 text-center">
+      <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl mx-auto shadow-md">
+        <i class="fa-solid fa-check"></i>
+      </div>
+
+      <div class="space-y-1">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Online Registration Received</span>
+        <h3 class="text-lg font-extrabold text-zinc-900">Application Submitted!</h3>
+        <p class="text-xs text-zinc-500">Your admission request has been sent to the Hostel Administration.</p>
+      </div>
+
+      <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-left text-xs space-y-2">
+        <div class="flex justify-between items-center border-b border-zinc-200 pb-2">
+          <span class="text-zinc-500">Tracking ID:</span>
+          <div class="flex items-center gap-2">
+            <strong id="succAppId" class="font-mono text-sm font-extrabold text-emerald-800">APP-0000</strong>
+            <button type="button" onclick="copyTrackingId()" id="copyTrackBtn" class="bg-white border border-zinc-300 hover:bg-zinc-900 hover:text-white text-zinc-800 px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer">
+              Copy
+            </button>
+          </div>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-zinc-500">Applicant Name:</span>
+          <strong id="succAppName" class="text-zinc-900">—</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-zinc-500">Preferred Room:</span>
+          <strong id="succAppRoom" class="text-zinc-900">—</strong>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2 pt-1 text-xs">
+        <button type="button" onclick="trackSubmittedAppNow()" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold cursor-pointer">
+          <i class="fa-solid fa-magnifying-glass mr-1"></i> Track Status
+        </button>
+        <button type="button" onclick="closeAppSuccessModal()" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl font-bold cursor-pointer">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 🚀 PUBLIC WEBSITE CONTROLLER -->
   <script>
+    let lastSubmittedAppId = "";
+
     function togglePubMobileNav() {
       const nav = document.getElementById("pubMobileNav");
       if (!nav) return;
@@ -462,6 +510,30 @@
       modal.classList.add("hidden");
       modal.classList.remove("flex");
       modal.style.setProperty("display", "none", "important");
+    }
+
+    function closeAppSuccessModal() {
+      const modal = document.getElementById("appSuccessModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      modal.style.setProperty("display", "none", "important");
+    }
+
+    function copyTrackingId() {
+      if (!lastSubmittedAppId) return;
+      navigator.clipboard.writeText(lastSubmittedAppId);
+      const btn = document.getElementById("copyTrackBtn");
+      if (btn) btn.innerText = "✓ Copied";
+    }
+
+    function trackSubmittedAppNow() {
+      closeAppSuccessModal();
+      const inp = document.getElementById("trackAppInput");
+      if (inp && lastSubmittedAppId) {
+        inp.value = lastSubmittedAppId;
+        checkApplicationStatus();
+        document.getElementById("tracker")?.scrollIntoView({ behavior: "smooth" });
+      }
     }
 
     function loadPublicSite() {
@@ -617,7 +689,19 @@
 
       closeAdmissionModal();
       e.target.reset();
-      alert(`✅ Application Submitted!\n\nTracking ID: ${newApp.id}\nPreferred Room: ${newApp.room}\n\nYou can check your approval status anytime in the 'Track Application' section.`);
+
+      // Show Custom UI Receipt Modal instead of browser alert!
+      lastSubmittedAppId = newApp.id;
+      document.getElementById("succAppId").innerText = newApp.id;
+      document.getElementById("succAppName").innerText = newApp.name;
+      document.getElementById("succAppRoom").innerText = `Room ${newApp.room}`;
+      const copyBtn = document.getElementById("copyTrackBtn");
+      if (copyBtn) copyBtn.innerText = "Copy";
+
+      const succModal = document.getElementById("appSuccessModal");
+      succModal.classList.remove("hidden");
+      succModal.classList.add("flex");
+      succModal.style.setProperty("display", "flex", "important");
     }
 
     function checkApplicationStatus() {
