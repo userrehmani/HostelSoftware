@@ -24,7 +24,7 @@
 <body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
-  <!-- 🔒 SECURITY WARDEN LOGIN GATE                                         -->
+  <!-- 🔒 SECURITY WARDEN LOGIN GATE (NO DEFAULT PASSWORD)                   -->
   <!-- ===================================================================== -->
   <div id="wardenLoginGate" class="fixed inset-0 bg-zinc-900/95 z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
@@ -41,7 +41,7 @@
       <form onsubmit="handleWardenLogin(event)" class="space-y-4 text-xs">
         <div>
           <label class="block font-bold text-zinc-700 mb-1.5">Warden Console Password *</label>
-          <input id="wardenPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
+          <input id="wardenPassInput" type="password" required placeholder="Enter Warden Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
 
         <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
@@ -66,7 +66,7 @@
   <!-- ===================================================================== -->
   <div class="flex h-dvh w-screen overflow-hidden">
 
-    <!-- 🧭 LEFT SIDEBAR NAVIGATION (SLIDE-OUT ON MOBILE, FIXED ON DESKTOP) -->
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
     <aside id="wardenSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
         <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
@@ -79,13 +79,11 @@
               <span class="text-[10px] text-emerald-400 font-semibold block">● Live Gate Security</span>
             </div>
           </div>
-          <!-- Mobile Close Drawer Button -->
           <button onclick="toggleWardenMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white text-lg px-1">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        <!-- Warden Navigation Menu -->
         <div class="p-3 space-y-1.5 text-xs font-semibold">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Security & Discipline</p>
 
@@ -105,7 +103,6 @@
         </div>
       </div>
 
-      <!-- Bottom Actions -->
       <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
         <a href="index" class="w-full block text-center bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded-lg font-medium">
           ← Public Website
@@ -119,10 +116,9 @@
     <!-- 🖥️ RIGHT MAIN WARDEN WORKSPACE -->
     <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-      <!-- Top Mobile & Desktop Header -->
+      <!-- Top Header -->
       <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <!-- Mobile Hamburger Drawer Button -->
           <button onclick="toggleWardenMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
             <i class="fa-solid fa-bars text-sm"></i>
           </button>
@@ -139,15 +135,12 @@
         </div>
       </header>
 
-      <!-- Scrollable View Area (pb-24 on mobile for Bottom App Nav) -->
+      <!-- Scrollable View Area -->
       <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll">
 
-        <!-- =============================================================== -->
-        <!-- VIEW 1: GATE PASS VERIFIER & VISITOR SECURITY REGISTER          -->
-        <!-- =============================================================== -->
+        <!-- VIEW 1: GATE PASS VERIFIER & VISITOR SECURITY REGISTER -->
         <div id="wardenView-gate" class="space-y-4 sm:space-y-6 w-full">
 
-          <!-- 4-Card KPI Strip (2x2 on Mobile, 4 Cols on Desktop) -->
           <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
             <div class="bg-white border border-zinc-200 rounded-xl p-3.5 sm:p-4 shadow-2xs">
               <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Active Residents</span>
@@ -168,8 +161,6 @@
           </section>
 
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 w-full">
-            
-            <!-- Left 6 Cols: Gate Pass QR / Roll ID Verifier -->
             <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm sm:text-base font-bold text-zinc-900"><i class="fa-solid fa-qrcode text-emerald-700 mr-1.5"></i> Gate Security Entry & Exit Verifier</h3>
@@ -186,7 +177,6 @@
               <div id="scanResultBox" class="hidden bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-3 text-xs"></div>
             </div>
 
-            <!-- Right 6 Cols: Gate Visitor Security Register -->
             <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm sm:text-base font-bold text-zinc-900"><i class="fa-solid fa-user-check text-zinc-700 mr-1.5"></i> Gate Visitor Security Log</h3>
@@ -209,14 +199,11 @@
                 </table>
               </div>
             </div>
-
           </div>
 
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 2: RESIDENTS DIRECTORY (QUICK EMERGENCY CONTACTS)          -->
-        <!-- =============================================================== -->
+        <!-- VIEW 2: RESIDENTS DIRECTORY -->
         <div id="wardenView-residents" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -244,12 +231,9 @@
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 3: COMPLAINTS & LEAVES                                     -->
-        <!-- =============================================================== -->
+        <!-- VIEW 3: COMPLAINTS & LEAVES -->
         <div id="wardenView-operations" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
-            
             <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Resident Maintenance Complaints</h3>
@@ -265,15 +249,12 @@
               </div>
               <div id="wardenLeavesList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
             </div>
-
           </div>
         </div>
 
       </main>
 
-      <!-- ================================================================= -->
-      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR (ONLY ON MOBILE)              -->
-      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR -->
       <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-3 z-30 shadow-lg">
         <button onclick="switchWardenTab('gate')" id="wbnav-gate" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[11px]">
           <i class="fa-solid fa-qrcode text-base"></i>
@@ -293,9 +274,7 @@
 
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 🚀 WARDEN CONTROLLER SCRIPT                                           -->
-  <!-- ===================================================================== -->
+  <!-- 🚀 WARDEN CONTROLLER SCRIPT -->
   <script>
     const WARDEN_TITLES = {
       gate: "Gate Pass & Visitor Security",
@@ -316,29 +295,50 @@
       }
     }
 
-    function checkWardenSession() {
-      const db = getDB();
-      document.getElementById("wardenGateHostelName").innerText = (db.settings && db.settings.hostelName) || "Warden Console";
-      if (sessionStorage.getItem("WARDEN_AUTH_" + TENANT_ID) === "true") {
-        document.getElementById("wardenLoginGate").classList.add("hidden");
+    function hideWardenLoginGate() {
+      const gate = document.getElementById("wardenLoginGate");
+      if (gate) {
+        gate.classList.remove("flex");
+        gate.classList.add("hidden");
+        gate.style.setProperty("display", "none", "important");
       }
     }
 
+    function checkWardenSession() {
+      const db = getDB();
+      document.getElementById("wardenGateHostelName").innerText = (db.settings && db.settings.hostelName) || "Warden Console";
+      try {
+        if (sessionStorage.getItem("WARDEN_AUTH_" + TENANT_ID) === "true") {
+          hideWardenLoginGate();
+        }
+      } catch (e) {}
+    }
+
     function handleWardenLogin(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       const db = getDB();
       const pass = document.getElementById("wardenPassInput").value.trim();
-      if (pass === String((db.settings && db.settings.wardenPass) || "123")) {
-        sessionStorage.setItem("WARDEN_AUTH_" + TENANT_ID, "true");
-        document.getElementById("wardenLoginGate").classList.add("hidden");
+      const configuredPass = db.settings && db.settings.wardenPass ? String(db.settings.wardenPass).trim() : "";
+
+      if (!configuredPass) {
+        return alert("⚠️ Access Denied: No Warden password is set for this hostel yet. Please configure it from the Admin or Master SaaS HQ.");
+      }
+
+      if (pass === configuredPass) {
+        try {
+          sessionStorage.setItem("WARDEN_AUTH_" + TENANT_ID, "true");
+        } catch (err) {}
+        hideWardenLoginGate();
         renderWardenConsole();
       } else {
-        alert("Incorrect Warden Password!");
+        alert("❌ Incorrect Warden Password!");
       }
     }
 
     function logoutWarden() {
-      sessionStorage.removeItem("WARDEN_AUTH_" + TENANT_ID);
+      try {
+        sessionStorage.removeItem("WARDEN_AUTH_" + TENANT_ID);
+      } catch (e) {}
       location.reload();
     }
 
