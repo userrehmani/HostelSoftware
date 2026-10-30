@@ -411,7 +411,7 @@
       document.getElementById("badgeTotalTenants").innerText = total;
     }
 
-    function renderTenantsTable() {
+   function renderTenantsTable() {
       const tbody = document.getElementById("tenantsTableBody");
       const q = (document.getElementById("searchTenantInput")?.value || "").toLowerCase().trim();
 
@@ -419,6 +419,86 @@
         const hName = ((t.data.settings && t.data.settings.hostelName) || "").toLowerCase();
         return t.tenantId.toLowerCase().includes(q) || hName.includes(q);
       });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-zinc-400">No matching hostel clients found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(t => {
+        const id = t.tenantId;
+        const set = t.data.settings || {};
+        const roomsCount = (t.data.rooms || []).length;
+        const stuCount = (t.data.students || []).filter(s => s.status === "Active").length;
+        const isSuspended = set.isSuspended === true;
+
+        return `
+          <tr class="hover:bg-zinc-50/80">
+            <td class="p-3.5 whitespace-nowrap">
+              <strong class="text-zinc-900 text-sm block">${set.hostelName || 'Unnamed Hostel'}</strong>
+              <span class="font-mono text-[11px] text-emerald-800 font-bold">?hostel=${id}</span>
+            </td>
+            <td class="p-3.5 whitespace-nowrap text-zinc-600">
+              <div class="font-semibold text-zinc-800">${set.adminWhatsApp || 'No WhatsApp'}</div>
+              <div class="text-[11px] text-zinc-500">${set.jazzcash || '—'}</div>
+            </td>
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="font-bold text-zinc-900">${roomsCount}</span> Rooms • <span class="font-bold text-emerald-700">${stuCount}</span> Students
+            </td>
+            <td class="p-3.5 whitespace-nowrap font-mono text-[11px]">
+              <div>Admin: <strong class="text-zinc-900">${set.adminPass || '<span class="text-rose-600">Not Set</span>'}</strong></div>
+              <div>Warden: <strong class="text-zinc-700">${set.wardenPass || '<span class="text-rose-600">Not Set</span>'}</strong></div>
+            </td>
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${isSuspended ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'}">
+                ${isSuspended ? '🔒 SUSPENDED' : '● ACTIVE'}
+              </span>
+            </td>
+            <td class="p-3.5 text-right whitespace-nowrap space-x-1">
+              <button onclick="openClientLinksPackage('${id}')" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="View Links">
+                <i class="fa-solid fa-link mr-1"></i> Links
+              </button>
+              <button onclick="masterChangeClientPassword('${id}')" class="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="Reset Passwords">
+                🔑 Pass
+              </button>
+              <button onclick="toggleTenantSuspension('${id}', ${isSuspended})" class="${isSuspended ? 'bg-emerald-700 hover:bg-emerald-600 text-white' : 'bg-amber-100 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300'} px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition">
+                ${isSuspended ? 'Unlock' : 'Suspend'}
+              </button>
+              <button onclick="deleteTenantClient('${id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 px-2 py-1.5 rounded-lg text-[11px] transition" title="Delete Client">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    
+    async function masterChangeClientPassword(tenantId) {
+      const found = allTenantsCache.find(t => t.tenantId === tenantId);
+      if (!found) return;
+      const currentAdmin = found.data.settings?.adminPass || "";
+      const currentWarden = found.data.settings?.wardenPass || "";
+
+      const newAdmin = prompt(`🔑 CHANGE CREDENTIALS FOR: ${tenantId}\n\nEnter New Admin Password:`, currentAdmin);
+      if (newAdmin === null) return;
+      const newWarden = prompt(`Enter New Warden Password:`, currentWarden);
+      if (newWarden === null) return;
+
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).set({
+          settings: {
+            adminPass: newAdmin.trim() || "123",
+            wardenPass: newWarden.trim() || "123"
+          }
+        }, { merge: true });
+
+        await loadAllCloudTenants();
+        alert(`✅ Passwords successfully updated for tenant "${tenantId}"!`);
+      } catch (err) {
+        alert("Failed to update passwords: " + err.message);
+      }
+    }
 
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-zinc-400">No matching hostel clients found. Click "+ Onboard New Hostel" to create one.</td></tr>`;
