@@ -1146,36 +1146,7 @@ window.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  const kycObserver = new MutationObserver(() => {
-    document.querySelectorAll("button[onclick*='openApproveModal(']").forEach(btn => {
-      if (btn.dataset.kycInjected) return;
-      const m = btn.getAttribute("onclick").match(/'([^']+)'/);
-      if (!m) return;
-      btn.dataset.kycInjected = "true";
-      const docBtn = document.createElement("button");
-      docBtn.type = "button";
-      docBtn.className = "bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition mr-1 cursor-pointer";
-      docBtn.innerHTML = `<i class="fa-solid fa-id-card text-emerald-400 mr-1"></i> Photo & CNIC`;
-      docBtn.onclick = () => openKYCDocumentsModal(m[1]);
-      btn.insertAdjacentElement("beforebegin", docBtn);
-    });
-
-    document.querySelectorAll("button[onclick*='openStudentQRCard(']").forEach(btn => {
-      if (btn.dataset.kycInjected) return;
-      const m = btn.getAttribute("onclick").match(/'([^']+)'/);
-      if (!m) return;
-      btn.dataset.kycInjected = "true";
-      const docBtn = document.createElement("button");
-      docBtn.type = "button";
-      docBtn.className = "bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2 py-1 rounded text-[11px] font-semibold cursor-pointer";
-      docBtn.title = "View Student Photo & CNIC Front/Back";
-      docBtn.innerHTML = `<i class="fa-solid fa-id-card text-emerald-700"></i> CNIC`;
-      docBtn.onclick = () => openKYCDocumentsModal(m[1]);
-      btn.insertAdjacentElement("afterend", docBtn);
-    });
-  });
-  kycObserver.observe(document.body, { childList: true, subtree: true });
-});
+ 
 
 // ============================================================================
 // 8. 🎨 UNIVERSAL CUSTOM UI POPUP & ANIMATION ENGINE (Replaces Browser Alerts!)
