@@ -6,10 +6,9 @@
   <title>Hostel ERP — Management Console</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <!-- HTML2PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="db.js"></script>
@@ -24,9 +23,7 @@
 </head>
 <body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
-  <!-- ===================================================================== -->
-  <!-- 🔒 SECURITY LOGIN GATE                                                -->
-  <!-- ===================================================================== -->
+  <!-- 🔒 SECURITY LOGIN GATE -->
   <div id="adminLoginGate" class="fixed inset-0 bg-zinc-900/95 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
       <div class="flex items-center gap-3 border-b border-zinc-100 pb-4">
@@ -43,28 +40,42 @@
           <label class="block text-xs font-semibold text-zinc-700 mb-1.5">Administrator Password *</label>
           <input id="adminPassInput" type="password" required placeholder="Enter Administrator Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
-        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer">
           Sign In to Workspace →
         </button>
       </form>
       <div class="pt-3 border-t border-zinc-100 flex justify-between text-xs text-zinc-500 font-medium">
-        <button type="button" onclick="openPortalPage('index')" class="hover:text-zinc-900">← Public Website</button>
-        <button type="button" onclick="openPortalPage('student')" class="hover:text-zinc-900">Student Portal →</button>
+        <button type="button" onclick="openPortalPage('index')" class="hover:text-zinc-900 cursor-pointer">← Public Website</button>
+        <button type="button" onclick="openPortalPage('student')" class="hover:text-zinc-900 cursor-pointer">Student Portal →</button>
       </div>
     </div>
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 📱 MOBILE SIDEBAR BACKDROP OVERLAY                                    -->
-  <!-- ===================================================================== -->
+  <!-- 🔍 PROFILE PHOTO ENLARGE LIGHTBOX -->
+  <div id="photoLightboxModal" onclick="closePhotoLightbox()" class="fixed inset-0 bg-zinc-950/85 backdrop-blur-xs hidden items-center justify-center z-[80] p-4">
+    <div onclick="event.stopPropagation()" class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 text-center">
+      <div class="flex items-center justify-between border-b border-zinc-100 pb-2">
+        <strong id="lightboxStudentName" class="text-sm font-extrabold text-zinc-900 truncate">Profile Photo</strong>
+        <button type="button" onclick="closePhotoLightbox()" class="text-zinc-400 hover:text-zinc-800 text-2xl leading-none px-1 cursor-pointer">&times;</button>
+      </div>
+      <img id="lightboxPhotoImg" src="" alt="Photo" class="w-full max-h-96 object-contain rounded-xl border border-zinc-200 bg-zinc-50 mx-auto" />
+      <div class="flex gap-2 pt-1 text-xs">
+        <button type="button" id="lightboxOpenKycBtn" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold cursor-pointer">
+          <i class="fa-solid fa-id-card mr-1"></i> Full KYC (Photo & CNIC)
+        </button>
+        <button type="button" onclick="closePhotoLightbox()" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-xl font-bold cursor-pointer">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📱 MOBILE SIDEBAR BACKDROP -->
   <div id="adminSidebarBackdrop" onclick="toggleAdminMobileMenu()" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
 
-  <!-- ===================================================================== -->
-  <!-- 🖥️ FULL-SCREEN WRAPPER                                                -->
-  <!-- ===================================================================== -->
   <div class="flex h-dvh w-screen overflow-hidden">
 
-    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
+    <!-- 🧭 LEFT SIDEBAR -->
     <aside id="adminSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
         <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
@@ -84,46 +95,38 @@
 
         <div class="p-3 space-y-1 text-xs font-semibold custom-scroll overflow-y-auto max-h-[calc(100dvh-140px)]">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Core Operations</p>
-          
           <button type="button" onclick="switchTab('dashboard')" id="nav-dashboard" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-zinc-800 text-white font-bold transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-table-columns w-4 text-center text-emerald-400"></i> Dashboard & Apps</span>
             <span id="navBadgeApps" class="bg-amber-500 text-zinc-950 font-extrabold px-1.5 py-0.2 rounded text-[10px]">0</span>
           </button>
-
           <button type="button" onclick="switchTab('rooms')" id="nav-rooms" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-bed w-4 text-center"></i> Rooms & Bed Map</span>
             <span id="navBadgeBeds" class="text-[10px] text-zinc-400">0 Free</span>
           </button>
-
           <button type="button" onclick="switchTab('students')" id="nav-students" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-graduate w-4 text-center"></i> Residents & Billing</span>
             <span id="navBadgeStudents" class="text-[10px] text-zinc-400">0</span>
           </button>
 
           <p class="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Administration & HR</p>
-
           <button type="button" onclick="switchTab('finance')" id="nav-finance" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-receipt w-4 text-center"></i> Expenses & Audit</span>
           </button>
-
           <button type="button" onclick="switchTab('operations')" id="nav-operations" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-check w-4 text-center"></i> Complaints, Leaves & Gate</span>
             <span id="navBadgeOps" class="bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded text-[10px]">0</span>
           </button>
-
           <button type="button" onclick="switchTab('staff')" id="nav-staff" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-users-gear w-4 text-center"></i> Staff, Inventory & Mess</span>
           </button>
 
           <p class="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">System</p>
-
           <button type="button" onclick="switchTab('settings')" id="nav-settings" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition cursor-pointer">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-sliders w-4 text-center"></i> Settings & Backup</span>
           </button>
         </div>
       </div>
 
-      <!-- Bottom Quick Portals Switcher -->
       <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
         <div class="grid grid-cols-3 gap-1 text-[11px] font-medium text-center">
           <button type="button" onclick="openPortalPage('index', true)" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded cursor-pointer">Public ↗</button>
@@ -136,10 +139,9 @@
       </div>
     </aside>
 
-    <!-- 🖥️ RIGHT MAIN SOFTWARE VIEWPORT -->
+    <!-- 🖥️ MAIN VIEWPORT -->
     <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-      <!-- Top Header -->
       <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
           <button type="button" onclick="toggleAdminMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
@@ -154,16 +156,15 @@
         </div>
 
         <div class="flex items-center gap-1.5 sm:gap-2.5 text-xs shrink-0">
-          <button type="button" onclick="startNewBillingMonth()" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 sm:px-3 py-2 rounded-lg font-bold transition" title="Start New Billing Month">
+          <button type="button" onclick="startNewBillingMonth()" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 sm:px-3 py-2 rounded-lg font-bold transition cursor-pointer">
             <i class="fa-solid fa-calendar-plus text-emerald-700 sm:mr-1"></i> <span class="hidden sm:inline">New Month</span>
           </button>
-          <button type="button" onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3.5 py-2 rounded-lg font-bold transition">
+          <button type="button" onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3.5 py-2 rounded-lg font-bold transition cursor-pointer">
             <i class="fa-solid fa-file-invoice-dollar text-emerald-400 sm:mr-1"></i> <span class="hidden sm:inline">Audit PDF</span>
           </button>
         </div>
       </header>
 
-      <!-- Scrollable Content Canvas -->
       <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll">
 
         <!-- VIEW 1: DASHBOARD -->
@@ -214,10 +215,10 @@
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-1/2">
               <input id="adminNoticeInput" type="text" placeholder="Type urgent announcement..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 focus:border-zinc-900 outline-none" />
               <div class="flex gap-2">
-                <button type="button" onclick="saveLiveNotice()" class="flex-1 sm:flex-none bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap">
+                <button type="button" onclick="saveLiveNotice()" class="flex-1 sm:flex-none bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap cursor-pointer">
                   Post Notice
                 </button>
-                <button type="button" onclick="clearLiveNotice()" class="bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-700 border border-zinc-300 px-3 py-2 rounded-lg text-xs font-bold">
+                <button type="button" onclick="clearLiveNotice()" class="bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-700 border border-zinc-300 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer">
                   Clear
                 </button>
               </div>
@@ -228,9 +229,9 @@
             <div class="p-4 sm:px-5 sm:py-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Online Admission Applications Queue</h3>
-                <p class="text-xs text-zinc-500">Click <strong>Approve & Allot</strong> to assign a room, set Student Password, and generate Resident ID.</p>
+                <p class="text-xs text-zinc-500">Click on Applicant's Photo to enlarge, or click <strong>🪪 KYC</strong> to view Photo & CNIC Front/Back.</p>
               </div>
-              <button type="button" onclick="switchTab('students')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold self-start sm:self-auto">
+              <button type="button" onclick="switchTab('students')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold self-start sm:self-auto cursor-pointer">
                 + Direct Resident Enrollment
               </button>
             </div>
@@ -239,7 +240,7 @@
                 <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
                   <tr>
                     <th class="p-3">App ID / Date</th>
-                    <th class="p-3">Applicant & CNIC</th>
+                    <th class="p-3">Applicant, CNIC & KYC</th>
                     <th class="p-3">Contact & Guardian</th>
                     <th class="p-3">Institute / Note</th>
                     <th class="p-3">Room</th>
@@ -269,7 +270,7 @@
                 <h3 class="text-sm font-bold text-zinc-900">Add / Update Hostel Room</h3>
                 <p class="text-xs text-zinc-500">Define room capacity and standard per-bed monthly rent.</p>
               </div>
-              <button type="button" onclick="splitRoomElectricityPrompt()" class="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 px-3.5 py-2 rounded-lg text-xs font-bold transition self-start sm:self-auto">
+              <button type="button" onclick="splitRoomElectricityPrompt()" class="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 px-3.5 py-2 rounded-lg text-xs font-bold transition self-start sm:self-auto cursor-pointer">
                 <i class="fa-solid fa-bolt text-amber-600 mr-1"></i> Split Sub-Meter Electricity
               </button>
             </div>
@@ -296,7 +297,7 @@
                 <label class="block font-bold text-zinc-700 mb-1">Default Bed Rent (Rs.) *</label>
                 <input id="rmRent" type="number" required placeholder="e.g., 5000" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
               </div>
-              <button type="submit" class="bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-lg font-bold transition">
+              <button type="submit" class="bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-lg font-bold transition cursor-pointer">
                 + Save Room
               </button>
             </form>
@@ -319,7 +320,7 @@
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="border-b border-zinc-100 pb-3">
               <h3 class="text-sm font-bold text-zinc-900">Register New Resident & Allot Bed</h3>
-              <p class="text-xs text-zinc-500">Directly enroll a walk-in student with custom agreed monthly rent and Student Portal password.</p>
+              <p class="text-xs text-zinc-500">Directly enroll a walk-in student with custom agreed monthly rent, password, and photo.</p>
             </div>
 
             <form onsubmit="addStudentManual(event)" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs items-end">
@@ -359,11 +360,15 @@
                 <label class="block font-bold text-zinc-700 mb-1">Security Deposit (Rs.)</label>
                 <input id="stuSecurity" type="number" value="2000" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
               </div>
-              <div class="lg:col-span-2">
-                <label class="block font-bold text-emerald-800 mb-1">Student Portal Password / PIN *</label>
-                <input id="stuPass" type="text" required placeholder="Set Password for Student Login" class="w-full bg-emerald-50/50 border border-emerald-300 rounded-lg px-3 py-2 text-zinc-900 font-mono font-bold" />
+              <div>
+                <label class="block font-bold text-emerald-800 mb-1">Student Password *</label>
+                <input id="stuPass" type="text" required placeholder="Login PIN/Pass" class="w-full bg-emerald-50/50 border border-emerald-300 rounded-lg px-3 py-2 text-zinc-900 font-mono font-bold" />
               </div>
-              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 px-4 rounded-lg font-bold transition">
+              <div>
+                <label class="block font-bold text-zinc-700 mb-1">Passport Photo (Optional)</label>
+                <input type="file" accept="image/*" onchange="handleKYCFileUpload(this, 'photo', 'admPrevPhoto')" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-2 py-1.5 text-[11px]" />
+              </div>
+              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 px-4 rounded-lg font-bold transition cursor-pointer">
                 <i class="fa-solid fa-check mr-1"></i> Enroll Resident
               </button>
             </form>
@@ -373,7 +378,7 @@
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Active Residents & Fee Billing Ledger</h3>
-                <p class="text-xs text-zinc-500">Manage student passwords, vouchers, QR IDs, reminders, room shifts, and mess rebates.</p>
+                <p class="text-xs text-zinc-500">Click on a student's photo to enlarge, or click <strong>🪪 KYC</strong> next to their name to view Photo & CNIC Front/Back.</p>
               </div>
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <select id="filterFeeStatus" onchange="renderStudentsTable()" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs font-semibold">
@@ -389,7 +394,7 @@
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
                   <tr>
-                    <th class="p-3.5">Resident, Roll ID & Password</th>
+                    <th class="p-3.5">Resident, Roll ID & KYC</th>
                     <th class="p-3.5">Room</th>
                     <th class="p-3.5">Billing Breakdown</th>
                     <th class="p-3.5">Net Payable</th>
@@ -411,7 +416,7 @@
                 <h3 class="text-sm font-bold text-zinc-900">Hostel Operational Expense Ledger</h3>
                 <p class="text-xs text-zinc-500">Record kitchen ration, electricity bills, repairs, and salaries.</p>
               </div>
-              <button type="button" onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold self-start sm:self-auto">
+              <button type="button" onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold self-start sm:self-auto cursor-pointer">
                 <i class="fa-solid fa-file-pdf text-emerald-400 mr-1"></i> Generate Monthly P&L Statement PDF
               </button>
             </div>
@@ -419,7 +424,7 @@
             <form onsubmit="addExpense(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
               <input id="expTitle" type="text" required placeholder="Expense description (e.g., WAPDA Bill)" class="sm:col-span-2 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
               <input id="expAmount" type="number" required placeholder="Amount (Rs.)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
-              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2.5 px-4">+ Record Expense</button>
+              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2.5 px-4 cursor-pointer">+ Record Expense</button>
             </form>
 
             <div class="border border-zinc-200 rounded-lg overflow-x-auto">
@@ -462,7 +467,7 @@
               <input id="visName" type="text" required placeholder="Visitor Name & CNIC" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5" />
               <input id="visStudent" type="text" required placeholder="Visiting Student / Room #" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5" />
               <input id="visRelation" type="text" required placeholder="Relation / Purpose" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5" />
-              <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2.5 px-4">+ Log Visitor Entry</button>
+              <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2.5 px-4 cursor-pointer">+ Log Visitor Entry</button>
             </form>
             <div class="border border-zinc-200 rounded-lg overflow-x-auto">
               <table class="w-full text-left text-xs">
@@ -487,7 +492,7 @@
                 <input id="stfName" type="text" required placeholder="Staff Name" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
                 <input id="stfRole" type="text" required placeholder="Role (e.g., Cook)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
                 <input id="stfSalary" type="number" required placeholder="Salary (Rs.)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
-                <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2">+ Add Staff</button>
+                <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2 cursor-pointer">+ Add Staff</button>
               </form>
               <div class="border border-zinc-200 rounded-lg overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -507,7 +512,7 @@
               <form onsubmit="addInventoryItem(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                 <input id="invName" type="text" required placeholder="Asset Name (e.g., Mattresses)" class="sm:col-span-2 bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
                 <input id="invQty" type="number" required placeholder="Qty" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
-                <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2">+ Add Asset</button>
+                <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2 cursor-pointer">+ Add Asset</button>
               </form>
               <div class="border border-zinc-200 rounded-lg overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -532,7 +537,7 @@
               <input id="messB" type="text" required placeholder="Breakfast dish" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
               <input id="messL" type="text" required placeholder="Lunch dish" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
               <input id="messD" type="text" required placeholder="Dinner dish" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
-              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2">Save Day Menu</button>
+              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2 cursor-pointer">Save Day Menu</button>
             </form>
             <div class="border border-zinc-200 rounded-lg overflow-x-auto">
               <table class="w-full text-left text-xs">
@@ -560,7 +565,7 @@
                   <input id="setHostelName" type="text" required class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-semibold" />
                 </div>
                 <div>
-                  <label class="block font-bold text-zinc-700 mb-1">JazzCash / Easypaisa / Bank Account *</label>
+                  <label class="block font-bold text-zinc-700 mb-1">Payment Option 1: JazzCash / Easypaisa *</label>
                   <input id="setJazzCash" type="text" required class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900" />
                 </div>
                 <div>
@@ -580,7 +585,7 @@
                   <input id="setWardenPass" type="text" required placeholder="Set Warden Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-mono" />
                 </div>
                 <div class="sm:col-span-2 flex justify-end pt-2">
-                  <button type="submit" class="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-lg font-bold transition">
+                  <button type="submit" class="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-lg font-bold transition cursor-pointer">
                     Save Configuration
                   </button>
                 </div>
@@ -592,7 +597,7 @@
                 <h4 class="text-base font-bold text-zinc-900 border-b border-zinc-100 pb-3">Database Backup & Restore</h4>
                 <p class="text-xs text-zinc-500 leading-relaxed">Download a complete offline backup copy (`.json`) of your hostel data or restore from a saved file anytime.</p>
                 <div class="flex flex-col gap-2.5 pt-2 text-xs">
-                  <button type="button" onclick="exportHostelBackupJSON()" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-lg font-bold transition text-center">
+                  <button type="button" onclick="exportHostelBackupJSON()" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-lg font-bold transition text-center cursor-pointer">
                     <i class="fa-solid fa-download mr-1.5"></i> Download JSON Backup
                   </button>
                   <label class="w-full bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 py-2.5 px-4 rounded-lg font-bold cursor-pointer transition text-center block">
@@ -605,7 +610,7 @@
               <div class="pt-4 border-t border-zinc-200 space-y-2">
                 <h4 class="text-xs font-bold text-rose-700">Factory Reset Tenant Database</h4>
                 <p class="text-[11px] text-zinc-500">Permanently erase all rooms, students, and records for this hostel.</p>
-                <button type="button" onclick="wipeAllData()" class="w-full bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 py-2.5 rounded-lg text-xs font-bold transition">
+                <button type="button" onclick="wipeAllData()" class="w-full bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer">
                   Wipe All Hostel Data
                 </button>
               </div>
@@ -615,7 +620,7 @@
 
       </main>
 
-      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR -->
+      <!-- 📱 MOBILE BOTTOM BAR -->
       <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-5 z-30 shadow-lg">
         <button type="button" onclick="switchTab('dashboard')" id="abnav-dashboard" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[10px]">
           <i class="fa-solid fa-table-columns text-sm"></i>
@@ -643,7 +648,7 @@
 
   </div>
 
-  <!-- ✅ APPROVE & ALLOT SEAT CONFIRMATION MODAL -->
+  <!-- ✅ APPROVE & ALLOT SEAT MODAL -->
   <div id="approveAllotModal" class="fixed inset-0 bg-zinc-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
     <div class="bg-white border border-zinc-300 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex justify-between items-start border-b border-zinc-200 pb-3">
@@ -656,10 +661,13 @@
 
       <form onsubmit="confirmApproveAndAllot(event)" class="space-y-3.5">
         <input type="hidden" id="allotAppId" />
-        <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 space-y-1">
-          <div>Applicant: <strong id="allotAppName" class="text-zinc-900 text-sm">—</strong></div>
-          <div class="text-zinc-500">CNIC: <span id="allotAppCnic">—</span> | Phone: <span id="allotAppPhone">—</span></div>
-          <div class="text-emerald-800 font-semibold">Requested Room: <span id="allotAppPref">—</span></div>
+        <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center gap-3">
+          <div id="allotAppPhotoBox" class="shrink-0"></div>
+          <div class="space-y-0.5 min-w-0">
+            <div>Applicant: <strong id="allotAppName" class="text-zinc-900 text-sm">—</strong></div>
+            <div class="text-zinc-500 truncate">CNIC: <span id="allotAppCnic">—</span> | <span id="allotAppPhone">—</span></div>
+            <div class="text-emerald-800 font-semibold">Requested Room: <span id="allotAppPref">—</span></div>
+          </div>
         </div>
 
         <div>
@@ -690,8 +698,8 @@
         </div>
 
         <div class="pt-3 border-t border-zinc-200 flex justify-end gap-2">
-          <button type="button" onclick="closeApproveModal()" class="px-4 py-2 rounded-lg border border-zinc-300 text-zinc-700 font-bold">Cancel</button>
-          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold">
+          <button type="button" onclick="closeApproveModal()" class="px-4 py-2 rounded-lg border border-zinc-300 text-zinc-700 font-bold cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer">
             Confirm & Allot Seat
           </button>
         </div>
@@ -711,14 +719,40 @@
       settings: "Settings & Database Backup"
     };
 
+    // Enlarge Profile Photo in Lightbox when clicked
+    function openPhotoLightbox(recordId) {
+      const db = getDB();
+      const rec = (db.applications || []).find(a => String(a.id) === String(recordId)) ||
+                  (db.students || []).find(s => String(s.id) === String(recordId));
+      if (!rec || !rec.photo) {
+        return openKYCDocumentsModal(recordId);
+      }
+      document.getElementById("lightboxStudentName").innerText = `${rec.name} (${rec.id})`;
+      document.getElementById("lightboxPhotoImg").src = rec.photo;
+      document.getElementById("lightboxOpenKycBtn").onclick = () => {
+        closePhotoLightbox();
+        openKYCDocumentsModal(recordId);
+      };
+      const modal = document.getElementById("photoLightboxModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      modal.style.setProperty("display", "flex", "important");
+    }
+
+    function closePhotoLightbox() {
+      const modal = document.getElementById("photoLightboxModal");
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        modal.style.setProperty("display", "none", "important");
+      }
+    }
+
     function openPortalPage(pageName, newTab = false) {
       const isHtml = window.location.pathname.endsWith(".html");
       const target = `${pageName}${isHtml ? ".html" : ""}?hostel=${TENANT_ID}`;
-      if (newTab) {
-        window.open(target, "_blank");
-      } else {
-        window.location.href = target;
-      }
+      if (newTab) window.open(target, "_blank");
+      else window.location.href = target;
     }
 
     function toggleAdminMobileMenu() {
@@ -750,37 +784,12 @@
       const db = getDB();
       document.getElementById("gateHostelName").innerText = (db.settings && db.settings.hostelName) || "ERP Administration";
       try {
-        if (sessionStorage.getItem("ADMIN_AUTH_" + TENANT_ID) === "true") {
-          hideAdminLoginGate();
-        }
+        if (sessionStorage.getItem("ADMIN_AUTH_" + TENANT_ID) === "true") hideAdminLoginGate();
       } catch (e) {}
-    }
-
-    function verifyAdminLogin(e) {
-      if (e) e.preventDefault();
-      const db = getDB();
-      const pass = document.getElementById("adminPassInput").value.trim();
-      const configuredPass = db.settings && db.settings.adminPass ? String(db.settings.adminPass).trim() : "";
-
-      if (!configuredPass) {
-        return alert("⚠️ Access Denied: No Administrator password is set for this hostel yet. Please configure it from the Master SaaS HQ.");
-      }
-
-      if (pass === configuredPass) {
-        try {
-          sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true");
-        } catch (err) {}
-        hideAdminLoginGate();
-        renderAdminAll();
-      } else {
-        alert("❌ Incorrect Administrator Password!");
-      }
     }
 
     function logoutAdmin() {
-      try {
-        sessionStorage.removeItem("ADMIN_AUTH_" + TENANT_ID);
-      } catch (e) {}
+      try { sessionStorage.removeItem("ADMIN_AUTH_" + TENANT_ID); } catch (e) {}
       location.reload();
     }
 
@@ -796,14 +805,12 @@
             el.style.setProperty("display", "none", "important");
           }
         }
-
         const nav = document.getElementById("nav-" + id);
         if (nav) {
           nav.className = id === viewId
             ? "erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-zinc-800 text-white font-bold transition cursor-pointer"
             : "erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition cursor-pointer";
         }
-
         const bnav = document.getElementById("abnav-" + id);
         if (bnav) {
           bnav.className = id === viewId
@@ -812,22 +819,14 @@
         }
       });
 
-      // Only close mobile drawer if on mobile screen
       if (window.innerWidth < 1024) {
         const sb = document.getElementById("adminSidebar");
-        if (sb && !sb.classList.contains("-translate-x-full")) {
-          toggleAdminMobileMenu();
-        }
+        if (sb && !sb.classList.contains("-translate-x-full")) toggleAdminMobileMenu();
       }
 
       const titleEl = document.getElementById("currentViewTitle");
       if (titleEl) titleEl.innerText = VIEW_TITLES[viewId] || "Hostel ERP";
-
-      try {
-        renderAdminAll();
-      } catch (err) {
-        console.error("Render error:", err);
-      }
+      try { renderAdminAll(); } catch (err) { console.error(err); }
     }
     window.switchTab = switchTab;
 
@@ -856,9 +855,7 @@
       document.getElementById("navBadgeOps").innerText = m.openComplaints + pendingLeaves;
 
       const noticeInput = document.getElementById("adminNoticeInput");
-      if (noticeInput && document.activeElement !== noticeInput) {
-        noticeInput.value = set.liveNotice || "";
-      }
+      if (noticeInput && document.activeElement !== noticeInput) noticeInput.value = set.liveNotice || "";
 
       renderApplicationsTable();
       renderVVIPBedMap();
@@ -870,6 +867,7 @@
       populateSettingsForm();
     }
 
+    // 1. APPLICATIONS TABLE (PROFILE PIC + 1 KYC BUTTON NEXT TO NAME + ORIGINAL ACTION BUTTONS)
     function renderApplicationsTable() {
       const db = getDB();
       const tbody = document.getElementById("applicationsTableBody");
@@ -885,6 +883,10 @@
         const reqRoom = app.room || app.roomPref || "Any Available";
         const isPending = !app.status || app.status === "Pending";
 
+        const avatarHTML = app.photo
+          ? `<img src="${app.photo}" onclick="openPhotoLightbox('${app.id}')" class="w-11 h-11 rounded-xl object-cover border-2 border-emerald-600 cursor-pointer shrink-0 shadow-xs" title="Click to enlarge photo" />`
+          : `<div class="w-11 h-11 rounded-xl bg-zinc-200 text-zinc-600 flex items-center justify-center font-extrabold text-xs shrink-0">${(app.name || 'AP').substring(0, 2).toUpperCase()}</div>`;
+
         return `
           <tr class="hover:bg-zinc-50/80">
             <td class="p-3 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
@@ -892,8 +894,18 @@
               ${app.date || ''}
             </td>
             <td class="p-3">
-              <strong class="text-zinc-900 text-sm block whitespace-nowrap">${app.name || 'Applicant'}</strong>
-              <span class="text-zinc-500 font-mono text-[11px]">CNIC: ${app.cnic || '—'}</span>
+              <div class="flex items-center gap-3">
+                ${avatarHTML}
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <strong class="text-zinc-900 text-sm whitespace-nowrap">${app.name || 'Applicant'}</strong>
+                    <button type="button" onclick="openKYCDocumentsModal('${app.id}')" class="bg-emerald-50 hover:bg-emerald-700 text-emerald-800 hover:text-white border border-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer" title="View Photo & CNIC Front/Back">
+                      <i class="fa-solid fa-id-card mr-0.5"></i> KYC
+                    </button>
+                  </div>
+                  <span class="text-zinc-500 font-mono text-[11px] block">CNIC: ${app.cnic || '—'}</span>
+                </div>
+              </div>
             </td>
             <td class="p-3 whitespace-nowrap">
               <div class="font-semibold text-zinc-800">${app.phone || '—'}</div>
@@ -911,14 +923,14 @@
             </td>
             <td class="p-3 text-right whitespace-nowrap space-x-1">
               ${isPending ? `
-                <button type="button" onclick="openApproveModal('${app.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold transition">
+                <button type="button" onclick="openApproveModal('${app.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold transition cursor-pointer">
                   <i class="fa-solid fa-check mr-1"></i> Approve & Allot
                 </button>
-                <button type="button" onclick="rejectApplication('${app.id}')" class="bg-zinc-100 hover:bg-rose-600 text-zinc-700 hover:text-white border border-zinc-300 px-2.5 py-1.5 rounded-lg font-bold transition">
+                <button type="button" onclick="rejectApplication('${app.id}')" class="bg-zinc-100 hover:bg-rose-600 text-zinc-700 hover:text-white border border-zinc-300 px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer">
                   Reject
                 </button>
               ` : `
-                <button type="button" onclick="deleteApplication('${app.id}')" class="text-zinc-400 hover:text-rose-600 px-2 py-1" title="Delete record">
+                <button type="button" onclick="deleteApplication('${app.id}')" class="text-zinc-400 hover:text-rose-600 px-2 py-1 cursor-pointer" title="Delete record">
                   <i class="fa-solid fa-trash"></i>
                 </button>
               `}
@@ -969,6 +981,13 @@
       document.getElementById("allotAppPhone").innerText = app.phone || "—";
       document.getElementById("allotAppPref").innerText = pref || "Any Available";
       document.getElementById("allotPassInput").value = "";
+
+      const photoBox = document.getElementById("allotAppPhotoBox");
+      if (photoBox) {
+        photoBox.innerHTML = app.photo
+          ? `<img src="${app.photo}" class="w-12 h-12 rounded-xl object-cover border-2 border-emerald-600" />`
+          : `<div class="w-12 h-12 rounded-xl bg-zinc-200 flex items-center justify-center font-bold text-zinc-600">${(app.name || 'AP').substring(0, 2).toUpperCase()}</div>`;
+      }
 
       updateAllotModalRent();
 
@@ -1025,6 +1044,9 @@
         discount: 0,
         security: secDeposit,
         pass: stuPass,
+        photo: app.photo || "",
+        cnicFront: app.cnicFront || "",
+        cnicBack: app.cnicBack || "",
         feeStatus: "Unpaid",
         status: "Active",
         joinedDate: new Date().toLocaleDateString("en-GB")
@@ -1118,13 +1140,15 @@
           const bedNo = i + 1;
           if (stu) {
             const isPaid = stu.feeStatus === "Paid";
+            const bedAvatar = stu.photo
+              ? `<img src="${stu.photo}" class="w-8 h-8 rounded-lg object-cover border border-zinc-400 shrink-0" />`
+              : `<span class="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center text-[11px] font-bold shrink-0">${(stu.name || 'ST').substring(0, 2).toUpperCase()}</span>`;
+
             bedSlotsHTML += `
               <div onclick="openStudentVoucher('${stu.id}')" title="Click to open ${stu.name}'s Fee Voucher"
                    class="cursor-pointer bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg p-2.5 flex items-center justify-between transition">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="w-7 h-7 rounded bg-zinc-800 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
-                    ${(stu.name || 'ST').substring(0, 2).toUpperCase()}
-                  </span>
+                <div class="flex items-center gap-2.5 min-w-0">
+                  ${bedAvatar}
                   <div class="truncate">
                     <p class="text-xs font-bold text-zinc-900 truncate">${stu.name}</p>
                     <p class="text-[10px] text-zinc-500 font-mono">Bed #${bedNo} • ${stu.id}</p>
@@ -1224,6 +1248,8 @@
 
       if (!stuPass) return alert("Please set a Student Portal Password!");
 
+      const uploads = window.kycTempUploads || {};
+
       const newStudent = {
         id: "ST-" + nextNum,
         name: document.getElementById("stuName").value.trim(),
@@ -1239,18 +1265,23 @@
         discount: 0,
         security: Number(document.getElementById("stuSecurity").value || 0),
         pass: stuPass,
+        photo: uploads.photo || "",
+        cnicFront: uploads.cnicFront || "",
+        cnicBack: uploads.cnicBack || "",
         feeStatus: "Unpaid",
         status: "Active",
         joinedDate: new Date().toLocaleDateString("en-GB")
       };
 
       db.students.unshift(newStudent);
+      window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
       saveDB(db, `Enrolled ${newStudent.name} (${newStudent.id}) in Room ${newStudent.room}`, "Admin");
       e.target.reset();
       renderAdminAll();
       alert(`✅ Enrolled ${newStudent.name}\n🎓 Roll ID: ${newStudent.id}\n🔑 Student Password: ${stuPass}`);
     }
 
+    // 3. RESIDENTS TABLE (PROFILE PIC + 1 KYC BUTTON NEXT TO NAME + ALL ORIGINAL ROW BUTTONS)
     function renderStudentsTable() {
       const db = getDB();
       const tbody = document.getElementById("studentsTableBody");
@@ -1273,13 +1304,27 @@
         const total = rent + mess + elec + fine - disc;
         const isPaid = s.feeStatus === "Paid";
 
+        const stuAvatar = s.photo
+          ? `<img src="${s.photo}" onclick="openPhotoLightbox('${s.id}')" class="w-11 h-11 rounded-xl object-cover border-2 border-emerald-600 cursor-pointer shrink-0 shadow-xs" title="Click to enlarge photo" />`
+          : `<div onclick="openKYCDocumentsModal('${s.id}')" class="w-11 h-11 rounded-xl bg-zinc-200 text-zinc-700 flex items-center justify-center font-extrabold text-xs cursor-pointer shrink-0" title="Click to view KYC">${(s.name || 'ST').substring(0, 2).toUpperCase()}</div>`;
+
         return `
           <tr class="hover:bg-zinc-50/80">
             <td class="p-3.5 whitespace-nowrap">
-              <strong class="text-zinc-900 text-sm block">${s.name}</strong>
-              <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span> • <span class="text-zinc-500">${s.phone}</span>
-              <div class="text-[11px] font-mono mt-0.5">
-                🔑 Pass: <strong class="${s.pass ? 'text-zinc-900' : 'text-rose-600'}">${s.pass || 'Not Set'}</strong>
+              <div class="flex items-center gap-3">
+                ${stuAvatar}
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <strong class="text-zinc-900 text-sm">${s.name}</strong>
+                    <button type="button" onclick="openKYCDocumentsModal('${s.id}')" class="bg-emerald-50 hover:bg-emerald-700 text-emerald-800 hover:text-white border border-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer" title="View Photo & CNIC Front/Back">
+                      <i class="fa-solid fa-id-card mr-0.5"></i> KYC
+                    </button>
+                  </div>
+                  <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span> • <span class="text-zinc-500">${s.phone}</span>
+                  <div class="text-[11px] font-mono mt-0.5">
+                    🔑 Pass: <strong class="${s.pass ? 'text-zinc-900' : 'text-rose-600'}">${s.pass || 'Not Set'}</strong>
+                  </div>
+                </div>
               </div>
             </td>
             <td class="p-3.5 font-bold text-zinc-900 whitespace-nowrap">Room ${s.room}</td>
@@ -1290,41 +1335,41 @@
             </td>
             <td class="p-3.5 font-extrabold text-zinc-900 text-sm whitespace-nowrap">Rs. ${total.toLocaleString()}</td>
             <td class="p-3.5 whitespace-nowrap">
-              <button type="button" onclick="toggleFeeStatus('${s.id}')" class="px-2.5 py-1 rounded-md text-[11px] font-bold transition ${isPaid ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}">
+              <button type="button" onclick="toggleFeeStatus('${s.id}')" class="px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${isPaid ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}">
                 ${isPaid ? '✓ PAID' : 'UNPAID (Mark Paid)'}
               </button>
               ${s.paymentTid ? `<span class="block text-[10px] font-mono text-zinc-700 font-bold mt-1">TID: ${s.paymentTid}</span>` : ''}
             </td>
             <td class="p-3.5 text-right whitespace-nowrap">
               <div class="inline-flex items-center justify-end gap-1" data-wa-injected="true">
-                <button type="button" onclick="changeStudentPassword('${s.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-[11px] font-semibold" title="Set or Change Student Portal Password">
+                <button type="button" onclick="changeStudentPassword('${s.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer" title="Set or Change Student Portal Password">
                   <i class="fa-solid fa-key"></i> Pass
                 </button>
-                <button type="button" onclick="openStudentVoucher('${s.id}')" data-wa-injected="true" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold" title="Print 2-Copy Fee Voucher">
+                <button type="button" onclick="openStudentVoucher('${s.id}')" data-wa-injected="true" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer" title="Print 2-Copy Fee Voucher">
                   <i class="fa-solid fa-file-invoice"></i> Voucher
                 </button>
-                <button type="button" onclick="openStudentQRCard('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2 py-1 rounded text-[11px] font-semibold" title="Digital QR ID Card">
+                <button type="button" onclick="openStudentQRCard('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2 py-1 rounded text-[11px] font-semibold cursor-pointer" title="Digital QR ID Card">
                   <i class="fa-solid fa-qrcode"></i> ID
                 </button>
-                <button type="button" onclick="sendStudentFeeReminder('${s.id}')" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="Send WhatsApp Fee Reminder">
+                <button type="button" onclick="sendStudentFeeReminder('${s.id}')" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 px-2 py-1 rounded text-[11px] font-semibold transition cursor-pointer" title="Send WhatsApp Fee Reminder">
                   <i class="fa-brands fa-whatsapp"></i> Remind
                 </button>
-                <button type="button" onclick="sendGuardianAlert('${s.id}')" class="bg-teal-50 hover:bg-teal-600 text-teal-800 hover:text-white border border-teal-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="Send WhatsApp Alert to Parent/Guardian">
+                <button type="button" onclick="sendGuardianAlert('${s.id}')" class="bg-teal-50 hover:bg-teal-600 text-teal-800 hover:text-white border border-teal-300 px-2 py-1 rounded text-[11px] font-semibold transition cursor-pointer" title="Send WhatsApp Alert to Parent/Guardian">
                   <i class="fa-solid fa-user-shield"></i> Parent
                 </button>
-                <button type="button" onclick="shiftStudentRoom('${s.id}')" class="bg-amber-50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="1-Click Room Shift">
+                <button type="button" onclick="shiftStudentRoom('${s.id}')" class="bg-amber-50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300 px-2 py-1 rounded text-[11px] font-semibold transition cursor-pointer" title="1-Click Room Shift">
                   <i class="fa-solid fa-right-left"></i> Shift
                 </button>
-                <button type="button" onclick="applyMessRebate('${s.id}')" class="bg-purple-50 hover:bg-purple-600 text-purple-900 hover:text-white border border-purple-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="Calculate Leave Mess-Off Rebate">
+                <button type="button" onclick="applyMessRebate('${s.id}')" class="bg-purple-50 hover:bg-purple-600 text-purple-900 hover:text-white border border-purple-300 px-2 py-1 rounded text-[11px] font-semibold transition cursor-pointer" title="Calculate Leave Mess-Off Rebate">
                   <i class="fa-solid fa-utensils"></i> Mess Off
                 </button>
-                <button type="button" onclick="editStudentBilling('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 px-2 py-1 rounded text-[11px]" title="Edit Rent / Mess / Electricity">
+                <button type="button" onclick="editStudentBilling('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 px-2 py-1 rounded text-[11px] cursor-pointer" title="Edit Rent / Mess / Electricity">
                   <i class="fa-solid fa-pen"></i>
                 </button>
-                <button type="button" onclick="openClearanceCertificate('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 px-2 py-1 rounded text-[11px]" title="No-Dues Leaving Clearance Certificate">
+                <button type="button" onclick="openClearanceCertificate('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 px-2 py-1 rounded text-[11px] cursor-pointer" title="No-Dues Leaving Clearance Certificate">
                   <i class="fa-solid fa-stamp"></i>
                 </button>
-                <button type="button" onclick="checkoutStudent('${s.id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 px-2 py-1 rounded text-[11px]" title="Checkout & Remove Resident">
+                <button type="button" onclick="checkoutStudent('${s.id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 px-2 py-1 rounded text-[11px] cursor-pointer" title="Checkout & Remove Resident">
                   <i class="fa-solid fa-user-xmark"></i>
                 </button>
               </div>
