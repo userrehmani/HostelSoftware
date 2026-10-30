@@ -1,4 +1,3 @@
-
 const firebaseConfig = {
   apiKey: "AIzaSyCRXCp75adfyFUbyZHlgRGQtu2vqb-TPMM",
   authDomain: "hostel-cloud-pk.firebaseapp.com",
@@ -8,13 +7,15 @@ const firebaseConfig = {
   appId: "1:394742737685:web:a8faef1ab5bf69d84e971c"
 };
 
+// 🔒 NO DEFAULT PASSWORDS IN EMPTY DB (Pure SaaS Model)
 const emptyDB = {
   settings: {
-    hostelName: "My Hostel (Update in Settings)",
+    hostelName: "Unconfigured Hostel",
     jazzcash: "Not Set",
-    adminWhatsApp: "923098610965",
-    adminPass: "4426",
-    wardenPass: "4426"
+    adminWhatsApp: "",
+    adminPass: "",
+    wardenPass: "",
+    isSuspended: false
   },
   rooms: [],
   students: [],
@@ -32,8 +33,7 @@ const emptyDB = {
 };
 
 // ============================================================================
-// ============================================================================
-// MULTI-TENANT SAAS ENGINE & REMOTE KILL-SWITCH (Fixed - No Duplicate const)
+// MULTI-TENANT SAAS ENGINE & REMOTE KILL-SWITCH
 // ============================================================================
 const urlParams = new URLSearchParams(window.location.search);
 const TENANT_ID = (urlParams.get("hostel") || "main_hostel").toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -43,7 +43,7 @@ let cloudDocRef = null;
 window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("a[href]").forEach(link => {
     const href = link.getAttribute("href");
-    if (href && !href.startsWith("http") && !href.startsWith("#") && !href.includes("?hostel=")) {
+    if (href && !href.startsWith("http") && !href.startsWith("#") && !href.startsWith("tel:") && !href.includes("?hostel=")) {
       link.setAttribute("href", `${href.replace('.html', '')}?hostel=${TENANT_ID}`);
     }
   });
@@ -74,8 +74,6 @@ try {
 
         localStorage.setItem(DB_KEY, JSON.stringify(cloudData));
         refreshCurrentPortalUI();
-      } else {
-        cloudDocRef.set(getDB());
       }
     }, (err) => {
       console.error("Firestore Sync Blocked (Check Firebase Rules):", err);
@@ -92,6 +90,7 @@ function refreshCurrentPortalUI() {
   if (typeof renderWardenConsole === "function") renderWardenConsole();
   if (typeof renderStudentDashboard === "function" && window.loggedStudent) renderStudentDashboard();
 }
+
 function getDB() {
   const raw = localStorage.getItem(DB_KEY);
   if (!raw) {
@@ -111,14 +110,29 @@ function saveDB(db, actionText, actor = "Admin") {
     });
   }
   localStorage.setItem(DB_KEY, JSON.stringify(db));
-  
 
   if (cloudDocRef) {
     cloudDocRef.set(db).catch(err => console.error("Cloud Sync Error:", err));
   }
-}function wipeAllData() {
-  if (confirm("Are you sure? This will wipe all rooms, students, and records from Cloud & Local!")) {
+}
+
+function wipeAllData() {
+  if (confirm("Are you sure? This will wipe all rooms, students, and records from Cloud & Local (Your Hostel Name & Passwords will be kept)!")) {
+    const currentDB = getDB();
     const fresh = JSON.parse(JSON.stringify(emptyDB));
+    // Preserve tenant's configured credentials & profile
+    if (currentDB && currentDB.settings) {
+      fresh.settings = {
+        ...fresh.settings,
+        hostelName: currentDB.settings.hostelName || fresh.settings.hostelName,
+        jazzcash: currentDB.settings.jazzcash || fresh.settings.jazzcash,
+        adminWhatsApp: currentDB.settings.adminWhatsApp || "",
+        adminPass: currentDB.settings.adminPass || "",
+        wardenPass: currentDB.settings.wardenPass || "",
+        currentMonth: currentDB.settings.currentMonth || "",
+        isSuspended: currentDB.settings.isSuspended || false
+      };
+    }
     localStorage.setItem(DB_KEY, JSON.stringify(fresh));
     if (cloudDocRef) {
       cloudDocRef.set(fresh).then(() => location.reload());
@@ -126,6 +140,26 @@ function saveDB(db, actionText, actor = "Admin") {
       location.reload();
     }
   }
+}
+
+// LIVE NOTICE BOARD HELPERS
+function saveLiveNotice() {
+  const input = document.getElementById("adminNoticeInput");
+  if (!input) return;
+  const db = getDB();
+  db.settings = db.settings || {};
+  db.settings.liveNotice = input.value.trim();
+  saveDB(db, "Updated live notice broadcast", "Admin");
+  alert("✅ Live Notice broadcasted!");
+}
+
+function clearLiveNotice() {
+  const db = getDB();
+  db.settings = db.settings || {};
+  db.settings.liveNotice = "";
+  const input = document.getElementById("adminNoticeInput");
+  if (input) input.value = "";
+  saveDB(db, "Cleared live notice broadcast", "Admin");
 }
 
 // PWA INSTALLER
@@ -146,8 +180,8 @@ function installHostelPWA() {
 // LIVE METRICS CALCULATOR
 function getLiveMetrics() {
   const db = getDB();
-  const totalCapacity = db.rooms.reduce((sum, r) => sum + Number(r.capacity || 0), 0);
-  const activeStudents = db.students.filter(s => s.status === "Active");
+  const totalCapacity = (db.rooms || []).reduce((sum, r) => sum + Number(r.capacity || 0), 0);
+  const activeStudents = (db.students || []).filter(s => s.status === "Active");
   const occupiedBeds = activeStudents.length;
   const emptyBeds = Math.max(0, totalCapacity - occupiedBeds);
 
@@ -165,10 +199,10 @@ function getLiveMetrics() {
     }
   });
 
-  const totalExpenses = db.expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const totalExpenses = (db.expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const netProfit = collectedFee - totalExpenses;
-  const pendingApps = db.applications.filter(a => a.status === "Pending").length;
-  const openComplaints = db.complaints.filter(c => c.status !== "Resolved").length;
+  const pendingApps = (db.applications || []).filter(a => a.status === "Pending").length;
+  const openComplaints = (db.complaints || []).filter(c => c.status !== "Resolved").length;
 
   return {
     totalCapacity, occupiedBeds, emptyBeds,
@@ -203,7 +237,7 @@ function injectUniversalModal() {
   document.body.appendChild(div);
 }
 
-// 1. 2-COPY FEE VOUCHER (With Billing Month & 5th Due Date Warning)
+// 1. 2-COPY FEE VOUCHER
 function openStudentVoucher(studentId) {
   injectUniversalModal();
   const db = getDB();
@@ -214,7 +248,6 @@ function openStudentVoucher(studentId) {
   const total = rent + mess + elec + other - disc;
   const challanNo = "CH-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
 
-  // Active Billing Month & Due Date
   const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const dueDateText = `05 ${billingMonth}`;
 
@@ -261,6 +294,7 @@ function openStudentVoucher(studentId) {
   document.getElementById("uniPrintArea").innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">${buildCopy("HOSTEL ADMIN COPY", "bg-slate-900") + buildCopy("STUDENT COPY", "bg-indigo-700")}</div>`;
   showUniModal(`Fee_Voucher_${s.id}_${billingMonth.replace(/\s+/g, "_")}.pdf`, "landscape");
 }
+
 // 2. DIGITAL QR STUDENT ID CARD GENERATOR
 function openStudentQRCard(studentId) {
   injectUniversalModal();
@@ -359,24 +393,23 @@ function showUniModal(filename, orientation) {
     }).from(el).save();
   };
 }
+
 // ============================================================================
 // AUTO 5th DATE LATE FINE (Rs. 200) & NEW MONTH BILLING CYCLE
-// Paste at the very bottom of db.js
 // ============================================================================
 function checkAndApplyAutoLateFine() {
   const today = new Date();
-  const currentDay = today.getDate(); // Gets day of month (1 to 31)
+  const currentDay = today.getDate();
   const currentMonthKey = today.getFullYear() + "-" + (today.getMonth() + 1);
 
-  // Agar aaj 5 tareekh se upar ho chuki hai (e.g. 6th, 7th...)
   if (currentDay > 5) {
     const db = getDB();
     let updated = false;
 
-    db.students.forEach(s => {
+    (db.students || []).forEach(s => {
       if (s.status === "Active" && s.feeStatus !== "Paid" && s.lastFineMonth !== currentMonthKey) {
-        s.otherCharges = Number(s.otherCharges || 0) + 200; // Auto Rs. 200 Fine
-        s.lastFineMonth = currentMonthKey; // Ek mahine me sirf 1 dafa fine lagega
+        s.otherCharges = Number(s.otherCharges || 0) + 200;
+        s.lastFineMonth = currentMonthKey;
         updated = true;
       }
     });
@@ -387,44 +420,39 @@ function checkAndApplyAutoLateFine() {
   }
 }
 
-// Har naye mahine ki 1 tareekh ko Admin ye button dabayega
 function startNewBillingMonth() {
   const monthName = prompt("Enter New Billing Month Name (e.g. November 2026):", "November 2026");
   if (!monthName) return;
 
   const db = getDB();
-db.settings.currentMonth = monthName;
-  db.students.forEach(s => {
+  db.settings.currentMonth = monthName;
+  (db.students || []).forEach(s => {
     if (s.status === "Active") {
-      // Agar pichle mahine ki fee Unpaid thi, toh wo pichle baqaya (otherCharges) me add ho jayegi
       if (s.feeStatus !== "Paid") {
         const prevUnpaid = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0);
         s.otherCharges = Number(s.otherCharges || 0) + prevUnpaid;
       } else {
-        // Paid walon ka fine aur bijli 0 ho jayegi, lekin unka Agreed Rent (3500 ya 5000) wohi rahega!
         s.otherCharges = 0;
         s.elec = 0;
       }
       s.feeStatus = "Unpaid";
       s.paymentTid = "";
       s.paymentImg = "";
-      s.lastFineMonth = ""; // Reset fine tracker for the new month
+      s.lastFineMonth = "";
     }
   });
 
   saveDB(db, `Started new billing cycle for ${monthName} (Custom rents preserved)`, "Admin");
-  alert(`New Month (${monthName}) Vouchers Generated!\nEach student's custom agreed rent (e.g. 3500 or 5000) has been applied.`);
+  alert(`New Month (${monthName}) Vouchers Generated!\nEach student's custom agreed rent has been applied.`);
   refreshCurrentPortalUI();
 }
 
-
 // ============================================================================
-// 🚀 CLEAN NATIVE SAAS SUITE (No Top Bar! Direct Row Buttons + Settings Backup)
+// 🚀 CLEAN NATIVE SAAS SUITE
 // ============================================================================
-const SAAS_FOUNDER_WHATSAPP = "923000000000"; // Apna WhatsApp number yahan likhein
+const SAAS_FOUNDER_WHATSAPP = "923000000000";
 const SAAS_BRAND_NAME = "HostelCloud SaaS";
 
-// 1. 📲 DIRECT WHATSAPP FEE REMINDER (Clicks right next to Student Name)
 function sendStudentFeeReminder(studentId) {
   const db = getDB();
   const s = db.students.find(st => st.id === studentId);
@@ -438,7 +466,6 @@ function sendStudentFeeReminder(studentId) {
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
-// 2. 👨‍👩‍👦 DIRECT PARENT/GUARDIAN WHATSAPP ALERT (Clicks right next to Student Name)
 function sendGuardianAlert(studentId) {
   const db = getDB();
   const s = db.students.find(st => st.id === studentId);
@@ -456,7 +483,6 @@ function sendGuardianAlert(studentId) {
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
-// 3. 💾 CLOUD JSON BACKUP DOWNLOAD & RESTORE (Inside Settings)
 function exportHostelBackupJSON() {
   const db = getDB();
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
@@ -485,11 +511,6 @@ function importHostelBackupJSON(event) {
   reader.readAsText(file);
 }
 
-// ============================================================================
-// 🚀 MAJOR ERP UPGRADE: 1-CLICK ROOM SHIFT, MESS-OFF REBATE & P&L AUDIT PDF
-// ============================================================================
-
-// 1. 🔄 1-CLICK ROOM SHIFTING ENGINE
 function shiftStudentRoom(studentId) {
   const db = getDB();
   const s = db.students.find(st => st.id === studentId);
@@ -526,7 +547,6 @@ function shiftStudentRoom(studentId) {
   alert(`✅ ${s.name} successfully shifted to Room ${targetRoom.no}!`);
 }
 
-// 2. 🍲 SMART MESS-OFF REBATE (LEAVE DISCOUNT) CALCULATOR
 function applyMessRebate(studentId) {
   const db = getDB();
   const s = db.students.find(st => st.id === studentId);
@@ -546,7 +566,6 @@ function applyMessRebate(studentId) {
   alert(`✅ Rs. ${rebateAmount.toLocaleString()} Mess Rebate added to ${s.name}'s fee voucher discount!`);
 }
 
-// 3. 📈 MONTHLY PROFIT & LOSS (P&L) AUDIT PDF GENERATOR
 function openMonthlyAuditPDF() {
   injectUniversalModal();
   const db = getDB();
@@ -618,7 +637,6 @@ function openMonthlyAuditPDF() {
   showUniModal(`Financial_Audit_${billingMonth.replace(/\s+/g, "_")}.pdf`, "portrait");
 }
 
-// 4. 🎯 UPDATED AUTO-INJECTOR (Student Row Buttons + Settings Audit & Backup)
 function enhanceAdminUI() {
   document.querySelectorAll("button[onclick*='openStudentVoucher(']").forEach(voucherBtn => {
     if (voucherBtn.dataset.waInjected) return;
@@ -647,36 +665,8 @@ function enhanceAdminUI() {
     voucherBtn.insertAdjacentElement("afterend", parentBtn);
     voucherBtn.insertAdjacentElement("afterend", remindBtn);
   });
-
-  // Inject Audit PDF + Backup & Restore right next to Wipe All inside Settings
-  const wipeBtn = document.querySelector("button[onclick*='wipeAllData']");
-  if (wipeBtn && !document.getElementById("settingsBackupBox")) {
-    const backupBox = document.createElement("div");
-    backupBox.id = "settingsBackupBox";
-    backupBox.className = "mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3";
-    backupBox.innerHTML = `
-      <div>
-        <h4 class="text-xs font-bold text-white"><i class="fa-solid fa-shield-halved text-indigo-400 mr-1"></i> Audit Report & Cloud Database Backup</h4>
-        <p class="text-[11px] text-slate-400">Export monthly Profit & Loss PDF statement or backup/restore hostel data.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" onclick="openMonthlyAuditPDF()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Monthly P&L Audit PDF
-        </button>
-        <button type="button" onclick="exportHostelBackupJSON()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition">
-          <i class="fa-solid fa-download mr-1"></i> Backup (.json)
-        </button>
-        <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition">
-          <i class="fa-solid fa-upload mr-1"></i> Restore
-          <input type="file" accept=".json" onchange="importHostelBackupJSON(event)" class="hidden" />
-        </label>
-      </div>
-    `;
-    wipeBtn.parentNode.insertAdjacentElement("beforebegin", backupBox);
-  }
 }
 
-// 5. ⚡ AUTO-RUN TRIGGERS (Ye lines pichle code mein reh gayi thin!)
 setTimeout(checkAndApplyAutoLateFine, 1500);
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -684,7 +674,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const observer = new MutationObserver(() => enhanceAdminUI());
   observer.observe(document.body, { childList: true, subtree: true });
 
-  // Clean SaaS Footer at the very bottom
   if (!location.pathname.includes("master") && !document.getElementById("saasBrandingFooter")) {
     const footer = document.createElement("footer");
     footer.id = "saasBrandingFooter";
