@@ -1046,3 +1046,151 @@ function openMonthlyAuditPDF() {
 }
 
 setTimeout(checkAndApplyAutoLateFine, 2500);
+
+// ============================================================================
+// 🎨 UNIVERSAL CUSTOM UI POPUP & ANIMATION ENGINE (Replaces All Browser Alerts!)
+// Paste at the very bottom of db.js
+// ============================================================================
+(function initCustomSaaSUI() {
+  if (document.getElementById("saasGlobalAnimations")) return;
+
+  // 1. Global Animations & Custom Popup Styles
+  const style = document.createElement("style");
+  style.id = "saasGlobalAnimations";
+  style.innerHTML = `
+    @keyframes saasSlideUpFade {
+      0% { opacity: 0; transform: translateY(14px) scale(0.99); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes saasModalSpring {
+      0% { opacity: 0; transform: scale(0.88) translateY(18px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes saasBackdropFade {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    [id^="view-"]:not(.hidden),
+    [id^="stuView-"]:not(.hidden),
+    [id^="wardenView-"]:not(.hidden),
+    [id^="masterView-"]:not(.hidden),
+    #trackAppResult:not(.hidden),
+    #scanResultBox:not(.hidden),
+    #pubMobileNav:not(.hidden) {
+      animation: saasSlideUpFade 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    #admissionModal:not(.hidden),
+    #approveAllotModal:not(.hidden),
+    #universalDocModal:not(.hidden),
+    #customSaaSAlertModal:not(.hidden) {
+      animation: saasBackdropFade 0.22s ease-out forwards;
+    }
+
+    #admissionModal:not(.hidden) > div,
+    #approveAllotModal:not(.hidden) > div,
+    #universalDocModal:not(.hidden) > div,
+    #customSaaSAlertModal:not(.hidden) > div {
+      animation: saasModalSpring 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    button, a[class*="rounded"] {
+      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, background-color 0.18s ease !important;
+    }
+    button:hover:not(:disabled), a[class*="rounded"]:hover { transform: translateY(-1.5px); }
+    button:active:not(:disabled), a[class*="rounded"]:active { transform: scale(0.96) translateY(0) !important; }
+  `;
+  document.head.appendChild(style);
+
+  // 2. Replace Browser's Default alert() with Custom In-App UI Modal!
+  window.showSaaSPopup = function(rawMsg, customTitle = "") {
+    let modal = document.getElementById("customSaaSAlertModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "customSaaSAlertModal";
+      modal.className = "fixed inset-0 bg-zinc-950/75 backdrop-blur-xs hidden items-center justify-center z-[9999] p-4";
+      document.body.appendChild(modal);
+    }
+
+    const msg = String(rawMsg || "").trim();
+    const isError = msg.includes("❌") || /invalid|incorrect|denied|error|failed|full/i.test(msg);
+    const isWarn  = msg.includes("⚠️") || /warning|wait|cancel/i.test(msg);
+
+    const cleanText = msg.replace(/^[✅❌⚠️🎉🗑️]+\s*/, "");
+    const lines = cleanText.split("\n").filter(l => l.trim() !== "");
+    const headline = customTitle || (lines[0] || (isError ? "Action Blocked" : isWarn ? "System Notice" : "Success"));
+    const bodyLines = customTitle ? lines : lines.slice(1);
+
+    // Check if there is an ID (APP-xxxx or ST-xxx) to offer 1-click copy
+    const idMatch = msg.match(/\b(APP-\d+|ST-\d+)\b/);
+    const extractedId = idMatch ? idMatch[1] : "";
+
+    const badgeBg = isError ? "bg-rose-600 text-white" : isWarn ? "bg-amber-500 text-zinc-950" : "bg-emerald-600 text-white";
+    const iconHtml = isError
+      ? `<i class="fa-solid fa-shield-xmark"></i>`
+      : isWarn
+      ? `<i class="fa-solid fa-triangle-exclamation"></i>`
+      : `<i class="fa-solid fa-circle-check"></i>`;
+    const tagLabel = isError ? "Security / Validation Alert" : isWarn ? "System Notice" : "Confirmed & Synced";
+    const tagColor = isError ? "text-rose-600" : isWarn ? "text-amber-600" : "text-emerald-700";
+
+    modal.innerHTML = `
+      <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-zinc-900 font-sans">
+        <div class="flex items-start gap-3.5 border-b border-zinc-100 pb-4">
+          <div class="w-11 h-11 rounded-xl ${badgeBg} flex items-center justify-center text-lg font-bold shrink-0 shadow-xs">
+            ${iconHtml}
+          </div>
+          <div class="min-w-0 flex-1">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider ${tagColor} block">${tagLabel}</span>
+            <h3 class="text-sm sm:text-base font-extrabold text-zinc-900 mt-0.5 leading-snug break-words">${headline}</h3>
+          </div>
+          <button type="button" onclick="closeSaaSPopup()" class="text-zinc-400 hover:text-zinc-800 text-xl leading-none">&times;</button>
+        </div>
+
+        ${bodyLines.length > 0 ? `
+          <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-3.5 space-y-1.5 text-xs text-zinc-700 font-medium leading-relaxed">
+            ${bodyLines.map(line => `<div class="break-words">${line}</div>`).join("")}
+          </div>
+        ` : ""}
+
+        ${extractedId ? `
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-emerald-700 block">Reference / Roll ID</span>
+              <strong class="font-mono text-sm font-extrabold text-zinc-900">${extractedId}</strong>
+            </div>
+            <button type="button" onclick="navigator.clipboard.writeText('${extractedId}');this.innerText='✓ Copied!';" class="bg-white hover:bg-emerald-700 hover:text-white border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer">
+              Copy ID
+            </button>
+          </div>
+        ` : ""}
+
+        <div class="pt-1 flex justify-end gap-2">
+          <button type="button" id="saasPopupOkBtn" onclick="closeSaaSPopup()" class="w-full ${isError ? 'bg-rose-600 hover:bg-rose-500' : 'bg-zinc-900 hover:bg-zinc-800'} text-white py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition cursor-pointer">
+            ${isError ? "Try Again" : "Continue →"}
+          </button>
+        </div>
+      </div>
+    `;
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    modal.style.setProperty("display", "flex", "important");
+    setTimeout(() => document.getElementById("saasPopupOkBtn")?.focus(), 50);
+  };
+
+  window.closeSaaSPopup = function() {
+    const modal = document.getElementById("customSaaSAlertModal");
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      modal.style.setProperty("display", "none", "important");
+    }
+  };
+
+  // Override native browser alert() globally across all pages!
+  window.alert = function(message) {
+    window.showSaaSPopup(message);
+  };
+})();
