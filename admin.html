@@ -24,7 +24,7 @@
 <body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
-  <!-- 🔒 SECURITY LOGIN GATE                                                -->
+  <!-- 🔒 SECURITY LOGIN GATE (NO DEFAULT PASSWORD)                          -->
   <!-- ===================================================================== -->
   <div id="adminLoginGate" class="fixed inset-0 bg-zinc-900/95 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
@@ -39,8 +39,8 @@
       </div>
       <form onsubmit="verifyAdminLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-zinc-700 mb-1.5">Administrator Password</label>
-          <input id="adminPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none" />
+          <label class="block text-xs font-semibold text-zinc-700 mb-1.5">Administrator Password *</label>
+          <input id="adminPassInput" type="password" required placeholder="Enter Administrator Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
         <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
           Sign In to Workspace →
@@ -63,10 +63,9 @@
   <!-- ===================================================================== -->
   <div class="flex h-dvh w-screen overflow-hidden">
 
-    <!-- 🧭 LEFT SIDEBAR NAVIGATION (SLIDE-OUT DRAWER ON MOBILE, FIXED ON DESKTOP) -->
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
     <aside id="adminSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
-        <!-- Software Brand Header -->
         <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
           <div class="flex items-center gap-2.5 truncate">
             <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
@@ -77,13 +76,11 @@
               <span class="text-[10px] text-emerald-400 font-semibold block">● Cloud Synced</span>
             </div>
           </div>
-          <!-- Mobile Close Drawer Button -->
           <button onclick="toggleAdminMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white text-lg px-1">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        <!-- Navigation Menu -->
         <div class="p-3 space-y-1 text-xs font-semibold custom-scroll overflow-y-auto max-h-[calc(100dvh-140px)]">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Core Operations</p>
           
@@ -125,7 +122,6 @@
         </div>
       </div>
 
-      <!-- Bottom Quick Portals Switcher -->
       <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
         <div class="grid grid-cols-3 gap-1 text-[11px] font-medium text-center">
           <a href="index" target="_blank" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded">Public ↗</a>
@@ -141,10 +137,9 @@
     <!-- 🖥️ RIGHT MAIN SOFTWARE VIEWPORT -->
     <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-      <!-- Top Mobile & Desktop Header -->
+      <!-- Top Header -->
       <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <!-- Mobile Hamburger Drawer Button -->
           <button onclick="toggleAdminMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
             <i class="fa-solid fa-bars text-sm"></i>
           </button>
@@ -166,15 +161,11 @@
         </div>
       </header>
 
-      <!-- Scrollable Content Canvas (pb-24 on mobile for Bottom App Nav) -->
+      <!-- Scrollable Content Canvas -->
       <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll">
 
-        <!-- =============================================================== -->
-        <!-- VIEW 1: DASHBOARD                                               -->
-        <!-- =============================================================== -->
+        <!-- VIEW 1: DASHBOARD -->
         <div id="view-dashboard" class="space-y-4 sm:space-y-6 w-full">
-
-          <!-- 6-Card KPI Ribbon (2x3 Grid on Mobile, 6 Cols on Desktop) -->
           <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 w-full">
             <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
               <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Occupancy</span>
@@ -208,7 +199,6 @@
             </div>
           </section>
 
-          <!-- Live Digital Notice Broadcast Bar -->
           <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 w-full">
             <div class="flex items-center gap-3">
               <div class="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-700 flex items-center justify-center font-bold shrink-0">
@@ -232,7 +222,6 @@
             </div>
           </div>
 
-          <!-- Online Admission Applications Queue -->
           <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
             <div class="p-4 sm:px-5 sm:py-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
@@ -261,7 +250,6 @@
             </div>
           </div>
 
-          <!-- Audit Activity Trail -->
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-3 w-full">
             <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
               <h3 class="text-sm font-bold text-zinc-900">System Activity & Audit Trail</h3>
@@ -269,14 +257,10 @@
             </div>
             <div id="adminLogsList" class="space-y-1.5 max-h-56 overflow-y-auto text-xs font-mono custom-scroll"></div>
           </div>
-
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 2: ROOMS & VISUAL BED OCCUPANCY MAP                        -->
-        <!-- =============================================================== -->
+        <!-- VIEW 2: ROOMS -->
         <div id="view-rooms" class="hidden space-y-4 sm:space-y-6 w-full">
-          
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
               <div>
@@ -326,15 +310,10 @@
             </div>
             <div id="vvipBedMapGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"></div>
           </div>
-
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 3: RESIDENTS DIRECTORY & COMPLETE BILLING ACTIONS          -->
-        <!-- =============================================================== -->
+        <!-- VIEW 3: STUDENTS -->
         <div id="view-students" class="hidden space-y-4 sm:space-y-6 w-full">
-          
-          <!-- Enroll New Resident Form -->
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="border-b border-zinc-100 pb-3">
               <h3 class="text-sm font-bold text-zinc-900">Register New Resident & Allot Bed</h3>
@@ -384,12 +363,11 @@
             </form>
           </div>
 
-          <!-- Master Residents & Fee Ledger Table -->
           <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Active Residents & Fee Billing Ledger</h3>
-                <p class="text-xs text-zinc-500">All resident tools (Voucher, QR ID, Remind, Parent, Shift, Mess Off, Edit & Clearance) are inside each row.</p>
+                <p class="text-xs text-zinc-500">All resident tools are inside each row.</p>
               </div>
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <select id="filterFeeStatus" onchange="renderStudentsTable()" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs font-semibold">
@@ -417,12 +395,9 @@
               </table>
             </div>
           </div>
-
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 4: EXPENSES LEDGER & FINANCIAL AUDIT                       -->
-        <!-- =============================================================== -->
+        <!-- VIEW 4: FINANCE -->
         <div id="view-finance" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
@@ -452,12 +427,9 @@
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 5: COMPLAINTS, LEAVE REQUESTS & GATE VISITORS LOG          -->
-        <!-- =============================================================== -->
+        <!-- VIEW 5: OPERATIONS -->
         <div id="view-operations" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
-            
             <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Maintenance & Resident Complaints</h3>
@@ -473,7 +445,6 @@
               </div>
               <div id="adminLeavesList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
             </div>
-
           </div>
 
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
@@ -498,12 +469,9 @@
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 6: STAFF PAYROLL, INVENTORY ASSETS & WEEKLY MESS MENU      -->
-        <!-- =============================================================== -->
+        <!-- VIEW 6: STAFF -->
         <div id="view-staff" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
-            
             <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Hostel Staff & Payroll</h3>
@@ -544,7 +512,6 @@
                 </table>
               </div>
             </div>
-
           </div>
 
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
@@ -572,12 +539,9 @@
           </div>
         </div>
 
-        <!-- =============================================================== -->
-        <!-- VIEW 7: SETTINGS, CLOUD BACKUP / RESTORE & DATA RESET           -->
-        <!-- =============================================================== -->
+        <!-- VIEW 7: SETTINGS -->
         <div id="view-settings" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
-            
             <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-5">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-base font-bold text-zinc-900">Hostel Profile & Security Credentials</h3>
@@ -603,11 +567,11 @@
                 </div>
                 <div>
                   <label class="block font-bold text-zinc-700 mb-1">Admin Login Password *</label>
-                  <input id="setAdminPass" type="text" required class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-mono" />
+                  <input id="setAdminPass" type="text" required placeholder="Set Admin Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-mono" />
                 </div>
                 <div>
                   <label class="block font-bold text-zinc-700 mb-1">Warden Login Password *</label>
-                  <input id="setWardenPass" type="text" required class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-mono" />
+                  <input id="setWardenPass" type="text" required placeholder="Set Warden Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-mono" />
                 </div>
                 <div class="sm:col-span-2 flex justify-end pt-2">
                   <button type="submit" class="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-lg font-bold transition">
@@ -640,15 +604,12 @@
                 </button>
               </div>
             </div>
-
           </div>
         </div>
 
       </main>
 
-      <!-- ================================================================= -->
-      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR (ONLY ON MOBILE)              -->
-      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR -->
       <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-5 z-30 shadow-lg">
         <button onclick="switchTab('dashboard')" id="abnav-dashboard" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[10px]">
           <i class="fa-solid fa-table-columns text-sm"></i>
@@ -676,9 +637,7 @@
 
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- ✅ APPROVE & ALLOT SEAT CONFIRMATION MODAL                            -->
-  <!-- ===================================================================== -->
+  <!-- ✅ APPROVE & ALLOT SEAT CONFIRMATION MODAL -->
   <div id="approveAllotModal" class="fixed inset-0 bg-zinc-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
     <div class="bg-white border border-zinc-300 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex justify-between items-start border-b border-zinc-200 pb-3">
@@ -728,9 +687,7 @@
     </div>
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- 🚀 COMPLETE ERP CONTROLLER                                            -->
-  <!-- ===================================================================== -->
+  <!-- 🚀 COMPLETE ERP CONTROLLER -->
   <script>
     const VIEW_TITLES = {
       dashboard: "Overview & Online Applications",
@@ -755,29 +712,50 @@
       }
     }
 
-    function checkAdminSession() {
-      const db = getDB();
-      document.getElementById("gateHostelName").innerText = (db.settings && db.settings.hostelName) || "ERP Administration";
-      if (sessionStorage.getItem("ADMIN_AUTH_" + TENANT_ID) === "true") {
-        document.getElementById("adminLoginGate").classList.add("hidden");
+    function hideAdminLoginGate() {
+      const gate = document.getElementById("adminLoginGate");
+      if (gate) {
+        gate.classList.remove("flex");
+        gate.classList.add("hidden");
+        gate.style.setProperty("display", "none", "important");
       }
     }
 
+    function checkAdminSession() {
+      const db = getDB();
+      document.getElementById("gateHostelName").innerText = (db.settings && db.settings.hostelName) || "ERP Administration";
+      try {
+        if (sessionStorage.getItem("ADMIN_AUTH_" + TENANT_ID) === "true") {
+          hideAdminLoginGate();
+        }
+      } catch (e) {}
+    }
+
     function verifyAdminLogin(e) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       const db = getDB();
       const pass = document.getElementById("adminPassInput").value.trim();
-      if (pass === String((db.settings && db.settings.adminPass) || "123")) {
-        sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true");
-        document.getElementById("adminLoginGate").classList.add("hidden");
+      const configuredPass = db.settings && db.settings.adminPass ? String(db.settings.adminPass).trim() : "";
+
+      if (!configuredPass) {
+        return alert("⚠️ Access Denied: No Administrator password is set for this hostel yet. Please configure it from the Master SaaS HQ.");
+      }
+
+      if (pass === configuredPass) {
+        try {
+          sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true");
+        } catch (err) {}
+        hideAdminLoginGate();
         renderAdminAll();
       } else {
-        alert("Incorrect Administrator Password!");
+        alert("❌ Incorrect Administrator Password!");
       }
     }
 
     function logoutAdmin() {
-      sessionStorage.removeItem("ADMIN_AUTH_" + TENANT_ID);
+      try {
+        sessionStorage.removeItem("ADMIN_AUTH_" + TENANT_ID);
+      } catch (e) {}
       location.reload();
     }
 
@@ -849,7 +827,6 @@
       populateSettingsForm();
     }
 
-    // 1. ONLINE APPLICATIONS & "APPROVE & ALLOT"
     function renderApplicationsTable() {
       const db = getDB();
       const tbody = document.getElementById("applicationsTableBody");
@@ -1007,597 +984,4 @@
       db.students.unshift(newStudent);
       app.status = "Approved";
 
-      saveDB(db, `Approved application & allotted Room ${selectedRoom} to ${newStudent.name} (${newRollId})`, "Admin");
-      closeApproveModal();
-      renderAdminAll();
-
-      if (confirm(`✅ Seat Allotted Successfully!\n\nResident: ${newStudent.name}\nRoll ID: ${newRollId}\nRoom: ${selectedRoom}\n\nSend Welcome Message & Login Details via WhatsApp?`)) {
-        const cleanPhone = "92" + (newStudent.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "");
-        const stuUrl = `${window.location.origin}/student?hostel=${TENANT_ID}`;
-        const msg = `*ADMISSION APPROVED — ${db.settings.hostelName}*\n\nSalam *${newStudent.name}*,\nYour seat has been allotted!\n\n🎓 *Roll ID:* ${newRollId}\n🚪 *Room:* Room ${selectedRoom}\n💰 *Monthly Rent:* Rs. ${agreedRent.toLocaleString()}\n\n🔗 *Student Portal Login:*\n${stuUrl}`;
-        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
-      }
-    }
-
-    function rejectApplication(appId) {
-      const db = getDB();
-      const app = (db.applications || []).find(a => String(a.id) === String(appId));
-      if (app && confirm(`Reject application from ${app.name}?`)) {
-        app.status = "Rejected";
-        saveDB(db, `Rejected application ${app.id}`, "Admin");
-        renderAdminAll();
-      }
-    }
-
-    function deleteApplication(appId) {
-      const db = getDB();
-      db.applications = (db.applications || []).filter(a => String(a.id) !== String(appId));
-      saveDB(db, `Deleted application ${appId}`, "Admin");
-      renderAdminAll();
-    }
-
-    // 2. ROOMS & INTERACTIVE VISUAL BED MAP
-    function saveRoom(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.rooms = db.rooms || [];
-      const no = document.getElementById("rmNo").value.trim();
-      const type = document.getElementById("rmType").value;
-      const capacity = Number(document.getElementById("rmCap").value || 1);
-      const rent = Number(document.getElementById("rmRent").value || 0);
-
-      const existing = db.rooms.find(r => String(r.no) === String(no));
-      if (existing) {
-        existing.type = type; existing.capacity = capacity; existing.rent = rent;
-      } else {
-        db.rooms.push({ no, type, capacity, rent });
-      }
-      saveDB(db, `Saved Room ${no} (${capacity} beds @ Rs. ${rent})`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-    }
-
-    function deleteRoom(roomNo) {
-      const db = getDB();
-      const occ = (db.students || []).filter(s => s.status === "Active" && String(s.room) === String(roomNo)).length;
-      if (occ > 0) return alert(`Cannot delete Room ${roomNo} while ${occ} active resident(s) occupy it!`);
-      if (confirm(`Delete Room ${roomNo}?`)) {
-        db.rooms = db.rooms.filter(r => String(r.no) !== String(roomNo));
-        saveDB(db, `Deleted Room ${roomNo}`, "Admin");
-        renderAdminAll();
-      }
-    }
-
-    function renderVVIPBedMap() {
-      const grid = document.getElementById("vvipBedMapGrid");
-      if (!grid) return;
-      const db = getDB();
-      const rooms = db.rooms || [];
-      const activeStudents = (db.students || []).filter(s => s.status === "Active");
-
-      if (rooms.length === 0) {
-        grid.innerHTML = `<div class="col-span-full bg-white border border-zinc-200 rounded-xl p-8 text-center text-zinc-400 text-xs">No rooms created yet. Use the form above to add rooms.</div>`;
-        return;
-      }
-
-      grid.innerHTML = rooms.map(room => {
-        const cap = Number(room.capacity || 0);
-        const occupants = activeStudents.filter(s => String(s.room) === String(room.no));
-        const freeCount = Math.max(0, cap - occupants.length);
-        const isFull = freeCount === 0;
-
-        let bedSlotsHTML = "";
-        for (let i = 0; i < cap; i++) {
-          const stu = occupants[i];
-          const bedNo = i + 1;
-          if (stu) {
-            const isPaid = stu.feeStatus === "Paid";
-            bedSlotsHTML += `
-              <div onclick="openStudentVoucher('${stu.id}')" title="Click to open ${stu.name}'s Fee Voucher"
-                   class="cursor-pointer bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg p-2.5 flex items-center justify-between transition">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="w-7 h-7 rounded bg-zinc-800 text-white flex items-center justify-center text-[11px] font-bold shrink-0">
-                    ${stu.name.substring(0, 2).toUpperCase()}
-                  </span>
-                  <div class="truncate">
-                    <p class="text-xs font-bold text-zinc-900 truncate">${stu.name}</p>
-                    <p class="text-[10px] text-zinc-500 font-mono">Bed #${bedNo} • ${stu.id}</p>
-                  </div>
-                </div>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}">
-                  ${isPaid ? 'Paid' : 'Unpaid'}
-                </span>
-              </div>`;
-          } else {
-            bedSlotsHTML += `
-              <div onclick="quickAllotVacantBed('${room.no}', '${room.rent || 0}')"
-                   class="cursor-pointer bg-emerald-50/60 hover:bg-emerald-100/80 border border-dashed border-emerald-400 rounded-lg p-2.5 flex items-center justify-between transition">
-                <span class="text-xs font-bold text-emerald-900"><i class="fa-solid fa-bed text-emerald-700 mr-1.5"></i> Bed #${bedNo} — Vacant</span>
-                <span class="text-[10px] font-bold text-emerald-800">Allot +</span>
-              </div>`;
-          }
-        }
-
-        return `
-          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs space-y-3 flex flex-col justify-between">
-            <div class="flex justify-between items-start border-b border-zinc-100 pb-2.5">
-              <div>
-                <span class="text-[10px] uppercase font-bold text-zinc-400">${room.type || 'Room'}</span>
-                <h4 class="text-base font-extrabold text-zinc-900">Room ${room.no}</h4>
-                <p class="text-xs text-zinc-500">Default Rent: <strong class="text-zinc-800">Rs. ${Number(room.rent || 0).toLocaleString()}</strong></p>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isFull ? 'bg-zinc-200 text-zinc-700' : 'bg-emerald-100 text-emerald-800'}">
-                  ${isFull ? 'Full' : `${freeCount} Free`}
-                </span>
-                <button onclick="deleteRoom('${room.no}')" class="text-zinc-400 hover:text-rose-600 px-1" title="Delete Room">
-                  <i class="fa-solid fa-trash text-xs"></i>
-                </button>
-              </div>
-            </div>
-            <div class="space-y-2">${bedSlotsHTML}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function quickAllotVacantBed(roomNo, roomRent) {
-      switchTab("students");
-      const sel = document.getElementById("stuRoom");
-      const rent = document.getElementById("stuRent");
-      if (sel) sel.value = String(roomNo);
-      if (rent) rent.value = roomRent;
-      document.getElementById("stuName").focus();
-    }
-
-    function splitRoomElectricityPrompt() {
-      const db = getDB();
-      const roomNo = prompt("⚡ SPLIT SUB-METER ELECTRICITY BILL\nEnter Room Number:");
-      if (!roomNo) return;
-      const occupants = (db.students || []).filter(s => s.status === "Active" && String(s.room) === String(roomNo.trim()));
-      if (occupants.length === 0) return alert(`No active residents in Room ${roomNo}!`);
-      const bill = Number(prompt(`Room ${roomNo} has ${occupants.length} active resident(s).\nEnter Total Sub-Meter Bill (Rs.):`, "4000"));
-      if (!bill || bill <= 0) return;
-      const share = Math.round(bill / occupants.length);
-      occupants.forEach(s => { s.elec = Number(s.elec || 0) + share; });
-      saveDB(db, `Split Rs. ${bill} electricity in Room ${roomNo} (Rs. ${share}/resident)`, "Admin");
-      renderAdminAll();
-      alert(`✅ Added Rs. ${share.toLocaleString()} electricity share to each resident in Room ${roomNo}.`);
-    }
-
-    // 3. RESIDENTS TABLE WITH ALL BUILT-IN ROW ACTIONS
-    function populateRoomDropdowns() {
-      const db = getDB();
-      const sel = document.getElementById("stuRoom");
-      if (!sel) return;
-      const activeStudents = (db.students || []).filter(s => s.status === "Active");
-      sel.innerHTML = `<option value="">-- Choose Room --</option>`;
-      (db.rooms || []).forEach(r => {
-        const occ = activeStudents.filter(s => String(s.room) === String(r.no)).length;
-        const free = Math.max(0, Number(r.capacity || 0) - occ);
-        if (free > 0) {
-          sel.innerHTML += `<option value="${r.no}" data-rent="${r.rent || 0}">Room ${r.no} (${free} Free — Rs. ${r.rent || 0})</option>`;
-        }
-      });
-    }
-
-    function syncRoomDefaultRent() {
-      const sel = document.getElementById("stuRoom");
-      const opt = sel.options[sel.selectedIndex];
-      if (opt && opt.getAttribute("data-rent")) {
-        document.getElementById("stuRent").value = opt.getAttribute("data-rent");
-      }
-    }
-
-    function addStudentManual(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.students = db.students || [];
-      const existingIds = db.students.map(s => Number(String(s.id).replace(/\D/g, "")) || 100);
-      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 101;
-
-      const newStudent = {
-        id: "ST-" + nextNum,
-        name: document.getElementById("stuName").value.trim(),
-        cnic: document.getElementById("stuCnic").value.trim(),
-        phone: document.getElementById("stuPhone").value.trim(),
-        guardian: document.getElementById("stuGuardian").value.trim(),
-        uni: document.getElementById("stuUni").value.trim(),
-        room: document.getElementById("stuRoom").value,
-        rent: Number(document.getElementById("stuRent").value || 0),
-        mess: Number(document.getElementById("stuMess").value || 0),
-        elec: 0,
-        otherCharges: 0,
-        discount: 0,
-        security: Number(document.getElementById("stuSecurity").value || 0),
-        feeStatus: "Unpaid",
-        status: "Active",
-        joinedDate: new Date().toLocaleDateString("en-GB")
-      };
-
-      db.students.unshift(newStudent);
-      saveDB(db, `Enrolled ${newStudent.name} (${newStudent.id}) in Room ${newStudent.room}`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-      alert(`✅ Enrolled ${newStudent.name} (Roll ID: ${newStudent.id})`);
-    }
-
-    function renderStudentsTable() {
-      const db = getDB();
-      const tbody = document.getElementById("studentsTableBody");
-      const q = (document.getElementById("searchStudentInput")?.value || "").toLowerCase().trim();
-      const statusFilter = document.getElementById("filterFeeStatus")?.value || "ALL";
-
-      const list = (db.students || []).filter(s => {
-        if (s.status !== "Active") return false;
-        if (statusFilter !== "ALL" && s.feeStatus !== statusFilter) return false;
-        return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || String(s.room).toLowerCase().includes(q) || (s.phone || "").includes(q);
-      });
-
-      if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-zinc-400">No matching active residents found.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = list.map(s => {
-        const rent = Number(s.rent || 0), mess = Number(s.mess || 0), elec = Number(s.elec || 0), fine = Number(s.otherCharges || 0), disc = Number(s.discount || 0);
-        const total = rent + mess + elec + fine - disc;
-        const isPaid = s.feeStatus === "Paid";
-
-        return `
-          <tr class="hover:bg-zinc-50/80">
-            <td class="p-3.5 whitespace-nowrap">
-              <strong class="text-zinc-900 text-sm block">${s.name}</strong>
-              <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span> • <span class="text-zinc-500">${s.phone}</span>
-            </td>
-            <td class="p-3.5 font-bold text-zinc-900 whitespace-nowrap">Room ${s.room}</td>
-            <td class="p-3.5 text-[11px] text-zinc-600 whitespace-nowrap">
-              Rent: <strong>${rent}</strong> | Mess: <strong>${mess}</strong> | Elec: <strong>${elec}</strong>
-              ${fine > 0 ? `| <span class="text-rose-600 font-bold">Fine: ${fine}</span>` : ''}
-              ${disc > 0 ? `| <span class="text-emerald-700 font-bold">Rebate: -${disc}</span>` : ''}
-            </td>
-            <td class="p-3.5 font-extrabold text-zinc-900 text-sm whitespace-nowrap">Rs. ${total.toLocaleString()}</td>
-            <td class="p-3.5 whitespace-nowrap">
-              <button onclick="toggleFeeStatus('${s.id}')" class="px-2.5 py-1 rounded-md text-[11px] font-bold transition ${isPaid ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}">
-                ${isPaid ? '✓ PAID' : 'UNPAID (Mark Paid)'}
-              </button>
-              ${s.paymentTid ? `<span class="block text-[10px] font-mono text-zinc-700 font-bold mt-1">TID: ${s.paymentTid}</span>` : ''}
-            </td>
-            <td class="p-3.5 text-right whitespace-nowrap">
-              <div class="inline-flex items-center justify-end gap-1" data-wa-injected="true">
-                <button onclick="openStudentVoucher('${s.id}')" data-wa-injected="true" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold" title="Print 2-Copy Fee Voucher">
-                  <i class="fa-solid fa-file-invoice"></i> Voucher
-                </button>
-                <button onclick="openStudentQRCard('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2 py-1 rounded text-[11px] font-semibold" title="Digital QR ID Card">
-                  <i class="fa-solid fa-qrcode"></i> ID
-                </button>
-                <button onclick="sendStudentFeeReminder('${s.id}')" class="bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="Send WhatsApp Fee Reminder">
-                  <i class="fa-brands fa-whatsapp"></i> Remind
-                </button>
-                <button onclick="sendGuardianAlert('${s.id}')" class="bg-teal-50 hover:bg-teal-600 text-teal-800 hover:text-white border border-teal-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="Send WhatsApp Alert to Parent/Guardian">
-                  <i class="fa-solid fa-user-shield"></i> Parent
-                </button>
-                <button onclick="shiftStudentRoom('${s.id}')" class="bg-amber-50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="1-Click Room Shift">
-                  <i class="fa-solid fa-right-left"></i> Shift
-                </button>
-                <button onclick="applyMessRebate('${s.id}')" class="bg-purple-50 hover:bg-purple-600 text-purple-900 hover:text-white border border-purple-300 px-2 py-1 rounded text-[11px] font-semibold transition" title="Calculate Leave Mess-Off Rebate">
-                  <i class="fa-solid fa-utensils"></i> Mess Off
-                </button>
-                <button onclick="editStudentBilling('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 px-2 py-1 rounded text-[11px]" title="Edit Rent / Mess / Electricity">
-                  <i class="fa-solid fa-pen"></i>
-                </button>
-                <button onclick="openClearanceCertificate('${s.id}')" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 px-2 py-1 rounded text-[11px]" title="No-Dues Leaving Clearance Certificate">
-                  <i class="fa-solid fa-stamp"></i>
-                </button>
-                <button onclick="checkoutStudent('${s.id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 px-2 py-1 rounded text-[11px]" title="Checkout & Remove Resident">
-                  <i class="fa-solid fa-user-xmark"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function toggleFeeStatus(studentId) {
-      const db = getDB();
-      const s = (db.students || []).find(st => st.id === studentId);
-      if (!s) return;
-      s.feeStatus = s.feeStatus === "Paid" ? "Unpaid" : "Paid";
-      saveDB(db, `Marked ${s.name} (${s.id}) fee as ${s.feeStatus}`, "Admin");
-      renderAdminAll();
-    }
-
-    function editStudentBilling(studentId) {
-      const db = getDB();
-      const s = (db.students || []).find(st => st.id === studentId);
-      if (!s) return;
-      const newRent = prompt(`Monthly Rent for ${s.name} (Rs.):`, s.rent || 0);
-      if (newRent === null) return;
-      const newMess = prompt(`Monthly Mess Fee (Rs.):`, s.mess || 0);
-      if (newMess === null) return;
-      const newElec = prompt(`Electricity Share (Rs.):`, s.elec || 0);
-      if (newElec === null) return;
-      const newFine = prompt(`Late Fine / Arrears (Rs.):`, s.otherCharges || 0);
-      if (newFine === null) return;
-      s.rent = Number(newRent || 0);
-      s.mess = Number(newMess || 0);
-      s.elec = Number(newElec || 0);
-      s.otherCharges = Number(newFine || 0);
-      saveDB(db, `Updated billing for ${s.name} (${s.id})`, "Admin");
-      renderAdminAll();
-    }
-
-    function checkoutStudent(studentId) {
-      const db = getDB();
-      const s = (db.students || []).find(st => st.id === studentId);
-      if (s && confirm(`Check out and remove ${s.name} (${s.id}) from Room ${s.room}?`)) {
-        db.students = db.students.filter(st => st.id !== studentId);
-        saveDB(db, `Checked out ${s.name} (${s.id})`, "Admin");
-        renderAdminAll();
-      }
-    }
-
-    // 4. EXPENSES, COMPLAINTS, LEAVES, VISITORS, STAFF & INVENTORY
-    function addExpense(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.expenses = db.expenses || [];
-      const title = document.getElementById("expTitle").value.trim();
-      const amount = Number(document.getElementById("expAmount").value || 0);
-      db.expenses.unshift({ id: "EXP-" + Date.now(), title, amount, date: new Date().toLocaleDateString("en-GB") });
-      saveDB(db, `Recorded expense: ${title} (Rs. ${amount})`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-    }
-
-    function deleteExpense(id) {
-      const db = getDB();
-      db.expenses = (db.expenses || []).filter(e => e.id !== id);
-      saveDB(db, `Deleted expense record`, "Admin");
-      renderAdminAll();
-    }
-
-    function renderExpensesTable() {
-      const db = getDB();
-      const tbody = document.getElementById("expensesTableBody");
-      const list = db.expenses || [];
-      tbody.innerHTML = list.length === 0
-        ? `<tr><td colspan="4" class="p-6 text-center text-zinc-400">No expenses logged this month.</td></tr>`
-        : list.map(e => `
-          <tr>
-            <td class="p-3 font-semibold text-zinc-900">${e.title}</td>
-            <td class="p-3 text-zinc-500">${e.date || '—'}</td>
-            <td class="p-3 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td>
-            <td class="p-3 text-right"><button onclick="deleteExpense('${e.id}')" class="text-zinc-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button></td>
-          </tr>
-        `).join("");
-    }
-
-    function renderOperationsView() {
-      const db = getDB();
-      document.getElementById("adminLogsList").innerHTML = (db.logs || []).slice(0, 30).map(l => `
-        <div class="border-b border-zinc-100 pb-1 text-[11px]">
-          <span class="text-zinc-400">[${l.time}]</span> <strong class="text-zinc-800">${l.actor}:</strong> <span class="text-zinc-600">${l.action}</span>
-        </div>
-      `).join("");
-
-      const comps = db.complaints || [];
-      document.getElementById("adminComplaintsList").innerHTML = comps.length === 0
-        ? `<p class="text-zinc-400 text-center py-6">No resident complaints registered.</p>`
-        : comps.map(c => `
-          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between gap-2">
-            <div>
-              <strong class="text-zinc-900">${c.studentName || c.studentId || 'Resident'} (Room ${c.room || '—'})</strong>
-              <p class="text-zinc-600 mt-0.5">${c.issue || c.text || ''}</p>
-            </div>
-            <button onclick="resolveComplaint('${c.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold shrink-0 ${c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}">
-              ${c.status === 'Resolved' ? '✓ Resolved' : 'Mark Resolved'}
-            </button>
-          </div>
-        `).join("");
-
-      const leaves = db.leaves || [];
-      document.getElementById("adminLeavesList").innerHTML = leaves.length === 0
-        ? `<p class="text-zinc-400 text-center py-6">No leave applications submitted.</p>`
-        : leaves.map(l => `
-          <div class="bg-zinc-50 border border-zinc-200 rounded-lg p-3 flex items-center justify-between gap-2">
-            <div>
-              <strong class="text-zinc-900">${l.studentName || l.studentId || 'Resident'}</strong>
-              <p class="text-zinc-600 text-[11px]">${l.reason || 'Leave'} • ${l.from || ''} to ${l.to || ''}</p>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button onclick="approveLeave('${l.id}')" class="px-2.5 py-1 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-900 text-white'}">
-                ${l.status === 'Approved' ? '✓ Approved' : 'Approve'}
-              </button>
-            </div>
-          </div>
-        `).join("");
-
-      const vis = db.visitors || [];
-      document.getElementById("visitorsTableBody").innerHTML = vis.length === 0
-        ? `<tr><td colspan="4" class="p-4 text-center text-zinc-400">No visitors logged.</td></tr>`
-        : vis.map(v => `
-          <tr>
-            <td class="p-2.5 font-semibold text-zinc-900">${v.name}</td>
-            <td class="p-2.5 text-zinc-600">${v.student}</td>
-            <td class="p-2.5 text-zinc-600">${v.relation}</td>
-            <td class="p-2.5 text-zinc-400 font-mono text-[11px]">${v.time}</td>
-          </tr>
-        `).join("");
-    }
-
-    function resolveComplaint(id) {
-      const db = getDB();
-      const c = (db.complaints || []).find(x => x.id === id);
-      if (c) { c.status = "Resolved"; saveDB(db, `Resolved complaint ${id}`, "Admin"); renderAdminAll(); }
-    }
-
-    function approveLeave(id) {
-      const db = getDB();
-      const l = (db.leaves || []).find(x => x.id === id);
-      if (l) { l.status = "Approved"; saveDB(db, `Approved leave request ${id}`, "Admin"); renderAdminAll(); }
-    }
-
-    function addVisitor(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.visitors = db.visitors || [];
-      db.visitors.unshift({
-        name: document.getElementById("visName").value.trim(),
-        student: document.getElementById("visStudent").value.trim(),
-        relation: document.getElementById("visRelation").value.trim(),
-        time: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
-      });
-      saveDB(db, `Logged gate visitor`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-    }
-
-    function addStaffMember(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.staff = db.staff || [];
-      db.staff.push({
-        id: "STF-" + Date.now(),
-        name: document.getElementById("stfName").value.trim(),
-        role: document.getElementById("stfRole").value.trim(),
-        salary: Number(document.getElementById("stfSalary").value || 0)
-      });
-      saveDB(db, `Added staff member`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-    }
-
-    function payStaffSalary(id) {
-      const db = getDB();
-      const stf = (db.staff || []).find(s => s.id === id);
-      if (!stf) return;
-      if (confirm(`Record Rs. ${stf.salary.toLocaleString()} salary payment for ${stf.name} (${stf.role}) in Expense Ledger?`)) {
-        db.expenses = db.expenses || [];
-        db.expenses.unshift({
-          id: "EXP-" + Date.now(),
-          title: `Staff Salary: ${stf.name} (${stf.role})`,
-          amount: Number(stf.salary),
-          date: new Date().toLocaleDateString("en-GB")
-        });
-        saveDB(db, `Paid salary Rs. ${stf.salary} to ${stf.name}`, "Admin");
-        renderAdminAll();
-      }
-    }
-
-    function deleteStaff(id) {
-      const db = getDB();
-      db.staff = (db.staff || []).filter(s => s.id !== id);
-      saveDB(db, `Removed staff member`, "Admin");
-      renderAdminAll();
-    }
-
-    function addInventoryItem(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.inventory = db.inventory || [];
-      db.inventory.push({
-        id: "INV-" + Date.now(),
-        name: document.getElementById("invName").value.trim(),
-        qty: Number(document.getElementById("invQty").value || 1)
-      });
-      saveDB(db, `Added inventory asset`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-    }
-
-    function deleteInventory(id) {
-      const db = getDB();
-      db.inventory = (db.inventory || []).filter(i => i.id !== id);
-      saveDB(db, `Removed inventory asset`, "Admin");
-      renderAdminAll();
-    }
-
-    function saveMessDay(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.messMenu = db.messMenu || [];
-      const day = document.getElementById("messDay").value;
-      const b = document.getElementById("messB").value.trim();
-      const l = document.getElementById("messL").value.trim();
-      const d = document.getElementById("messD").value.trim();
-      const existing = db.messMenu.find(m => m.day === day);
-      if (existing) { existing.b = b; existing.l = l; existing.d = d; }
-      else { db.messMenu.push({ day, b, l, d }); }
-      saveDB(db, `Updated Mess Menu for ${day}`, "Admin");
-      e.target.reset();
-      renderAdminAll();
-    }
-
-    function renderStaffInventoryMess() {
-      const db = getDB();
-      document.getElementById("staffTableBody").innerHTML = (db.staff || []).length === 0
-        ? `<tr><td colspan="3" class="p-4 text-center text-zinc-400">No staff added.</td></tr>`
-        : db.staff.map(s => `
-          <tr>
-            <td class="p-2.5"><strong class="text-zinc-900">${s.name}</strong> <span class="text-zinc-500">(${s.role})</span></td>
-            <td class="p-2.5 font-bold">Rs. ${Number(s.salary || 0).toLocaleString()}</td>
-            <td class="p-2.5 text-right space-x-1">
-              <button onclick="payStaffSalary('${s.id}')" class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded text-[10px] font-bold">Pay Salary</button>
-              <button onclick="deleteStaff('${s.id}')" class="text-zinc-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button>
-            </td>
-          </tr>
-        `).join("");
-
-      document.getElementById("inventoryTableBody").innerHTML = (db.inventory || []).length === 0
-        ? `<tr><td colspan="3" class="p-4 text-center text-zinc-400">No assets tracked.</td></tr>`
-        : db.inventory.map(i => `
-          <tr>
-            <td class="p-2.5 font-semibold text-zinc-900">${i.name}</td>
-            <td class="p-2.5 font-bold">${i.qty} Units</td>
-            <td class="p-2.5 text-right"><button onclick="deleteInventory('${i.id}')" class="text-zinc-400 hover:text-rose-600"><i class="fa-solid fa-trash"></i></button></td>
-          </tr>
-        `).join("");
-
-      document.getElementById("adminMessTable").innerHTML = (db.messMenu || []).length === 0
-        ? `<tr><td colspan="4" class="p-4 text-center text-zinc-400">No mess menu configured.</td></tr>`
-        : db.messMenu.map(m => `
-          <tr>
-            <td class="p-2.5 font-bold text-zinc-900 whitespace-nowrap">${m.day}</td>
-            <td class="p-2.5 text-zinc-600">${m.b || m.breakfast || '—'}</td>
-            <td class="p-2.5 text-zinc-600">${m.l || m.lunch || '—'}</td>
-            <td class="p-2.5 font-semibold text-zinc-800">${m.d || m.dinner || '—'}</td>
-          </tr>
-        `).join("");
-    }
-
-    function populateSettingsForm() {
-      const db = getDB();
-      const s = db.settings || {};
-      if (document.activeElement && document.activeElement.tagName === "INPUT") return;
-      document.getElementById("setHostelName").value = s.hostelName || "";
-      document.getElementById("setJazzCash").value = s.jazzcash || "";
-      document.getElementById("setWhatsApp").value = s.adminWhatsApp || "";
-      document.getElementById("setMonth").value = s.currentMonth || "";
-      document.getElementById("setAdminPass").value = s.adminPass || "123";
-      document.getElementById("setWardenPass").value = s.wardenPass || "123";
-    }
-
-    function saveAdminSettings(e) {
-      e.preventDefault();
-      const db = getDB();
-      db.settings = db.settings || {};
-      db.settings.hostelName = document.getElementById("setHostelName").value.trim();
-      db.settings.jazzcash = document.getElementById("setJazzCash").value.trim();
-      db.settings.adminWhatsApp = document.getElementById("setWhatsApp").value.trim();
-      db.settings.currentMonth = document.getElementById("setMonth").value.trim();
-      db.settings.adminPass = document.getElementById("setAdminPass").value.trim();
-      db.settings.wardenPass = document.getElementById("setWardenPass").value.trim();
-      saveDB(db, "Updated institution profile settings", "Admin");
-      renderAdminAll();
-      alert("✅ Settings saved & synced!");
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      checkAdminSession();
-      renderAdminAll();
-    });
-  </script>
-</body>
-</html>
+      saveDB(db, `Approved application & allotted Room ${selectedRoom} to ${newStudent.name} (${newR
