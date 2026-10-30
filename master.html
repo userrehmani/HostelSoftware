@@ -9,11 +9,13 @@
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="db.js"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
+    .hidden { display: none !important; }
     #saasBrandingFooter, #globalLiveNoticeBanner { display: none !important; }
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
@@ -22,7 +24,7 @@
 <body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
-  <!-- 🔒 MASTER FOUNDER PIN GATE                                            -->
+  <!-- 🔒 MASTER FOUNDER LOGIN GATE (EMAIL + PASSWORD OR GOOGLE)             -->
   <!-- ===================================================================== -->
   <div id="masterLoginGate" class="fixed inset-0 bg-zinc-900/95 backdrop-blur-xs z-50 flex items-center justify-center p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
@@ -32,22 +34,37 @@
         </div>
         <div class="min-w-0">
           <h2 class="text-base font-extrabold text-zinc-900 truncate">Master SaaS HQ</h2>
-          <p class="text-xs text-zinc-500">Multi-Tenant Cloud Licensing Control</p>
+          <p class="text-xs text-zinc-500">Founder Cloud Licensing Control</p>
         </div>
       </div>
 
-      <form onsubmit="verifyMasterPin(event)" class="space-y-4 text-xs">
+      <form onsubmit="verifyMasterPin(event)" class="space-y-3.5 text-xs">
         <div>
-          <label class="block font-bold text-zinc-700 mb-1.5">Founder Security PIN (Default: 4426)</label>
-          <input id="masterPinInput" type="password" required placeholder="Enter PIN (4426)" autofocus class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-mono tracking-widest text-center font-extrabold focus:border-zinc-900 focus:bg-white outline-none" />
+          <label class="block font-bold text-zinc-700 mb-1">Founder Email Address *</label>
+          <input id="masterEmailInput" type="email" required placeholder="Enter Founder Gmail" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
-        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
-          Unlock Master HQ →
+        <div>
+          <label class="block font-bold text-zinc-700 mb-1">Founder Password *</label>
+          <input id="masterPinInput" type="password" required placeholder="Enter Founder Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition cursor-pointer">
+          Sign In to Master HQ →
         </button>
       </form>
 
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-zinc-200"></div>
+        <span class="flex-shrink mx-3 text-[10px] font-bold uppercase text-zinc-400">OR</span>
+        <div class="flex-grow border-t border-zinc-200"></div>
+      </div>
+
+      <button type="button" onclick="masterGoogleLogin()" class="w-full bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-800 py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-2xs cursor-pointer">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" alt="Google" />
+        Continue with Founder Google
+      </button>
+
       <div class="pt-3 border-t border-zinc-100 flex justify-between text-xs text-zinc-500 font-medium">
-        <a href="index" class="hover:text-zinc-900">← Default Public Site</a>
+        <a href="index" class="hover:text-zinc-900">← Public Site</a>
         <a href="admin" class="hover:text-zinc-900">Default Admin →</a>
       </div>
     </div>
@@ -112,7 +129,7 @@
           </button>
           <div class="min-w-0">
             <h2 id="masterViewTitle" class="text-sm sm:text-base font-extrabold text-zinc-900 truncate">Multi-Tenant Hostel Directory & License Control</h2>
-            <p class="text-[11px] text-zinc-500 truncate">Monitor all client hostels, suspend/activate licenses, or onboard new clients</p>
+            <p class="text-[11px] text-zinc-500 truncate">Founder: jameelfaisal177@gmail.com</p>
           </div>
         </div>
 
@@ -156,7 +173,7 @@
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Enrolled Hostel Clients (Collection: <code class="text-emerald-700 font-mono">hostel_system</code>)</h3>
-                <p class="text-xs text-zinc-500">Manage tenant subscriptions, inspect credentials, or generate portal links.</p>
+                <p class="text-xs text-zinc-500">Manage tenant subscriptions, inspect/change emails & passwords, or open client portals.</p>
               </div>
               <input id="searchTenantInput" oninput="renderTenantsTable()" type="text" placeholder="Search hostel name or tenant ID..." class="bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2 text-xs w-full sm:w-64 outline-none focus:border-zinc-900" />
             </div>
@@ -168,7 +185,7 @@
                     <th class="p-3.5">Hostel Name & Tenant ID</th>
                     <th class="p-3.5">Contact / Account</th>
                     <th class="p-3.5">Usage Stats</th>
-                    <th class="p-3.5">Passwords</th>
+                    <th class="p-3.5">Email & Passwords</th>
                     <th class="p-3.5">License Status</th>
                     <th class="p-3.5 text-right">Master SaaS Actions</th>
                   </tr>
@@ -213,16 +230,27 @@
                   </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-  <div>
-    <label class="block font-bold text-zinc-700 mb-1">Set Admin Password *</label>
-    <input id="newAdminPass" type="text" required placeholder="Set custom password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono font-bold" />
-  </div>
-  <div>
-    <label class="block font-bold text-zinc-700 mb-1">Set Warden Password *</label>
-    <input id="newWardenPass" type="text" required placeholder="Set custom password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono font-bold" />
-  </div>
-</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Owner Admin Gmail (Optional)</label>
+                    <input id="newAdminEmail" type="email" placeholder="owner@gmail.com (or Google Sign-In)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Set Admin Password *</label>
+                    <input id="newAdminPass" type="text" required placeholder="Enter Admin Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono font-bold" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Warden Gmail (Optional)</label>
+                    <input id="newWardenEmail" type="email" placeholder="warden@gmail.com (or Google Sign-In)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Set Warden Password *</label>
+                    <input id="newWardenPass" type="text" required placeholder="Enter Warden Password" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono font-bold" />
+                  </div>
+                </div>
 
                 <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl font-bold uppercase tracking-wider transition shadow-sm">
                   <i class="fa-solid fa-bolt text-emerald-400 mr-1.5"></i> Provision Database & Generate Links
@@ -283,7 +311,8 @@
   </div>
 
   <script>
-    const MASTER_PIN = "4426";
+    const FOUNDER_EMAIL = "jameelfaisal177@gmail.com";
+    const FOUNDER_PASS = "Qwerty@12345";
     let allTenantsCache = [];
     let selectedClientPackage = null;
 
@@ -314,39 +343,53 @@
           hideLoginGate();
           loadAllCloudTenants();
         }
-      } catch (e) {
-        console.warn("Storage restricted", e);
-      }
+      } catch (e) {}
     }
 
     function verifyMasterPin(e) {
       if (e) e.preventDefault();
-      const pin = document.getElementById("masterPinInput").value.trim();
-      if (pin === MASTER_PIN) {
-        try {
-          sessionStorage.setItem("MASTER_HQ_AUTH", "true");
-        } catch (err) {}
+      const email = (document.getElementById("masterEmailInput")?.value || "").trim().toLowerCase();
+      const pass = (document.getElementById("masterPinInput")?.value || "").trim();
+
+      if (email === FOUNDER_EMAIL.toLowerCase() && pass === FOUNDER_PASS) {
+        try { sessionStorage.setItem("MASTER_HQ_AUTH", "true"); } catch (err) {}
         hideLoginGate();
-        try {
-          loadAllCloudTenants();
-        } catch (err) {
-          console.error(err);
-        }
+        loadAllCloudTenants();
       } else {
-        alert("❌ Invalid PIN! Please enter: " + MASTER_PIN);
+        alert("❌ Invalid Founder Email or Password!");
+      }
+    }
+
+    async function masterGoogleLogin() {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const res = await firebase.auth().signInWithPopup(provider);
+        const userEmail = (res.user && res.user.email || "").toLowerCase();
+
+        if (userEmail === FOUNDER_EMAIL.toLowerCase()) {
+          try { sessionStorage.setItem("MASTER_HQ_AUTH", "true"); } catch (err) {}
+          hideLoginGate();
+          loadAllCloudTenants();
+        } else {
+          alert(`❌ Access Denied!\n"${userEmail}" is not authorized. Only Founder (${FOUNDER_EMAIL}) can unlock Master HQ.`);
+        }
+      } catch (err) {
+        alert("Google Sign-In Error: " + err.message);
       }
     }
 
     function logoutMaster() {
-      try {
-        sessionStorage.removeItem("MASTER_HQ_AUTH");
-      } catch (e) {}
+      try { sessionStorage.removeItem("MASTER_HQ_AUTH"); } catch (e) {}
       location.reload();
     }
 
     function switchMasterTab(tabId) {
       ["tenants", "generator"].forEach(id => {
-        document.getElementById("masterView-" + id).classList.toggle("hidden", id !== tabId);
+        const el = document.getElementById("masterView-" + id);
+        if (el) {
+          el.classList.toggle("hidden", id !== tabId);
+          el.style.setProperty("display", id === tabId ? "block" : "none", "important");
+        }
 
         const nav = document.getElementById("mnav-" + id);
         if (nav) {
@@ -367,9 +410,11 @@
         ? "Multi-Tenant Hostel Directory & License Control"
         : "1-Click New Hostel Client Onboarding & Link Generator";
 
-      const sb = document.getElementById("masterSidebar");
-      if (sb && !sb.classList.contains("-translate-x-full")) {
-        toggleMasterMobileMenu();
+      if (window.innerWidth < 1024) {
+        const sb = document.getElementById("masterSidebar");
+        if (sb && !sb.classList.contains("-translate-x-full")) {
+          toggleMasterMobileMenu();
+        }
       }
     }
 
@@ -384,7 +429,9 @@
         const snap = await firebase.firestore().collection("hostel_system").get();
         allTenantsCache = [];
         snap.forEach(doc => {
-          allTenantsCache.push({ tenantId: doc.id, data: doc.data() || {} });
+          const data = doc.data() || {};
+          allTenantsCache.push({ tenantId: doc.id, data });
+          try { localStorage.setItem("HOSTEL_SAAS_DB_" + doc.id, JSON.stringify(data)); } catch (e) {}
         });
 
         updateMasterKPIs();
@@ -414,6 +461,11 @@
       document.getElementById("badgeTotalTenants").innerText = total;
     }
 
+    function setActiveAndOpen(url, tenantId) {
+      try { localStorage.setItem("LAST_ACTIVE_TENANT", tenantId); } catch (e) {}
+      window.open(url, "_blank");
+    }
+
     function renderTenantsTable() {
       const tbody = document.getElementById("tenantsTableBody");
       const q = (document.getElementById("searchTenantInput").value || "").toLowerCase().trim();
@@ -427,6 +479,9 @@
         tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-zinc-400">No matching hostel clients found. Click "+ Onboard New Hostel" to create one.</td></tr>`;
         return;
       }
+
+      const isHtmlExt = window.location.pathname.endsWith(".html");
+      const admPage = isHtmlExt ? "admin.html" : "admin";
 
       tbody.innerHTML = filtered.map(t => {
         const id = t.tenantId;
@@ -449,9 +504,9 @@
               <span class="font-bold text-zinc-900">${roomsCount}</span> Rooms • <span class="font-bold text-emerald-700">${stuCount}</span> Students
             </td>
             <td class="p-3.5 whitespace-nowrap font-mono text-[11px]">
-              <div>Admin: <strong class="text-zinc-900">${set.adminPass || '123'}</strong></div>
-              <div>Warden: <strong class="text-zinc-700">${set.wardenPass || '123'}</strong></div>
-              <button onclick="masterChangeClientPassword('${id}')" class="text-[10px] text-emerald-700 hover:underline font-semibold block mt-1">Change Key</button>
+              <div>Admin: <strong class="text-zinc-900">${set.adminEmail || 'Any/Google'}</strong> | Pass: <strong>${set.adminPass || 'Not Set'}</strong></div>
+              <div>Warden: <strong class="text-zinc-700">${set.wardenEmail || 'Any/Google'}</strong> | Pass: <strong>${set.wardenPass || 'Not Set'}</strong></div>
+              <button onclick="masterChangeClientPassword('${id}')" class="text-[10px] text-emerald-700 hover:underline font-bold block mt-1">🔑 Edit Email / Pass</button>
             </td>
             <td class="p-3.5 whitespace-nowrap">
               <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${isSuspended ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'}">
@@ -462,9 +517,9 @@
               <button onclick="openClientLinksPackage('${id}')" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="View & Share Client Links">
                 <i class="fa-solid fa-link mr-1"></i> Links
               </button>
-              <a href="admin?hostel=${id}" target="_blank" class="inline-block bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="Open Client Admin ERP">
+              <button onclick="setActiveAndOpen('${admPage}?hostel=${id}', '${id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="Open Client Admin ERP">
                 Admin ↗
-              </a>
+              </button>
               <button onclick="toggleTenantSuspension('${id}', ${isSuspended})" class="${isSuspended ? 'bg-emerald-700 hover:bg-emerald-600 text-white' : 'bg-amber-100 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300'} px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition">
                 ${isSuspended ? 'Unlock' : 'Suspend'}
               </button>
@@ -480,26 +535,42 @@
     async function masterChangeClientPassword(tenantId) {
       const found = allTenantsCache.find(t => t.tenantId === tenantId);
       if (!found) return;
-      const currentAdmin = found.data.settings?.adminPass || "";
-      const currentWarden = found.data.settings?.wardenPass || "";
+      const set = found.data.settings || {};
 
-      const newAdmin = prompt(`🔑 CHANGE CREDENTIALS FOR: ${tenantId}\n\nEnter New Admin Password:`, currentAdmin);
+      const newAdminEmail = prompt(`📧 Admin Gmail for "${tenantId}" (leave empty to allow Google Sign-Up):`, set.adminEmail || "");
+      if (newAdminEmail === null) return;
+      const newAdmin = prompt(`🔑 Admin Password for "${tenantId}":`, set.adminPass || "");
       if (newAdmin === null) return;
-      const newWarden = prompt(`Enter New Warden Password:`, currentWarden);
+      const newWardenEmail = prompt(`📧 Warden Gmail for "${tenantId}" (optional):`, set.wardenEmail || "");
+      if (newWardenEmail === null) return;
+      const newWarden = prompt(`🔑 Warden Password for "${tenantId}":`, set.wardenPass || "");
       if (newWarden === null) return;
 
       try {
+        found.data.settings = found.data.settings || {};
+        found.data.settings.adminEmail = newAdminEmail.trim().toLowerCase();
+        found.data.settings.adminPass = newAdmin.trim();
+        found.data.settings.wardenEmail = newWardenEmail.trim().toLowerCase();
+        found.data.settings.wardenPass = newWarden.trim();
+
+        try {
+          localStorage.setItem("HOSTEL_SAAS_DB_" + tenantId, JSON.stringify(found.data));
+          localStorage.setItem("LAST_ACTIVE_TENANT", tenantId);
+        } catch (e) {}
+
         await firebase.firestore().collection("hostel_system").doc(tenantId).set({
           settings: {
-            adminPass: newAdmin.trim() || "123",
-            wardenPass: newWarden.trim() || "123"
+            adminEmail: newAdminEmail.trim().toLowerCase(),
+            adminPass: newAdmin.trim(),
+            wardenEmail: newWardenEmail.trim().toLowerCase(),
+            wardenPass: newWarden.trim()
           }
         }, { merge: true });
 
         await loadAllCloudTenants();
-        alert(`✅ Passwords successfully updated for tenant "${tenantId}"!`);
+        alert(`✅ Credentials updated for "${tenantId}"!`);
       } catch (err) {
-        alert("Failed to update passwords: " + err.message);
+        alert("Failed to update credentials: " + err.message);
       }
     }
 
@@ -515,10 +586,12 @@
       const tenantId = document.getElementById("newTenantId").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
       const ownerPhone = document.getElementById("newOwnerPhone").value.trim();
       const jazzcash = document.getElementById("newJazzCash").value.trim() || ownerPhone;
-      const adminPass = document.getElementById("newAdminPass").value.trim() || "123";
-      const wardenPass = document.getElementById("newWardenPass").value.trim() || "123";
+      const adminEmail = (document.getElementById("newAdminEmail")?.value || "").trim().toLowerCase();
+      const adminPass = document.getElementById("newAdminPass").value.trim();
+      const wardenEmail = (document.getElementById("newWardenEmail")?.value || "").trim().toLowerCase();
+      const wardenPass = document.getElementById("newWardenPass").value.trim();
 
-      if (!tenantId) return alert("Please enter a valid Tenant ID!");
+      if (!tenantId || !adminPass || !wardenPass) return alert("Please fill in Tenant ID, Admin Password, and Warden Password!");
 
       const exists = allTenantsCache.some(t => t.tenantId === tenantId);
       if (exists && !confirm(`Tenant ID "${tenantId}" already exists! Do you want to update its settings?`)) {
@@ -531,7 +604,9 @@
           hostelName,
           jazzcash,
           adminWhatsApp: ownerPhone,
+          adminEmail,
           adminPass,
+          wardenEmail,
           wardenPass,
           currentMonth,
           isSuspended: false
@@ -552,10 +627,15 @@
       };
 
       try {
+        try {
+          localStorage.setItem("HOSTEL_SAAS_DB_" + tenantId, JSON.stringify(newTenantDB));
+          localStorage.setItem("LAST_ACTIVE_TENANT", tenantId);
+        } catch (e) {}
+
         await firebase.firestore().collection("hostel_system").doc(tenantId).set(newTenantDB, { merge: true });
         await loadAllCloudTenants();
         renderClientLinksBox(tenantId, newTenantDB.settings);
-        alert(`✅ Hostel Client "${hostelName}" (?hostel=${tenantId}) created on Cloud!`);
+        alert(`✅ Hostel Client "${hostelName}" (?hostel=${tenantId}) created!`);
       } catch (err) {
         alert("Error creating client: " + err.message);
       }
@@ -564,23 +644,27 @@
     function openClientLinksPackage(tenantId) {
       const found = allTenantsCache.find(t => t.tenantId === tenantId);
       if (!found) return;
+      try { localStorage.setItem("LAST_ACTIVE_TENANT", tenantId); } catch (e) {}
       switchMasterTab("generator");
       renderClientLinksBox(tenantId, found.data.settings || {});
     }
 
     function renderClientLinksBox(tenantId, set) {
-      const base = window.location.origin;
-      const pubUrl = `${base}/index?hostel=${tenantId}`;
-      const admUrl = `${base}/admin?hostel=${tenantId}`;
-      const stuUrl = `${base}/student?hostel=${tenantId}`;
-      const warUrl = `${base}/warden?hostel=${tenantId}`;
+      const base = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, "");
+      const isHtml = window.location.pathname.endsWith(".html");
+      const pubUrl = `${base}/${isHtml ? 'index.html' : 'index'}?hostel=${tenantId}`;
+      const admUrl = `${base}/${isHtml ? 'admin.html' : 'admin'}?hostel=${tenantId}`;
+      const stuUrl = `${base}/${isHtml ? 'student.html' : 'student'}?hostel=${tenantId}`;
+      const warUrl = `${base}/${isHtml ? 'warden.html' : 'warden'}?hostel=${tenantId}`;
 
       selectedClientPackage = {
         tenantId,
         hostelName: set.hostelName || tenantId,
         ownerPhone: set.adminWhatsApp || set.jazzcash || "",
-        adminPass: set.adminPass || "123",
-        wardenPass: set.wardenPass || "123",
+        adminEmail: set.adminEmail || "Google Sign-In",
+        adminPass: set.adminPass || "",
+        wardenEmail: set.wardenEmail || "Google Sign-In",
+        wardenPass: set.wardenPass || "",
         pubUrl, admUrl, stuUrl, warUrl
       };
 
@@ -602,15 +686,15 @@
 
       document.getElementById("generatedLinksContainer").innerHTML =
         makeRow("1. Public Website & Online Admission", "fa-solid fa-globe", pubUrl, "") +
-        makeRow("2. Executive Admin ERP Console", "fa-solid fa-sliders", admUrl, `Pass: ${selectedClientPackage.adminPass}`) +
-        makeRow("3. Resident Student Portal", "fa-solid fa-user-graduate", stuUrl, "Roll ID Login") +
-        makeRow("4. Security Warden Console", "fa-solid fa-user-shield", warUrl, `Pass: ${selectedClientPackage.wardenPass}`);
+        makeRow("2. Executive Admin ERP Console", "fa-solid fa-sliders", admUrl, `${selectedClientPackage.adminEmail} | Pass: ${selectedClientPackage.adminPass}`) +
+        makeRow("3. Resident Student Portal", "fa-solid fa-user-graduate", stuUrl, "Google / Roll ID + Pass") +
+        makeRow("4. Security Warden Console", "fa-solid fa-user-shield", warUrl, `${selectedClientPackage.wardenEmail} | Pass: ${selectedClientPackage.wardenPass}`);
     }
 
     function buildWelcomeText() {
       if (!selectedClientPackage) return "";
       const p = selectedClientPackage;
-      return `*WELCOME TO HOSTELCLOUD ERP — ${p.hostelName.toUpperCase()}*\n\nYour cloud hostel management software is live! Below are your official links and login credentials:\n\n🌐 *1. Public Website & Online Admission:*\n${p.pubUrl}\n\n👑 *2. Admin ERP Console (Owner):*\n${p.admUrl}\n🔑 *Admin Password:* ${p.adminPass}\n\n🎓 *3. Resident Student Portal:*\n${p.stuUrl}\n*(Students login with Roll ID or CNIC)*\n\n👮 *4. Security Warden Console:*\n${p.warUrl}\n🔑 *Warden Password:* ${p.wardenPass}`;
+      return `*WELCOME TO HOSTELCLOUD ERP — ${p.hostelName.toUpperCase()}*\n\nYour cloud hostel management software is live! Below are your official links and login credentials:\n\n🌐 *1. Public Website & Online Admission:*\n${p.pubUrl}\n\n👑 *2. Admin ERP Console (Owner):*\n${p.admUrl}\n📧 *Email:* ${p.adminEmail}\n🔑 *Password:* ${p.adminPass}\n*(Or click 'Sign in with Google' to link your Gmail & set password)*\n\n🎓 *3. Resident Student Portal:*\n${p.stuUrl}\n\n👮 *4. Security Warden Console:*\n${p.warUrl}\n📧 *Email:* ${p.wardenEmail}\n🔑 *Password:* ${p.wardenPass}`;
     }
 
     function copyCompleteWelcomePackage() {
@@ -648,6 +732,7 @@
 
       try {
         await firebase.firestore().collection("hostel_system").doc(tenantId).delete();
+        try { localStorage.removeItem("HOSTEL_SAAS_DB_" + tenantId); } catch (e) {}
         await loadAllCloudTenants();
         alert(`🗑️ Deleted tenant "${tenantId}" from Cloud.`);
       } catch (err) {
