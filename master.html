@@ -1,312 +1,511 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HostelCloud SaaS — Founder Master HQ</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Master SaaS HQ — Multi-Tenant Cloud Control Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="db.js"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
+    #saasBrandingFooter, #globalLiveNoticeBanner { display: none !important; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+<body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
-  <!-- MASTER PIN LOCK SCREEN -->
-  <div id="masterAuthOverlay" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-50 p-4">
-    <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-md w-full p-8 space-y-5 shadow-2xl text-center">
-      <div class="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl mx-auto shadow-lg shadow-indigo-600/30">
-        <i class="fa-solid fa-server"></i>
-      </div>
-      <div>
-        <span class="bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">Multi-Tenant Cloud Engine</span>
-        <h1 class="text-2xl font-extrabold text-white mt-2">SaaS Founder Master HQ</h1>
-        <p class="text-xs text-slate-400 mt-1">Provision new hostel tenants, generate client links & control licenses</p>
-      </div>
-      <form onsubmit="unlockMasterHQ(event)" class="space-y-4 text-xs sm:text-sm text-left">
-        <div>
-          <label class="text-slate-400 block mb-1">Master Founder PIN (Default: 7860)</label>
-          <input id="masterPin" type="password" value="7860" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-center tracking-widest font-mono text-base">
+  <!-- ===================================================================== -->
+  <!-- 🔒 MASTER FOUNDER PIN GATE (DEFAULT PIN: 7860)                        -->
+  <!-- ===================================================================== -->
+  <div id="masterLoginGate" class="fixed inset-0 bg-zinc-900/95 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center gap-3 border-b border-zinc-100 pb-4">
+        <div class="w-11 h-11 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-lg font-bold shrink-0">
+          <i class="fa-solid fa-crown"></i>
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg">
-          Unlock SaaS Control Center
+        <div class="min-w-0">
+          <h2 class="text-base font-extrabold text-zinc-900 truncate">Master SaaS HQ</h2>
+          <p class="text-xs text-zinc-500">Multi-Tenant Cloud Licensing Control</p>
+        </div>
+      </div>
+
+      <form onsubmit="verifyMasterPin(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-zinc-700 mb-1.5">Founder Security PIN *</label>
+          <input id="masterPinInput" type="password" required placeholder="Enter Master PIN (7860)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-mono tracking-widest text-center font-extrabold focus:border-zinc-900 focus:bg-white outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
+          Unlock Master HQ →
         </button>
       </form>
+
+      <div class="pt-3 border-t border-zinc-100 flex justify-between text-xs text-zinc-500 font-medium">
+        <a href="index" class="hover:text-zinc-900">← Default Public Site</a>
+        <a href="admin" class="hover:text-zinc-900">Default Admin →</a>
+      </div>
     </div>
   </div>
 
-  <!-- MAIN SAAS FOUNDER DASHBOARD -->
-  <div id="masterApp" class="hidden max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-    
-    <!-- Top Header -->
-    <header class="bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div class="flex items-center space-x-4">
-        <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-xl font-bold shadow-lg">
-          <i class="fa-solid fa-cloud-bolt"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl font-extrabold text-white">HostelCloud <span class="text-indigo-400">Multi-Tenant SaaS</span></h1>
-            <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Live Cloud</span>
-          </div>
-          <p class="text-xs text-slate-400">Centralized License & Client Provisioning Console</p>
-        </div>
-      </div>
-      <div class="flex gap-3 text-xs">
-        <div class="bg-slate-950/80 border border-slate-800 px-4 py-2 rounded-xl text-center">
-          <span class="text-slate-400 block text-[10px] uppercase">Total Client Hostels</span>
-          <strong id="kpiTenants" class="text-lg text-white">0</strong>
-        </div>
-        <div class="bg-slate-950/80 border border-slate-800 px-4 py-2 rounded-xl text-center">
-          <span class="text-slate-400 block text-[10px] uppercase">Active Subscriptions</span>
-          <strong id="kpiActive" class="text-lg text-emerald-400">0</strong>
-        </div>
-        <div class="bg-slate-950/80 border border-slate-800 px-4 py-2 rounded-xl text-center">
-          <span class="text-slate-400 block text-[10px] uppercase">Monthly SaaS MRR</span>
-          <strong id="kpiMrr" class="text-lg text-amber-400">Rs. 0</strong>
-        </div>
-      </div>
-    </header>
+  <!-- ===================================================================== -->
+  <!-- 📱 MOBILE SIDEBAR BACKDROP OVERLAY                                    -->
+  <!-- ===================================================================== -->
+  <div id="masterSidebarBackdrop" onclick="toggleMasterMobileMenu()" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
 
-    <!-- 1. PROVISION NEW CLIENT HOSTEL FORM -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+  <!-- ===================================================================== -->
+  <!-- 🖥️ FULL-SCREEN MASTER WORKSPACE                                       -->
+  <!-- ===================================================================== -->
+  <div class="flex h-dvh w-screen overflow-hidden">
+
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION -->
+    <aside id="masterSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
-        <h2 class="text-base font-bold text-white"><i class="fa-solid fa-plus-circle text-indigo-400 mr-2"></i> Register & Provision New Client Hostel (1-Click Setup)</h2>
-        <p class="text-xs text-slate-400">Creates a dedicated, isolated cloud database instance and generates all 4 portal links for your client.</p>
-      </div>
-      <form onsubmit="createNewTenant(event)" class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs">
-        <div>
-          <label class="text-slate-400 block mb-1">Unique Client Slug/ID *</label>
-          <input id="tSlug" required placeholder="e.g. almadina" pattern="[a-zA-Z0-9_-]+" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-indigo-300 font-mono font-bold">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="text-slate-400 block mb-1">Hostel Official Name *</label>
-          <input id="tName" required placeholder="e.g. Al-Madina Boys Hostel Multan" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
-        </div>
-        <div>
-          <label class="text-slate-400 block mb-1">Owner JazzCash / Phone *</label>
-          <input id="tPhone" required placeholder="0300-1234567" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
-        </div>
-        <div>
-          <label class="text-slate-400 block mb-1">Monthly SaaS Fee (Rs.) *</label>
-          <input id="tFee" required type="number" value="2500" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-emerald-400 font-bold">
-        </div>
-        <div class="flex items-end">
-          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl shadow-lg transition">
-            <i class="fa-solid fa-rocket mr-1"></i> Launch Client
+        <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
+          <div class="flex items-center gap-2.5 truncate">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+              <i class="fa-solid fa-crown"></i>
+            </div>
+            <div class="truncate">
+              <h1 class="text-sm font-bold text-white truncate">HostelCloud HQ</h1>
+              <span class="text-[10px] text-emerald-400 font-semibold block">● Multi-Tenant Master</span>
+            </div>
+          </div>
+          <button onclick="toggleMasterMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white text-lg px-1">
+            <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-      </form>
-    </section>
 
-    <!-- 2. ACTIVE CLIENT HOSTELS & LINK GENERATOR TABLE -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 class="text-base font-bold text-white"><i class="fa-solid fa-building-user text-emerald-400 mr-2"></i> Registered Client Hostels & License Control</h2>
-          <p class="text-xs text-slate-400">Search clients, copy clean portal links, suspend overdue accounts, or delete tenants.</p>
-        </div>
-        <!-- 🔍 NEW SEARCH BAR -->
-        <div class="relative w-full sm:w-72">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-          <input id="searchTenantInput" oninput="renderTenants()" type="text" placeholder="Search by Hostel Name, ID or Phone..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-indigo-500 outline-none">
+        <div class="p-3 space-y-1.5 text-xs font-semibold">
+          <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">SaaS Administration</p>
+
+          <button onclick="switchMasterTab('tenants')" id="mnav-tenants" class="mnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-zinc-800 text-white font-bold transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-building-shield w-4 text-center text-emerald-400"></i> Active Hostel Clients</span>
+            <span id="badgeTotalTenants" class="bg-emerald-500 text-zinc-950 font-extrabold px-1.5 py-0.2 rounded text-[10px]">0</span>
+          </button>
+
+          <button onclick="switchMasterTab('generator')" id="mnav-generator" class="mnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+            <span class="flex items-center gap-2.5"><i class="fa-solid fa-wand-magic-sparkles w-4 text-center"></i> 1-Click Client Onboarding</span>
+          </button>
         </div>
       </div>
 
-      <div id="tenantsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-    </section>
+      <div class="p-3 border-t border-zinc-800 bg-zinc-950/50 space-y-2 text-xs">
+        <button onclick="loadAllCloudTenants()" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-2 rounded-lg font-semibold transition">
+          <i class="fa-solid fa-rotate mr-1"></i> Refresh Cloud Data
+        </button>
+        <button onclick="logoutMaster()" class="w-full flex items-center justify-center gap-1.5 text-rose-400 hover:bg-rose-500/10 py-2 rounded-lg font-bold transition">
+          <i class="fa-solid fa-lock text-xs"></i> Lock Master HQ
+        </button>
+      </div>
+    </aside>
 
-  <script>
-    // 👇 PASTE YOUR SAME FIREBASE CONFIG KEYS HERE:
-    const firebaseConfig = {
-  apiKey: "AIzaSyCRXCp75adfyFUbyZHlgRGQtu2vqb-TPMM",
-  authDomain: "hostel-cloud-pk.firebaseapp.com",
-  projectId: "hostel-cloud-pk",
-  storageBucket: "hostel-cloud-pk.firebasestorage.app",
-  messagingSenderId: "394742737685",
-  appId: "1:394742737685:web:a8faef1ab5bf69d84e971c"
-};
+    <!-- 🖥️ RIGHT MAIN VIEWPORT -->
+    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-
-    const MASTER_PIN = "7860"; // Apna secret Master PIN yahan change kar sakte hain
-    let firestore = null;
-    let allTenants = [];
-
-    try {
-      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-      firestore = firebase.firestore();
-    } catch (e) {
-      console.error(e);
-    }
-
-    function unlockMasterHQ(e) {
-      e.preventDefault();
-      if (document.getElementById("masterPin").value === MASTER_PIN) {
-        document.getElementById("masterAuthOverlay").classList.add("hidden");
-        document.getElementById("masterApp").classList.remove("hidden");
-        listenToAllTenants();
-      } else {
-        alert("Invalid Master PIN!");
-      }
-    }
-
-    function listenToAllTenants() {
-      if (!firestore) return;
-      firestore.collection("hostel_system").onSnapshot(snap => {
-        allTenants = [];
-        snap.forEach(doc => {
-          allTenants.push({ id: doc.id, data: doc.data() });
-        });
-        renderTenants();
-      });
-    }
-
-    function renderTenants() {
-      const grid = document.getElementById("tenantsGrid");
-      if (!grid) return;
-
-      // Auto-inject Search Bar right above tenantsGrid if not already present
-      if (!document.getElementById("searchTenantInput")) {
-        const searchBox = document.createElement("div");
-        searchBox.className = "mb-4";
-        searchBox.innerHTML = `
-          <div class="relative w-full sm:w-80">
-            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-            <input id="searchTenantInput" oninput="renderTenants()" type="text" placeholder="Search by Hostel Name, ID or Phone..." class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-indigo-500 outline-none">
+      <!-- Top Header -->
+      <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button onclick="toggleMasterMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bars text-sm"></i>
+          </button>
+          <div class="min-w-0">
+            <h2 id="masterViewTitle" class="text-sm sm:text-base font-extrabold text-zinc-900 truncate">Multi-Tenant Hostel Directory & License Control</h2>
+            <p class="text-[11px] text-zinc-500 truncate">Monitor all client hostels, suspend/activate licenses, or onboard new clients</p>
           </div>
-        `;
-        grid.parentNode.insertBefore(searchBox, grid);
+        </div>
+
+        <div class="flex items-center gap-2 text-xs shrink-0">
+          <button onclick="switchMasterTab('generator')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-lg font-bold transition shadow-2xs">
+            <i class="fa-solid fa-plus sm:mr-1"></i> <span class="hidden sm:inline">Onboard New Hostel</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Main Area -->
+      <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll space-y-6">
+
+        <!-- 4-Card SaaS Global KPI Ribbon -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Total Hostel Clients</span>
+            <strong id="kpiTotalClients" class="text-lg sm:text-2xl font-extrabold text-zinc-900 block mt-0.5">0</strong>
+            <span class="text-[10px] text-emerald-700 font-bold">Cloud Firestore Tenants</span>
+          </div>
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Active Licenses</span>
+            <strong id="kpiActiveClients" class="text-lg sm:text-2xl font-extrabold text-emerald-700 block mt-0.5">0</strong>
+            <span class="text-[10px] text-zinc-500">Operational Portals</span>
+          </div>
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Suspended Locks</span>
+            <strong id="kpiSuspendedClients" class="text-lg sm:text-2xl font-extrabold text-rose-600 block mt-0.5">0</strong>
+            <span class="text-[10px] text-rose-600 font-semibold">Kill-Switch Engaged</span>
+          </div>
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs">
+            <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Total Residents Managed</span>
+            <strong id="kpiGlobalStudents" class="text-lg sm:text-2xl font-extrabold text-zinc-900 block mt-0.5">0</strong>
+            <span class="text-[10px] text-zinc-500">Across All Hostels</span>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- VIEW 1: ACTIVE HOSTEL CLIENTS DIRECTORY & KILL-SWITCH           -->
+        <!-- =============================================================== -->
+        <div id="masterView-tenants" class="space-y-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
+            <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-zinc-900">Enrolled Hostel Clients (Firestore Collection: <code class="text-emerald-700 font-mono">hostel_system</code>)</h3>
+                <p class="text-xs text-zinc-500">Manage tenant subscriptions, inspect credentials, or generate client portal links in 1 click.</p>
+              </div>
+              <input id="searchTenantInput" oninput="renderTenantsTable()" type="text" placeholder="Search hostel name or tenant ID..." class="bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2 text-xs w-full sm:w-64 outline-none focus:border-zinc-900" />
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
+                  <tr>
+                    <th class="p-3.5">Hostel Name & Tenant ID</th>
+                    <th class="p-3.5">Contact / Account</th>
+                    <th class="p-3.5">Usage Stats</th>
+                    <th class="p-3.5">Passwords</th>
+                    <th class="p-3.5">License Status</th>
+                    <th class="p-3.5 text-right">Master SaaS Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tenantsTableBody" class="divide-y divide-zinc-200">
+                  <tr><td colspan="6" class="p-8 text-center text-zinc-400">Loading cloud tenants from Firebase...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- =============================================================== -->
+        <!-- VIEW 2: 1-CLICK NEW CLIENT ONBOARDING & LINK GENERATOR          -->
+        <!-- =============================================================== -->
+        <div id="masterView-generator" class="hidden space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+
+            <!-- Left 6 Cols: Create New Hostel Client Form -->
+            <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-4">
+              <div class="border-b border-zinc-100 pb-3">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Instant Cloud Provisioning</span>
+                <h3 class="text-base font-extrabold text-zinc-900 mt-0.5">Create & Onboard New Hostel Client</h3>
+                <p class="text-xs text-zinc-500">Creates a dedicated isolated database in Firebase and generates all 4 client links immediately.</p>
+              </div>
+
+              <form onsubmit="createNewHostelClient(event)" class="space-y-3.5 text-xs">
+                <div>
+                  <label class="block font-bold text-zinc-700 mb-1">Official Hostel Name *</label>
+                  <input id="newHostelName" type="text" required oninput="autoSuggestTenantId()" placeholder="e.g., Al-Madina Boys Hostel Multan" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-semibold outline-none focus:border-zinc-900" />
+                </div>
+
+                <div>
+                  <label class="block font-bold text-zinc-700 mb-1">Unique Tenant ID (URL Slug) *</label>
+                  <input id="newTenantId" type="text" required placeholder="e.g., almadina_multan" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-emerald-800 font-mono font-bold outline-none focus:border-zinc-900" />
+                  <span class="text-[10px] text-zinc-400 block mt-1">Only lowercase letters, numbers, and underscores allowed.</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Owner WhatsApp Number *</label>
+                    <input id="newOwnerPhone" type="text" required placeholder="03001234567" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 outline-none focus:border-zinc-900" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">JazzCash / Bank Account</label>
+                    <input id="newJazzCash" type="text" placeholder="0300-1234567 (JazzCash)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 outline-none focus:border-zinc-900" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Initial Admin Password *</label>
+                    <input id="newAdminPass" type="text" required value="12345" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono font-bold" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-zinc-700 mb-1">Initial Warden Password *</label>
+                    <input id="newWardenPass" type="text" required value="123" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono font-bold" />
+                  </div>
+                </div>
+
+                <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl font-bold uppercase tracking-wider transition shadow-sm">
+                  <i class="fa-solid fa-bolt text-emerald-400 mr-1.5"></i> Provision Cloud Database & Generate Links
+                </button>
+              </form>
+            </div>
+
+            <!-- Right 6 Cols: Generated Client Links & 1-Click WhatsApp Delivery -->
+            <div class="lg:col-span-6 bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="border-b border-zinc-100 pb-3 flex items-center justify-between">
+                  <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Client Delivery Package</span>
+                    <h3 id="genBoxTitle" class="text-base font-extrabold text-zinc-900 mt-0.5">Ready-to-Share Hostel Portal Links</h3>
+                  </div>
+                  <span id="genTenantBadge" class="bg-zinc-100 text-zinc-700 font-mono text-[11px] font-bold px-2.5 py-1 rounded">No Client Selected</span>
+                </div>
+
+                <div id="generatedLinksContainer" class="space-y-2.5 text-xs">
+                  <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-6 text-center text-zinc-400">
+                    Create a new client on the left or click <strong>"🔗 Links"</strong> next to any existing hostel in the directory to generate their complete link package.
+                  </div>
+                </div>
+              </div>
+
+              <div id="generatedActionsBar" class="hidden pt-3 border-t border-zinc-100 flex flex-col sm:flex-row gap-2.5 text-xs">
+                <button type="button" onclick="copyCompleteWelcomePackage()" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-xl font-bold transition">
+                  <i class="fa-solid fa-copy mr-1.5"></i> Copy Complete Welcome Message
+                </button>
+                <button type="button" onclick="sendWelcomePackageWhatsApp()" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 px-4 rounded-xl font-bold transition">
+                  <i class="fa-brands fa-whatsapp mr-1.5"></i> Send Package to Owner on WhatsApp
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR                               -->
+      <!-- ================================================================= -->
+      <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-3 z-30 shadow-lg">
+        <button onclick="switchMasterTab('tenants')" id="mbnav-tenants" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[11px]">
+          <i class="fa-solid fa-building-shield text-base"></i>
+          <span>Clients</span>
+        </button>
+        <button onclick="switchMasterTab('generator')" id="mbnav-generator" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]">
+          <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+          <span>New Client</span>
+        </button>
+        <button onclick="loadAllCloudTenants()" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]">
+          <i class="fa-solid fa-rotate text-base"></i>
+          <span>Sync Cloud</span>
+        </button>
+      </nav>
+
+    </div>
+
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 🚀 MASTER SAAS HQ CONTROLLER                                          -->
+  <!-- ===================================================================== -->
+  <script>
+    const MASTER_PIN = "7860";
+    let allTenantsCache = [];
+    let selectedClientPackage = null;
+
+    function toggleMasterMobileMenu() {
+      const sb = document.getElementById("masterSidebar");
+      const bd = document.getElementById("masterSidebarBackdrop");
+      const isHidden = sb.classList.contains("-translate-x-full");
+      if (isHidden) {
+        sb.classList.remove("-translate-x-full");
+        bd.classList.remove("hidden");
+      } else {
+        sb.classList.add("-translate-x-full");
+        bd.classList.add("hidden");
       }
+    }
 
-      grid.innerHTML = "";
+    function checkMasterSession() {
+      if (sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
+        document.getElementById("masterLoginGate").classList.add("hidden");
+        loadAllCloudTenants();
+      }
+    }
 
-      let activeCount = 0;
-      let totalMrr = 0;
-      const searchQ = (document.getElementById("searchTenantInput")?.value || "").toLowerCase().trim();
+    function verifyMasterPin(e) {
+      e.preventDefault();
+      const pin = document.getElementById("masterPinInput").value.trim();
+      if (pin === MASTER_PIN) {
+        sessionStorage.setItem("MASTER_HQ_AUTH", "true");
+        document.getElementById("masterLoginGate").classList.add("hidden");
+        loadAllCloudTenants();
+      } else {
+        alert("❌ Invalid Founder Security PIN!");
+      }
+    }
 
-      // Clean root domain (Fixes 404 Not Found on client links)
-      const baseUrl = window.location.origin;
+    function logoutMaster() {
+      sessionStorage.removeItem("MASTER_HQ_AUTH");
+      location.reload();
+    }
 
-      allTenants.forEach(t => {
-        const set = (t.data && t.data.settings) || {};
-        if (!set.isSuspended) {
-          activeCount++;
-          totalMrr += Number(set.saasFee || 2500);
+    function switchMasterTab(tabId) {
+      ["tenants", "generator"].forEach(id => {
+        document.getElementById("masterView-" + id).classList.toggle("hidden", id !== tabId);
+
+        const nav = document.getElementById("mnav-" + id);
+        if (nav) {
+          nav.className = id === tabId
+            ? "mnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-zinc-800 text-white font-bold transition"
+            : "mnav w-full flex items-center justify-between px-3.5 py-3 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+        }
+
+        const bnav = document.getElementById("mbnav-" + id);
+        if (bnav) {
+          bnav.className = id === tabId
+            ? "flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[11px]"
+            : "flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[11px]";
         }
       });
 
-      const filteredTenants = allTenants.filter(t => {
-        const set = (t.data && t.data.settings) || {};
-        const name = (set.hostelName || "").toLowerCase();
-        const phone = (set.jazzcash || "").toLowerCase();
-        return t.id.toLowerCase().includes(searchQ) || name.includes(searchQ) || phone.includes(searchQ);
+      document.getElementById("masterViewTitle").innerText = tabId === "tenants"
+        ? "Multi-Tenant Hostel Directory & License Control"
+        : "1-Click New Hostel Client Onboarding & Link Generator";
+
+      const sb = document.getElementById("masterSidebar");
+      if (sb && !sb.classList.contains("-translate-x-full")) {
+        toggleMasterMobileMenu();
+      }
+    }
+
+    // 1. Fetch All Hostel Clients from Firestore Collection `hostel_system`
+    async function loadAllCloudTenants() {
+      const tbody = document.getElementById("tenantsTableBody");
+      try {
+        if (typeof firebase === "undefined" || !firebase.apps.length) {
+          tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-600 font-bold">Firebase is not initialized. Check db.js configuration.</td></tr>`;
+          return;
+        }
+
+        const snap = await firebase.firestore().collection("hostel_system").get();
+        allTenantsCache = [];
+        snap.forEach(doc => {
+          allTenantsCache.push({ tenantId: doc.id, data: doc.data() || {} });
+        });
+
+        updateMasterKPIs();
+        renderTenantsTable();
+      } catch (err) {
+        console.error("Master HQ Load Error:", err);
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-600">Error loading Firestore collection: ${err.message}</td></tr>`;
+      }
+    }
+
+    function updateMasterKPIs() {
+      const total = allTenantsCache.length;
+      let suspended = 0;
+      let globalStudents = 0;
+
+      allTenantsCache.forEach(t => {
+        const set = t.data.settings || {};
+        if (set.isSuspended === true) suspended++;
+        const activeStu = (t.data.students || []).filter(s => s.status === "Active").length;
+        globalStudents += activeStu;
       });
 
-      if (filteredTenants.length === 0) {
-        grid.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-500 text-xs">No matching client hostels found.</div>`;
+      document.getElementById("kpiTotalClients").innerText = total;
+      document.getElementById("kpiActiveClients").innerText = Math.max(0, total - suspended);
+      document.getElementById("kpiSuspendedClients").innerText = suspended;
+      document.getElementById("kpiGlobalStudents").innerText = globalStudents;
+      document.getElementById("badgeTotalTenants").innerText = total;
+    }
+
+    function renderTenantsTable() {
+      const tbody = document.getElementById("tenantsTableBody");
+      const q = (document.getElementById("searchTenantInput")?.value || "").toLowerCase().trim();
+
+      const filtered = allTenantsCache.filter(t => {
+        const hName = ((t.data.settings && t.data.settings.hostelName) || "").toLowerCase();
+        return t.tenantId.toLowerCase().includes(q) || hName.includes(q);
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-zinc-400">No matching hostel clients found. Click "+ Onboard New Hostel" to create one.</td></tr>`;
+        return;
       }
 
-      filteredTenants.forEach(t => {
-        const d = t.data || {};
-        const set = d.settings || {};
+      tbody.innerHTML = filtered.map(t => {
+        const id = t.tenantId;
+        const set = t.data.settings || {};
+        const roomsCount = (t.data.rooms || []).length;
+        const stuCount = (t.data.students || []).filter(s => s.status === "Active").length;
         const isSuspended = set.isSuspended === true;
-        const saasFee = Number(set.saasFee || 2500);
-        const roomsCount = (d.rooms || []).length;
-        const studentsCount = (d.students || []).length;
 
-        // Clean working URLs without broken dots
-        const pubLink = `${baseUrl}/?hostel=${t.id}`;
-        const stuLink = `${baseUrl}/student?hostel=${t.id}`;
-        const warLink = `${baseUrl}/warden?hostel=${t.id}`;
-        const admLink = `${baseUrl}/admin?hostel=${t.id}`;
-
-        const waPackageMsg = `Salam! Welcome to HostelCloud SaaS.\n\n*${set.hostelName || t.id}* is now live!\n\n🌐 *Public Booking Link:* ${pubLink}\n🎓 *Student Portal:* ${stuLink}\n👮 *Warden Portal:* ${warLink}\n👑 *Owner Admin Portal:* ${admLink}\n🔑 *Default Admin Pass:* ${set.adminPass || '123'}`;
-        const cleanPhone = "92" + (set.jazzcash || "").replace(/[^0-9]/g, "").replace(/^0/, "");
-        const safeName = (set.hostelName || t.id).replace(/'/g, "");
-
-        grid.innerHTML += `
-          <div class="bg-slate-950 border ${isSuspended ? 'border-rose-500/40' : 'border-slate-800'} rounded-2xl p-5 space-y-4 text-xs">
-            <div class="flex justify-between items-start">
-              <div>
-                <span class="font-mono text-[11px] text-indigo-400 font-bold">Tenant ID: ?hostel=${t.id}</span>
-                <h3 class="text-base font-bold text-white mt-0.5">${set.hostelName || t.id}</h3>
-                <p class="text-slate-400">Owner Contact: ${set.jazzcash || 'N/A'} | SaaS Plan: <strong class="text-emerald-400">Rs. ${saasFee.toLocaleString()}/mo</strong></p>
-              </div>
-              <span class="px-2.5 py-1 rounded-full font-bold text-[11px] ${isSuspended ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}">
-                ${isSuspended ? '🔒 SUSPENDED' : '✅ ACTIVE'}
+        return `
+          <tr class="hover:bg-zinc-50/80">
+            <td class="p-3.5 whitespace-nowrap">
+              <strong class="text-zinc-900 text-sm block">${set.hostelName || 'Unnamed Hostel'}</strong>
+              <span class="font-mono text-[11px] text-emerald-800 font-bold">?hostel=${id}</span>
+            </td>
+            <td class="p-3.5 whitespace-nowrap text-zinc-600">
+              <div class="font-semibold text-zinc-800">${set.adminWhatsApp || 'No WhatsApp'}</div>
+              <div class="text-[11px] text-zinc-500">${set.jazzcash || '—'}</div>
+            </td>
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="font-bold text-zinc-900">${roomsCount}</span> Rooms • <span class="font-bold text-emerald-700">${stuCount}</span> Students
+            </td>
+            <td class="p-3.5 whitespace-nowrap font-mono text-[11px]">
+              <div>Admin: <strong class="text-zinc-900">${set.adminPass || '123'}</strong></div>
+              <div>Warden: <strong class="text-zinc-700">${set.wardenPass || '123'}</strong></div>
+            </td>
+            <td class="p-3.5 whitespace-nowrap">
+              <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${isSuspended ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'}">
+                ${isSuspended ? '🔒 SUSPENDED' : '● ACTIVE'}
               </span>
-            </div>
-
-            <!-- Live Tenant Stats -->
-            <div class="grid grid-cols-3 gap-2 bg-slate-900 p-3 rounded-xl border border-slate-800/80 text-center">
-              <div><span class="text-slate-400 block text-[10px]">Rooms Created</span><strong class="text-white text-sm">${roomsCount}</strong></div>
-              <div><span class="text-slate-400 block text-[10px]">Active Students</span><strong class="text-indigo-400 text-sm">${studentsCount}</strong></div>
-              <div><span class="text-slate-400 block text-[10px]">Admin Pass</span><strong class="text-amber-400 text-sm font-mono">${set.adminPass || '123'}</strong></div>
-            </div>
-
-            <!-- Quick Copy Client Links -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <a href="${pubLink}" target="_blank" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-center py-2 rounded-lg font-semibold text-slate-200">🌐 Public ↗</a>
-              <a href="${stuLink}" target="_blank" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-center py-2 rounded-lg font-semibold text-slate-200">🎓 Student ↗</a>
-              <a href="${warLink}" target="_blank" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-center py-2 rounded-lg font-semibold text-slate-200">👮 Warden ↗</a>
-              <a href="${admLink}" target="_blank" class="bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-center py-2 rounded-lg font-semibold text-amber-300">👑 Admin ↗</a>
-            </div>
-
-            <!-- License Actions -->
-            <div class="flex flex-wrap justify-between items-center pt-2 border-t border-slate-800 gap-2">
-              <div class="flex gap-2">
-                <button onclick="copyLinks('${encodeURIComponent(waPackageMsg)}')" class="bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg font-bold transition">
-                  <i class="fa-solid fa-copy mr-1"></i> Copy All Links
-                </button>
-                <a href="https://wa.me/${cleanPhone}?text=${encodeURIComponent(waPackageMsg)}" target="_blank" class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded-lg font-bold transition">
-                  <i class="fa-brands fa-whatsapp mr-1"></i> Send Welcome Kit
-                </a>
-              </div>
-
-              <div class="flex gap-2">
-                <button onclick="toggleTenantLock('${t.id}', ${isSuspended})" class="${isSuspended ? 'bg-emerald-600' : 'bg-amber-600'} text-white px-3 py-1.5 rounded-lg font-bold">
-                  <i class="fa-solid ${isSuspended ? 'fa-lock-open' : 'fa-lock'} mr-1"></i> ${isSuspended ? 'Unlock' : 'Suspend'}
-                </button>
-                <button onclick="deleteTenant('${t.id}', '${safeName}')" class="bg-rose-600/20 border border-rose-500/40 text-rose-400 hover:bg-rose-600 hover:text-white px-3 py-1.5 rounded-lg font-bold transition" title="Delete Client Hostel">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </div>
-          </div>
+            </td>
+            <td class="p-3.5 text-right whitespace-nowrap space-x-1">
+              <button onclick="openClientLinksPackage('${id}')" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="View & Share Client Links">
+                <i class="fa-solid fa-link mr-1"></i> Links
+              </button>
+              <a href="admin?hostel=${id}" target="_blank" class="inline-block bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition" title="Open Client Admin ERP">
+                Admin ↗
+              </a>
+              <button onclick="toggleTenantSuspension('${id}', ${isSuspended})" class="${isSuspended ? 'bg-emerald-700 hover:bg-emerald-600 text-white' : 'bg-amber-100 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300'} px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition">
+                ${isSuspended ? 'Unlock' : 'Suspend'}
+              </button>
+              <button onclick="deleteTenantClient('${id}')" class="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 px-2 py-1.5 rounded-lg text-[11px] transition" title="Delete Client Permanently">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
         `;
-      });
-
-      document.getElementById("kpiTenants").innerText = allTenants.length;
-      document.getElementById("kpiActive").innerText = activeCount;
-      document.getElementById("kpiMrr").innerText = `Rs. ${totalMrr.toLocaleString()}`;
+      }).join("");
     }
 
-    function deleteTenant(slug, hostelName) {
-      const confirmCode = prompt(`⚠️ DANGER: To permanently delete "${hostelName}" (?hostel=${slug}) and all its data, type DELETE below:`);
-      if (confirmCode === "DELETE") {
-        firestore.collection("hostel_system").doc(slug).delete().then(() => {
-          alert(`🗑️ Hostel "${hostelName}" has been permanently deleted!`);
-        }).catch(err => alert("Delete failed: " + err.message));
-      } else if (confirmCode !== null) {
-        alert("Deletion cancelled — you must type DELETE in capital letters.");
-      }
+    // 2. Auto-Suggest Clean Tenant Slug from Hostel Name
+    function autoSuggestTenantId() {
+      const name = document.getElementById("newHostelName").value;
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 28);
+      document.getElementById("newTenantId").value = slug;
     }
 
-    function createNewTenant(e) {
+    // 3. Provision New Hostel Client in Firestore & Build Links Package
+    async function createNewHostelClient(e) {
       e.preventDefault();
-      const slug = document.getElementById("tSlug").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
-      const name = document.getElementById("tName").value.trim();
-      const phone = document.getElementById("tPhone").value.trim();
-      const fee = Number(document.getElementById("tFee").value) || 2500;
+      const hostelName = document.getElementById("newHostelName").value.trim();
+      const tenantId = document.getElementById("newTenantId").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+      const ownerPhone = document.getElementById("newOwnerPhone").value.trim();
+      const jazzcash = document.getElementById("newJazzCash").value.trim() || ownerPhone;
+      const adminPass = document.getElementById("newAdminPass").value.trim() || "123";
+      const wardenPass = document.getElementById("newWardenPass").value.trim() || "123";
 
-      const newTenantDoc = {
+      if (!tenantId) return alert("Please enter a valid Tenant ID!");
+
+      const exists = allTenantsCache.some(t => t.tenantId === tenantId);
+      if (exists && !confirm(`Tenant ID "${tenantId}" already exists! Do you want to update its settings?`)) {
+        return;
+      }
+
+      const currentMonth = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      const newTenantDB = {
         settings: {
-          hostelName: name,
-          jazzcash: phone,
-          adminWhatsApp: phone,
-          adminPass: "123",
-          wardenPass: "123",
-          saasFee: fee,
+          hostelName,
+          jazzcash,
+          adminWhatsApp: ownerPhone,
+          adminPass,
+          wardenPass,
+          currentMonth,
           isSuspended: false
         },
         rooms: [],
@@ -320,31 +519,117 @@
         staff: [],
         messMenu: [],
         logs: [
-          { time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), actor: "SaaS Master", action: `Provisioned cloud instance for ${name}` }
+          { time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), actor: "Master HQ", action: `Provisioned cloud ERP for ${hostelName}` }
         ]
       };
 
-      firestore.collection("hostel_system").doc(slug).set(newTenantDoc).then(() => {
-        alert(`🎉 ${name} (?hostel=${slug}) is now LIVE!`);
-        e.target.reset();
-      });
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).set(newTenantDB, { merge: true });
+        await loadAllCloudTenants();
+        renderClientLinksBox(tenantId, newTenantDB.settings);
+        alert(`✅ Hostel Client "${hostelName}" (?hostel=${tenantId}) created on Cloud!`);
+      } catch (err) {
+        alert("Error creating client: " + err.message);
+      }
     }
 
-    function toggleTenantLock(slug, currentStatus) {
-      const ref = firestore.collection("hostel_system").doc(slug);
-      ref.get().then(doc => {
-        if (!doc.exists) return;
-        const data = doc.data();
-        data.settings = data.settings || {};
-        data.settings.isSuspended = !currentStatus;
-        ref.set(data);
-      });
+    function openClientLinksPackage(tenantId) {
+      const found = allTenantsCache.find(t => t.tenantId === tenantId);
+      if (!found) return;
+      switchMasterTab("generator");
+      renderClientLinksBox(tenantId, found.data.settings || {});
     }
 
-    function copyLinks(encodedText) {
-      navigator.clipboard.writeText(decodeURIComponent(encodedText));
-      alert("All 4 Portal Links & Login Credentials copied to clipboard!");
+    function renderClientLinksBox(tenantId, set) {
+      const base = window.location.origin;
+      const pubUrl = `${base}/index?hostel=${tenantId}`;
+      const admUrl = `${base}/admin?hostel=${tenantId}`;
+      const stuUrl = `${base}/student?hostel=${tenantId}`;
+      const warUrl = `${base}/warden?hostel=${tenantId}`;
+
+      selectedClientPackage = {
+        tenantId,
+        hostelName: set.hostelName || tenantId,
+        ownerPhone: set.adminWhatsApp || set.jazzcash || "",
+        adminPass: set.adminPass || "123",
+        wardenPass: set.wardenPass || "123",
+        pubUrl, admUrl, stuUrl, warUrl
+      };
+
+      document.getElementById("genBoxTitle").innerText = selectedClientPackage.hostelName;
+      document.getElementById("genTenantBadge").innerText = `?hostel=${tenantId}`;
+      document.getElementById("generatedActionsBar").classList.remove("hidden");
+
+      const makeRow = (label, icon, url, extra) => `
+        <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <span class="text-[11px] font-bold text-zinc-900 block"><i class="${icon} text-emerald-700 mr-1.5"></i> ${label} ${extra ? `<span class="text-zinc-500 font-mono">(${extra})</span>` : ''}</span>
+            <a href="${url}" target="_blank" class="text-[11px] font-mono text-emerald-800 hover:underline truncate block mt-0.5">${url}</a>
+          </div>
+          <button type="button" onclick="navigator.clipboard.writeText('${url}');alert('Link copied!');" class="bg-white hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 py-1.5 rounded-lg text-[11px] font-bold shrink-0">
+            Copy
+          </button>
+        </div>
+      `;
+
+      document.getElementById("generatedLinksContainer").innerHTML =
+        makeRow("1. Public Website & Online Admission", "fa-solid fa-globe", pubUrl, "") +
+        makeRow("2. Executive Admin ERP Console", "fa-solid fa-sliders", admUrl, `Pass: ${selectedClientPackage.adminPass}`) +
+        makeRow("3. Resident Student Portal", "fa-solid fa-user-graduate", stuUrl, "Roll ID Login") +
+        makeRow("4. Security Warden Console", "fa-solid fa-user-shield", warUrl, `Pass: ${selectedClientPackage.wardenPass}`);
     }
+
+    function buildWelcomeText() {
+      if (!selectedClientPackage) return "";
+      const p = selectedClientPackage;
+      return `*WELCOME TO HOSTELCLOUD ERP — ${p.hostelName.toUpperCase()}*\n\nYour cloud hostel management software is live! Below are your official links and login credentials:\n\n🌐 *1. Public Website & Online Admission:*\n${p.pubUrl}\n\n👑 *2. Admin ERP Console (Owner):*\n${p.admUrl}\n🔑 *Admin Password:* ${p.adminPass}\n\n🎓 *3. Resident Student Portal:*\n${p.stuUrl}\n*(Students login with Roll ID or CNIC)*\n\n👮 *4. Security Warden Console:*\n${p.warUrl}\n🔑 *Warden Password:* ${p.wardenPass}`;
+    }
+
+    function copyCompleteWelcomePackage() {
+      const txt = buildWelcomeText();
+      if (!txt) return;
+      navigator.clipboard.writeText(txt);
+      alert("✅ Complete Welcome Package copied to clipboard!");
+    }
+
+    function sendWelcomePackageWhatsApp() {
+      if (!selectedClientPackage) return;
+      const raw = (selectedClientPackage.ownerPhone || "").replace(/[^0-9]/g, "");
+      const cleanPhone = raw.length >= 10 ? ("92" + raw.replace(/^0/, "")) : prompt("Enter Hostel Owner WhatsApp Number (e.g. 923001234567):", "923");
+      if (!cleanPhone) return;
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(buildWelcomeText())}`, "_blank");
+    }
+
+    // 4. Remote Kill-Switch (Suspend / Unlock License)
+    async function toggleTenantSuspension(tenantId, currentlySuspended) {
+      const actionName = currentlySuspended ? "UNLOCK / ACTIVATE" : "SUSPEND (LOCK)";
+      if (!confirm(`Are you sure you want to ${actionName} the software license for "${tenantId}"?`)) return;
+
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).set({
+          settings: { isSuspended: !currentlySuspended }
+        }, { merge: true });
+        await loadAllCloudTenants();
+      } catch (err) {
+        alert("Failed to update license status: " + err.message);
+      }
+    }
+
+    // 5. Delete Tenant Client Permanently
+    async function deleteTenantClient(tenantId) {
+      const conf = prompt(`⚠️ DANGER: Type "${tenantId}" to permanently delete this hostel client and all its cloud data:`);
+      if (conf !== tenantId) return;
+
+      try {
+        await firebase.firestore().collection("hostel_system").doc(tenantId).delete();
+        await loadAllCloudTenants();
+        alert(`🗑️ Deleted tenant "${tenantId}" from Cloud.`);
+      } catch (err) {
+        alert("Delete failed: " + err.message);
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", checkMasterSession);
   </script>
 </body>
 </html>
