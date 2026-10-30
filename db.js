@@ -1319,3 +1319,216 @@ window.addEventListener("DOMContentLoaded", () => {
     window.showSaaSPopup(message);
   };
 })();
+
+// ============================================================================
+// 📸 UPGRADED KYC ENGINE: PHOTO + CNIC (FRONT/BACK) IN FORM & ADMIN TABLE
+// Paste at the very bottom of db.js
+// ============================================================================
+window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
+
+window.handleKYCFileUpload = function(inputEl, key, previewId) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      const maxW = key === "photo" ? 320 : 650;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+      window.kycTempUploads[key] = compressedDataUrl;
+
+      const prev = document.getElementById(previewId);
+      if (prev) {
+        prev.src = compressedDataUrl;
+        prev.classList.remove("hidden");
+        prev.style.setProperty("display", "block", "important");
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+// Full-Screen Printable KYC Modal (Shows Student Photo, CNIC Front & CNIC Back)
+window.openKYCDocumentsModal = function(recordId) {
+  injectUniversalModal();
+  const db = getDB();
+  const rec = (db.applications || []).find(a => String(a.id) === String(recordId)) ||
+              (db.students || []).find(s => String(s.id) === String(recordId));
+  if (!rec) return alert("❌ Record not found!");
+
+  document.getElementById("uniModalTitle").innerText = `KYC Identity Documents — ${rec.name} (${rec.id})`;
+  document.getElementById("uniPrintArea").innerHTML = `
+    <div class="space-y-5 text-xs max-w-3xl mx-auto p-2">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-4">
+        <div class="flex items-center gap-4">
+          ${rec.photo
+            ? `<img src="${rec.photo}" class="w-20 h-20 rounded-2xl object-cover border-2 border-zinc-900 shadow-md" />`
+            : `<div class="w-20 h-20 rounded-2xl bg-zinc-200 flex items-center justify-center font-bold text-zinc-500">No Photo</div>`
+          }
+          <div>
+            <span class="text-[10px] font-extrabold uppercase text-emerald-700 block">Verified Resident KYC File</span>
+            <h3 class="text-lg font-extrabold text-zinc-900">${rec.name}</h3>
+            <p class="text-zinc-600 font-mono">ID: ${rec.id} • CNIC: ${rec.cnic || '—'} • Phone: ${rec.phone || '—'}</p>
+            <p class="text-zinc-500 mt-0.5">Institute: ${rec.uni || '—'} • Guardian: ${rec.guardian || '—'}</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="bg-zinc-900 text-white px-3.5 py-1.5 rounded-xl font-bold">Room ${rec.room || '—'}</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-zinc-300 rounded-xl p-3.5 bg-zinc-50 space-y-2 text-center">
+          <span class="text-[11px] font-extrabold uppercase text-zinc-800 block"><i class="fa-solid fa-id-card text-emerald-700 mr-1"></i> CNIC / B-Form (Front Side)</span>
+          ${rec.cnicFront
+            ? `<img src="${rec.cnicFront}" class="w-full h-56 object-contain rounded-lg border border-zinc-200 bg-white mx-auto shadow-2xs" />`
+            : `<div class="h-56 flex items-center justify-center text-zinc-400 bg-white rounded-lg border border-dashed border-zinc-300">No CNIC Front Uploaded</div>`
+          }
+        </div>
+        <div class="border border-zinc-300 rounded-xl p-3.5 bg-zinc-50 space-y-2 text-center">
+          <span class="text-[11px] font-extrabold uppercase text-zinc-800 block"><i class="fa-solid fa-id-card-clip text-emerald-700 mr-1"></i> CNIC / B-Form (Back Side)</span>
+          ${rec.cnicBack
+            ? `<img src="${rec.cnicBack}" class="w-full h-56 object-contain rounded-lg border border-zinc-200 bg-white mx-auto shadow-2xs" />`
+            : `<div class="h-56 flex items-center justify-center text-zinc-400 bg-white rounded-lg border border-dashed border-zinc-300">No CNIC Back Uploaded</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+  showUniModal(`KYC_Docs_${rec.id}.pdf`, "portrait");
+};
+
+// Auto-Inject KYC Fields in Public Form + Override Admin Applications Table to Show Photo & CNIC!
+window.addEventListener("DOMContentLoaded", () => {
+  // 1. Ensure Public Online Admission Form always has Photo + CNIC Front + CNIC Back boxes
+  const admForm = document.getElementById("onlineAdmissionForm");
+  if (admForm && !document.getElementById("kycUploadBoxContainer")) {
+    const noteField = document.getElementById("appNote")?.parentElement;
+    const kycBox = document.createElement("div");
+    kycBox.id = "kycUploadBoxContainer";
+    kycBox.className = "space-y-2 pt-1";
+    kycBox.innerHTML = `
+      <label class="block text-zinc-800 font-extrabold text-xs">
+        <i class="fa-solid fa-id-card text-emerald-700 mr-1"></i> Upload Student Photo & CNIC (Front & Back) *
+      </label>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
+          <img id="prevStuPhoto" class="hidden w-12 h-12 rounded-full object-cover border-2 border-emerald-600 mx-auto mb-1" />
+          <i class="fa-solid fa-camera text-emerald-700 text-base"></i>
+          <span class="font-extrabold text-zinc-800 text-[11px] block">1. Student Photo *</span>
+          <span class="text-[10px] text-zinc-400">Passport / Selfie</span>
+          <input type="file" accept="image/*" required onchange="handleKYCFileUpload(this, 'photo', 'prevStuPhoto')" class="hidden" />
+        </label>
+
+        <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
+          <img id="prevCnicFront" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
+          <i class="fa-solid fa-address-card text-zinc-700 text-base"></i>
+          <span class="font-extrabold text-zinc-800 text-[11px] block">2. CNIC Front *</span>
+          <span class="text-[10px] text-zinc-400">Front Side Photo</span>
+          <input type="file" accept="image/*" required onchange="handleKYCFileUpload(this, 'cnicFront', 'prevCnicFront')" class="hidden" />
+        </label>
+
+        <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
+          <img id="prevCnicBack" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
+          <i class="fa-solid fa-id-card-clip text-zinc-700 text-base"></i>
+          <span class="font-extrabold text-zinc-800 text-[11px] block">3. CNIC Back *</span>
+          <span class="text-[10px] text-zinc-400">Back Side Photo</span>
+          <input type="file" accept="image/*" required onchange="handleKYCFileUpload(this, 'cnicBack', 'prevCnicBack')" class="hidden" />
+        </label>
+      </div>
+    `;
+    if (noteField) {
+      noteField.insertAdjacentElement("beforebegin", kycBox);
+    } else {
+      admForm.insertBefore(kycBox, admForm.lastElementChild);
+    }
+  }
+
+  // 2. Override Admin Applications Table so Photo + CNIC Front/Back Thumbnails & Button Always Appear!
+  if (document.getElementById("applicationsTableBody")) {
+    window.renderApplicationsTable = function() {
+      const db = getDB();
+      const tbody = document.getElementById("applicationsTableBody");
+      if (!tbody) return;
+      const apps = db.applications || [];
+
+      if (apps.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-zinc-400">No online admission applications received yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = apps.map((app, idx) => {
+        if (!app.id) app.id = "APP-" + (1000 + idx);
+        const reqRoom = app.room || app.roomPref || "Any Available";
+        const isPending = !app.status || app.status === "Pending";
+        const hasKYC = !!(app.photo || app.cnicFront || app.cnicBack);
+
+        return `
+          <tr class="hover:bg-zinc-50/80">
+            <td class="p-3 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+              <strong class="text-zinc-900 block">${app.id}</strong>
+              ${app.date || ''}
+            </td>
+            <td class="p-3">
+              <div class="flex items-center gap-2.5">
+                ${app.photo
+                  ? `<img src="${app.photo}" onclick="openKYCDocumentsModal('${app.id}')" class="w-10 h-10 rounded-xl object-cover border border-zinc-300 cursor-pointer shrink-0 shadow-2xs" title="Click to view Photo & CNIC" />`
+                  : `<div class="w-10 h-10 rounded-xl bg-zinc-200 text-zinc-600 flex items-center justify-center font-bold text-xs shrink-0">${(app.name || 'AP').substring(0, 2).toUpperCase()}</div>`
+                }
+                <div>
+                  <strong class="text-zinc-900 text-sm block whitespace-nowrap">${app.name || 'Applicant'}</strong>
+                  <span class="text-zinc-500 font-mono text-[11px] block">CNIC: ${app.cnic || '—'}</span>
+                  <button type="button" onclick="openKYCDocumentsModal('${app.id}')" class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${hasKYC ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-zinc-100 text-zinc-600'} cursor-pointer">
+                    <i class="fa-solid fa-id-card"></i> ${hasKYC ? 'View Photo & CNIC ✓' : 'No KYC Uploaded'}
+                  </button>
+                </div>
+              </div>
+            </td>
+            <td class="p-3 whitespace-nowrap">
+              <div class="font-semibold text-zinc-800">${app.phone || '—'}</div>
+              <div class="text-zinc-500 text-[11px]">Guardian: ${app.guardian || '—'}</div>
+            </td>
+            <td class="p-3 text-zinc-600">
+              <div>${app.uni || '—'}</div>
+              ${app.note ? `<span class="text-[11px] text-amber-800 font-medium">"${app.note}"</span>` : ''}
+            </td>
+            <td class="p-3 font-bold text-zinc-900 whitespace-nowrap">Room ${reqRoom}</td>
+            <td class="p-3">
+              <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${isPending ? 'bg-amber-100 text-amber-900' : app.status === 'Approved' ? 'bg-emerald-100 text-emerald-900' : 'bg-zinc-200 text-zinc-600'}">
+                ${app.status || 'Pending'}
+              </span>
+            </td>
+            <td class="p-3 text-right whitespace-nowrap space-x-1">
+              <button type="button" onclick="openKYCDocumentsModal('${app.id}')" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer" title="Inspect Photo & CNIC Front/Back">
+                <i class="fa-solid fa-id-card text-emerald-400 mr-1"></i> KYC Docs
+              </button>
+              ${isPending ? `
+                <button type="button" onclick="openApproveModal('${app.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold transition cursor-pointer">
+                  <i class="fa-solid fa-check mr-1"></i> Approve & Allot
+                </button>
+                <button type="button" onclick="rejectApplication('${app.id}')" class="bg-zinc-100 hover:bg-rose-600 text-zinc-700 hover:text-white border border-zinc-300 px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer">
+                  Reject
+                </button>
+              ` : `
+                <button type="button" onclick="deleteApplication('${app.id}')" class="text-zinc-400 hover:text-rose-600 px-2 py-1 cursor-pointer" title="Delete record">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    };
+    window.renderApplicationsTable();
+  }
+});
