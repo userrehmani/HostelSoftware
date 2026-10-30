@@ -62,7 +62,6 @@ function startFirestoreListener() {
   try {
     const firestore = firebase.firestore();
 
-    // Master Panel manages all tenants — do NOT attach single-tenant listener that recreates deleted docs!
     if (isMasterPage()) {
       if (typeof loadAllCloudTenants === "function" && sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
         loadAllCloudTenants();
@@ -93,7 +92,6 @@ function startFirestoreListener() {
         try { localStorage.setItem(DB_KEY, JSON.stringify(cloudData)); } catch (e) {}
         refreshCurrentPortalUI();
       }
-      // NOTE: Removed auto-recreation on delete so deleted clients never come back!
     }, (err) => {
       console.error("Firestore Sync Blocked:", err);
     });
@@ -139,7 +137,7 @@ function initSecureFirebase() {
 initSecureFirebase();
 
 // ============================================================================
-// 🔐 GOOGLE SIGN-IN + SET PASSWORD & 2-PAYMENT SETTINGS INJECTOR
+// 🔐 STRICT ZERO-TRUST LOGIN GATES & ADMIN SETTINGS UPGRADER
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
   upgradePortalLoginGates();
@@ -147,7 +145,6 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 function upgradeAdminPaymentSettings() {
-  // Inject 2nd Payment Option (Bank Account / 2nd Wallet) into Admin Settings Form automatically
   const jcInput = document.getElementById("setJazzCash");
   if (jcInput && !document.getElementById("setBankAccount")) {
     const jcLabel = jcInput.previousElementSibling;
@@ -156,12 +153,29 @@ function upgradeAdminPaymentSettings() {
 
     const bankDiv = document.createElement("div");
     bankDiv.innerHTML = `
-      <label class="block font-bold text-zinc-700 mb-1">Payment Option 2: Bank Account / Easypaisa (Optional)</label>
+      <label class="block font-bold text-zinc-700 mb-1">Payment Option 2: Bank Account / IBAN (Optional)</label>
       <input id="setBankAccount" type="text" placeholder="e.g., Meezan Bank: 0102-010548921 (Hostel Account)" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-semibold" />
     `;
     jcInput.parentElement.insertAdjacentElement("afterend", bankDiv);
 
-    // Override populateSettingsForm & saveAdminSettings to include 2nd Payment Option & Emails
+    // Also add Admin Email & Warden Email fields in Settings so Admin can update them
+    const admPassInput = document.getElementById("setAdminPass");
+    if (admPassInput && !document.getElementById("setAdminEmail")) {
+      const admEmailDiv = document.createElement("div");
+      admEmailDiv.innerHTML = `
+        <label class="block font-bold text-zinc-700 mb-1">Authorized Admin Login Email *</label>
+        <input id="setAdminEmail" type="email" required placeholder="admin@gmail.com" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-semibold" />
+      `;
+      admPassInput.parentElement.insertAdjacentElement("beforebegin", admEmailDiv);
+
+      const warEmailDiv = document.createElement("div");
+      warEmailDiv.innerHTML = `
+        <label class="block font-bold text-zinc-700 mb-1">Authorized Warden Login Email *</label>
+        <input id="setWardenEmail" type="email" required placeholder="warden@gmail.com" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-semibold" />
+      `;
+      admPassInput.parentElement.insertAdjacentElement("afterend", warEmailDiv);
+    }
+
     window.populateSettingsForm = function() {
       const db = getDB();
       const s = db.settings || {};
@@ -171,7 +185,9 @@ function upgradeAdminPaymentSettings() {
       if (document.getElementById("setBankAccount")) document.getElementById("setBankAccount").value = s.bankAccount || "";
       if (document.getElementById("setWhatsApp")) document.getElementById("setWhatsApp").value = s.adminWhatsApp || "";
       if (document.getElementById("setMonth")) document.getElementById("setMonth").value = s.currentMonth || "";
+      if (document.getElementById("setAdminEmail")) document.getElementById("setAdminEmail").value = s.adminEmail || MASTER_FOUNDER_EMAIL;
       if (document.getElementById("setAdminPass")) document.getElementById("setAdminPass").value = s.adminPass || "";
+      if (document.getElementById("setWardenEmail")) document.getElementById("setWardenEmail").value = s.wardenEmail || MASTER_FOUNDER_EMAIL;
       if (document.getElementById("setWardenPass")) document.getElementById("setWardenPass").value = s.wardenPass || "";
     };
 
@@ -184,11 +200,18 @@ function upgradeAdminPaymentSettings() {
       db.settings.bankAccount = (document.getElementById("setBankAccount")?.value || "").trim();
       db.settings.adminWhatsApp = document.getElementById("setWhatsApp").value.trim();
       db.settings.currentMonth = document.getElementById("setMonth").value.trim();
+      if (document.getElementById("setAdminEmail")) {
+        db.settings.adminEmail = document.getElementById("setAdminEmail").value.trim().toLowerCase();
+      }
       db.settings.adminPass = document.getElementById("setAdminPass").value.trim();
+      if (document.getElementById("setWardenEmail")) {
+        db.settings.wardenEmail = document.getElementById("setWardenEmail").value.trim().toLowerCase();
+      }
       db.settings.wardenPass = document.getElementById("setWardenPass").value.trim();
-      saveDB(db, "Updated hostel profile & 2 payment channels", "Admin");
+
+      saveDB(db, "Updated hostel settings, payment channels & security credentials", "Admin");
       if (typeof renderAdminAll === "function") renderAdminAll();
-      alert("✅ Hostel Settings & Both Payment Options Saved!");
+      alert("✅ Hostel Settings, Payment Options & Login Emails/Passwords Saved!");
     };
 
     window.populateSettingsForm();
@@ -196,202 +219,53 @@ function upgradeAdminPaymentSettings() {
 }
 
 function upgradePortalLoginGates() {
-  // 1. UPGRADE ADMIN LOGIN GATE
+  // 1. ADMIN LOGIN GATE: Strict Email + Password (No Public Sign-Up!)
   const adminForm = document.querySelector("#adminLoginGate form");
   if (adminForm && !document.getElementById("adminEmailInput")) {
     const emailDiv = document.createElement("div");
     emailDiv.innerHTML = `
-      <label class="block text-xs font-semibold text-zinc-700 mb-1.5">Admin Email (Gmail) *</label>
-      <input id="adminEmailInput" type="email" required placeholder="Enter Admin Gmail" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none mb-3" />
+      <label class="block text-xs font-semibold text-zinc-700 mb-1.5">Authorized Admin Email *</label>
+      <input id="adminEmailInput" type="email" required placeholder="Enter Registered Admin Email" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none mb-3" />
     `;
     adminForm.insertBefore(emailDiv, adminForm.firstChild);
-
-    const googleBox = document.createElement("div");
-    googleBox.className = "space-y-3 pt-1";
-    googleBox.innerHTML = `
-      <div class="relative flex py-1 items-center">
-        <div class="flex-grow border-t border-zinc-200"></div>
-        <span class="flex-shrink mx-3 text-[10px] font-bold uppercase text-zinc-400">OR</span>
-        <div class="flex-grow border-t border-zinc-200"></div>
-      </div>
-      <button type="button" onclick="googlePortalSignUp('admin')" class="w-full bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-800 py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-2xs cursor-pointer">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" alt="Google" />
-        Sign in with Google & Set Password
-      </button>
-    `;
-    adminForm.insertAdjacentElement("afterend", googleBox);
   }
 
-  // 2. UPGRADE WARDEN LOGIN GATE
+  // 2. WARDEN LOGIN GATE: Strict Email + Password (No Public Sign-Up!)
   const wardenForm = document.querySelector("#wardenLoginGate form");
   if (wardenForm && !document.getElementById("wardenEmailInput")) {
     const emailDiv = document.createElement("div");
     emailDiv.innerHTML = `
-      <label class="block text-xs font-bold text-zinc-700 mb-1.5">Warden Email (Gmail) *</label>
-      <input id="wardenEmailInput" type="email" required placeholder="Enter Warden Gmail" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none mb-3" />
+      <label class="block text-xs font-bold text-zinc-700 mb-1.5">Authorized Warden Email *</label>
+      <input id="wardenEmailInput" type="email" required placeholder="Enter Registered Warden Email" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none mb-3" />
     `;
     wardenForm.insertBefore(emailDiv, wardenForm.firstChild);
-
-    const googleBox = document.createElement("div");
-    googleBox.className = "space-y-3 pt-1";
-    googleBox.innerHTML = `
-      <div class="relative flex py-1 items-center">
-        <div class="flex-grow border-t border-zinc-200"></div>
-        <span class="flex-shrink mx-3 text-[10px] font-bold uppercase text-zinc-400">OR</span>
-        <div class="flex-grow border-t border-zinc-200"></div>
-      </div>
-      <button type="button" onclick="googlePortalSignUp('warden')" class="w-full bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-800 py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-2xs cursor-pointer">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" alt="Google" />
-        Sign in with Google & Set Password
-      </button>
-    `;
-    wardenForm.insertAdjacentElement("afterend", googleBox);
   }
 
-  // 3. UPGRADE STUDENT LOGIN GATE
+  // 3. STUDENT LOGIN GATE: Strict Roll ID / Phone / CNIC + Admin-Issued Password ONLY!
   const stuForm = document.querySelector("#studentLoginGate form");
-  if (stuForm && !document.getElementById("stuGoogleBtn")) {
-    const lbl = stuForm.querySelector("label");
-    if (lbl) lbl.innerText = "Student Gmail, Roll ID (ST-101), or Phone *";
-    const inp = document.getElementById("stuLoginInput");
-    if (inp) inp.placeholder = "Enter Gmail, Roll ID (ST-101) or Phone";
-
-    const googleBox = document.createElement("div");
-    googleBox.id = "stuGoogleBtn";
-    googleBox.className = "space-y-3 pt-1";
-    googleBox.innerHTML = `
-      <div class="relative flex py-1 items-center">
-        <div class="flex-grow border-t border-zinc-200"></div>
-        <span class="flex-shrink mx-3 text-[10px] font-bold uppercase text-zinc-400">OR</span>
-        <div class="flex-grow border-t border-zinc-200"></div>
-      </div>
-      <button type="button" onclick="googlePortalSignUp('student')" class="w-full bg-white hover:bg-zinc-50 border border-zinc-300 text-zinc-800 py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-2xs cursor-pointer">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-4 h-4" alt="Google" />
-        Sign in with Google & Set Password
-      </button>
+  if (stuForm && !document.getElementById("stuPassInput")) {
+    const passDiv = document.createElement("div");
+    passDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1.5">Student Password / PIN *</label>
+      <input id="stuPassInput" type="password" required placeholder="Enter password issued by Hostel Admin" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-3 text-sm text-zinc-900 font-semibold focus:border-zinc-900 focus:bg-white outline-none" />
     `;
-    stuForm.insertAdjacentElement("afterend", googleBox);
-  }
-}
-
-async function googlePortalSignUp(role) {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const res = await firebase.auth().signInWithPopup(provider);
-    const gmail = (res.user && res.user.email || "").trim().toLowerCase();
-    if (!gmail) return alert("Could not get Gmail from Google Sign-In!");
-
-    let db = getDB();
-    if (cloudDocRef) {
-      try {
-        const snap = await cloudDocRef.get();
-        if (snap.exists) {
-          db = snap.data();
-          localStorage.setItem(DB_KEY, JSON.stringify(db));
-        }
-      } catch (e) {}
-    }
-    db.settings = db.settings || {};
-
-    if (role === "admin") {
-      const existingEmail = (db.settings.adminEmail || "").trim().toLowerCase();
-      if (existingEmail && existingEmail !== gmail && existingEmail !== MASTER_FOUNDER_EMAIL.toLowerCase() && gmail !== MASTER_FOUNDER_EMAIL.toLowerCase()) {
-        return alert(`❌ Access Denied!\nThis hostel's Admin Panel is registered to "${existingEmail}".`);
-      }
-
-      const newPass = prompt(`✅ Google Account Verified: ${gmail}\n\n🔑 Set your Admin Password for this Hostel (Next time you can sign in with ${gmail} and this password):`, db.settings.adminPass || "");
-      if (!newPass || !newPass.trim()) return alert("Password setup cancelled.");
-
-      db.settings.adminEmail = gmail;
-      db.settings.adminPass = newPass.trim();
-      saveDB(db, `Admin linked Google account (${gmail}) & set password`, "Admin");
-
-      try { sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true"); } catch (e) {}
-      const gate = document.getElementById("adminLoginGate");
-      if (gate) {
-        gate.classList.remove("flex");
-        gate.classList.add("hidden");
-        gate.style.setProperty("display", "none", "important");
-      }
-      if (typeof renderAdminAll === "function") renderAdminAll();
-      alert(`🎉 Admin Account Linked!\n📧 Email: ${gmail}\n🔑 Password: ${newPass.trim()}`);
-    }
-
-    else if (role === "warden") {
-      const existingEmail = (db.settings.wardenEmail || "").trim().toLowerCase();
-      if (existingEmail && existingEmail !== gmail && existingEmail !== MASTER_FOUNDER_EMAIL.toLowerCase() && gmail !== MASTER_FOUNDER_EMAIL.toLowerCase()) {
-        return alert(`❌ Access Denied!\nThis hostel's Warden Console is registered to "${existingEmail}".`);
-      }
-
-      const newPass = prompt(`✅ Google Account Verified: ${gmail}\n\n🔑 Set your Warden Password (Next time you can sign in with ${gmail} and this password):`, db.settings.wardenPass || "");
-      if (!newPass || !newPass.trim()) return alert("Password setup cancelled.");
-
-      db.settings.wardenEmail = gmail;
-      db.settings.wardenPass = newPass.trim();
-      saveDB(db, `Warden linked Google account (${gmail}) & set password`, "Warden");
-
-      try { sessionStorage.setItem("WARDEN_AUTH_" + TENANT_ID, "true"); } catch (e) {}
-      const gate = document.getElementById("wardenLoginGate");
-      if (gate) {
-        gate.classList.remove("flex");
-        gate.classList.add("hidden");
-        gate.style.setProperty("display", "none", "important");
-      }
-      if (typeof renderWardenConsole === "function") renderWardenConsole();
-      alert(`🎉 Warden Account Linked!\n📧 Email: ${gmail}\n🔑 Password: ${newPass.trim()}`);
-    }
-
-    else if (role === "student") {
-      let stu = (db.students || []).find(s => s.status === "Active" && String(s.email || "").toLowerCase() === gmail);
-
-      if (!stu) {
-        const rollOrPhone = prompt(`✅ Google Verified: ${gmail}\n\n🎓 Enter your Hostel Roll ID (e.g. ST-101), CNIC, or Phone number to link your Gmail:`);
-        if (!rollOrPhone) return;
-        const q = rollOrPhone.trim().toLowerCase();
-        stu = (db.students || []).find(s =>
-          s.status === "Active" && (
-            String(s.id || "").toLowerCase() === q ||
-            String(s.cnic || "").toLowerCase() === q ||
-            String(s.phone || "").toLowerCase() === q
-          )
-        );
-        if (!stu) return alert(`❌ No active student found matching "${rollOrPhone}"! Please ask your Hostel Admin to enroll you first.`);
-      }
-
-      const newPass = prompt(`✅ Welcome ${stu.name} (${stu.id})!\n📧 Gmail: ${gmail}\n\n🔑 Set your Student Portal Password (Next time you can log in with ${gmail} & this password):`, stu.pass || "");
-      if (!newPass || !newPass.trim()) return alert("Password setup cancelled.");
-
-      stu.email = gmail;
-      stu.pass = newPass.trim();
-      saveDB(db, `Student ${stu.name} (${stu.id}) linked Gmail (${gmail}) & set password`, stu.name);
-
-      window.loggedStudent = stu;
-      try { sessionStorage.setItem("STU_AUTH_" + TENANT_ID, stu.id); } catch (e) {}
-      const gate = document.getElementById("studentLoginGate");
-      if (gate) {
-        gate.classList.remove("flex");
-        gate.classList.add("hidden");
-        gate.style.setProperty("display", "none", "important");
-      }
-      if (typeof renderStudentDashboard === "function") renderStudentDashboard();
-      alert(`🎉 Student Account Linked!\n📧 Email: ${gmail}\n🎓 Roll ID: ${stu.id}\n🔑 Password: ${stu.pass}`);
-    }
-  } catch (err) {
-    alert("Google Sign-In Error: " + err.message);
+    const submitBtn = stuForm.querySelector("button[type='submit']");
+    if (submitBtn) stuForm.insertBefore(passDiv, submitBtn);
   }
 }
 
 // ============================================================================
-// 🔑 EMAIL + PASSWORD LOGIN HANDLERS (Admin, Warden & Student)
+// 🔑 STRICT PRE-AUTHORIZED LOGIN VERIFIERS (Admin, Warden & Student)
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
+  // 1. STRICT ADMIN LOGIN (Must match Both Pre-Registered Email AND Password!)
   window.verifyAdminLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById("adminEmailInput");
     const passInput = document.getElementById("adminPassInput");
     const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
     const pass = passInput ? passInput.value.trim() : "";
-    if (!pass) return;
+    if (!email || !pass) return alert("Please enter both Admin Email and Password!");
 
     let db = getDB();
     if (cloudDocRef) {
@@ -405,11 +279,12 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const set = db.settings || {};
-    const savedEmail = (set.adminEmail || "").trim().toLowerCase();
+    const savedEmail = (set.adminEmail || MASTER_FOUNDER_EMAIL).trim().toLowerCase();
     const savedPass = (set.adminPass || MASTER_FOUNDER_PASS).trim();
 
+    // Allow Master Founder OR exact matching Registered Tenant Admin Email + Password
     const isFounder = (email === MASTER_FOUNDER_EMAIL.toLowerCase() && pass === MASTER_FOUNDER_PASS);
-    const isTenantAdmin = (pass === savedPass && (!savedEmail || !email || email === savedEmail));
+    const isTenantAdmin = (email === savedEmail && pass === savedPass);
 
     if (isFounder || isTenantAdmin) {
       try { sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true"); } catch (err) {}
@@ -421,17 +296,18 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (typeof renderAdminAll === "function") renderAdminAll();
     } else {
-      alert("❌ Incorrect Admin Email or Password!");
+      alert("❌ Access Denied: Invalid Admin Email or Password!");
     }
   };
 
+  // 2. STRICT WARDEN LOGIN (Must match Both Pre-Registered Warden Email AND Password!)
   window.handleWardenLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById("wardenEmailInput");
     const passInput = document.getElementById("wardenPassInput");
     const email = emailInput ? emailInput.value.trim().toLowerCase() : "";
     const pass = passInput ? passInput.value.trim() : "";
-    if (!pass) return;
+    if (!email || !pass) return alert("Please enter both Warden Email and Password!");
 
     let db = getDB();
     if (cloudDocRef) {
@@ -445,11 +321,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     const set = db.settings || {};
-    const savedEmail = (set.wardenEmail || "").trim().toLowerCase();
+    const savedEmail = (set.wardenEmail || set.adminEmail || MASTER_FOUNDER_EMAIL).trim().toLowerCase();
     const savedPass = (set.wardenPass || MASTER_FOUNDER_PASS).trim();
 
     const isFounder = (email === MASTER_FOUNDER_EMAIL.toLowerCase() && pass === MASTER_FOUNDER_PASS);
-    const isTenantWarden = (pass === savedPass && (!savedEmail || !email || email === savedEmail));
+    const isTenantWarden = (email === savedEmail && pass === savedPass);
 
     if (isFounder || isTenantWarden) {
       try { sessionStorage.setItem("WARDEN_AUTH_" + TENANT_ID, "true"); } catch (err) {}
@@ -461,22 +337,22 @@ window.addEventListener("DOMContentLoaded", () => {
       }
       if (typeof renderWardenConsole === "function") renderWardenConsole();
     } else {
-      alert("❌ Incorrect Warden Email or Password!");
+      alert("❌ Access Denied: Invalid Warden Email or Password!");
     }
   };
 
+  // 3. STRICT STUDENT LOGIN (Must be Admitted Active Student + Must Match Admin-Issued Password!)
   window.handleStudentLogin = async function(e) {
     if (e) e.preventDefault();
     const loginInput = document.getElementById("stuLoginInput");
     const passInput = document.getElementById("stuPassInput");
     const q = loginInput ? loginInput.value.trim().toLowerCase() : "";
     const pass = passInput ? passInput.value.trim() : "";
-    if (!q) return;
+    if (!q || !pass) return alert("Please enter both your Roll ID/Phone and Student Password!");
 
     let db = getDB();
     const findStu = (database) => (database.students || []).find(s =>
       s.status === "Active" && (
-        String(s.email || "").toLowerCase() === q ||
         String(s.id || "").toLowerCase() === q ||
         String(s.cnic || "").toLowerCase() === q ||
         String(s.phone || "").toLowerCase() === q
@@ -485,7 +361,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     let found = findStu(db);
 
-    if ((!found || (passInput && String(found.pass || "").trim() !== pass)) && cloudDocRef) {
+    if ((!found || String(found.pass || "").trim() !== pass) && cloudDocRef) {
       try {
         const snap = await cloudDocRef.get();
         if (snap.exists) {
@@ -497,14 +373,16 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!found) {
-      return alert("❌ No active resident found with that Gmail, Roll ID, CNIC, or Phone!");
+      return alert("❌ Access Denied! You are not an admitted resident of this hostel. Please apply online and wait for Admin approval.");
     }
 
-    if (passInput) {
-      const assignedPass = found.pass ? String(found.pass).trim() : "";
-      if (assignedPass && pass !== assignedPass) {
-        return alert("❌ Incorrect Student Password!");
-      }
+    const assignedPass = found.pass ? String(found.pass).trim() : "";
+    if (!assignedPass) {
+      return alert("⚠️ Your Student Password has not been set by the Hostel Admin yet. Please ask your Hostel Admin to assign you a password.");
+    }
+
+    if (pass !== assignedPass) {
+      return alert("❌ Incorrect Student Password!");
     }
 
     window.loggedStudent = found;
@@ -526,7 +404,6 @@ function refreshCurrentPortalUI() {
   if (typeof renderWardenConsole === "function") renderWardenConsole();
   if (typeof renderStudentDashboard === "function" && window.loggedStudent) {
     renderStudentDashboard();
-    // Show both payment options in Student Portal box if available
     const payBox = document.getElementById("payAccountBox");
     const db = getDB();
     if (payBox && db.settings) {
@@ -547,7 +424,9 @@ function getDB() {
     }
     const parsed = JSON.parse(raw);
     parsed.settings = parsed.settings || {};
+    if (!parsed.settings.adminEmail) parsed.settings.adminEmail = MASTER_FOUNDER_EMAIL;
     if (!parsed.settings.adminPass) parsed.settings.adminPass = MASTER_FOUNDER_PASS;
+    if (!parsed.settings.wardenEmail) parsed.settings.wardenEmail = parsed.settings.adminEmail || MASTER_FOUNDER_EMAIL;
     if (!parsed.settings.wardenPass) parsed.settings.wardenPass = MASTER_FOUNDER_PASS;
     return parsed;
   } catch (e) {
@@ -582,9 +461,9 @@ function wipeAllData() {
         jazzcash: currentDB.settings.jazzcash || fresh.settings.jazzcash,
         bankAccount: currentDB.settings.bankAccount || "",
         adminWhatsApp: currentDB.settings.adminWhatsApp || "",
-        adminEmail: currentDB.settings.adminEmail || "",
+        adminEmail: currentDB.settings.adminEmail || MASTER_FOUNDER_EMAIL,
         adminPass: currentDB.settings.adminPass || MASTER_FOUNDER_PASS,
-        wardenEmail: currentDB.settings.wardenEmail || "",
+        wardenEmail: currentDB.settings.wardenEmail || MASTER_FOUNDER_EMAIL,
         wardenPass: currentDB.settings.wardenPass || MASTER_FOUNDER_PASS,
         currentMonth: currentDB.settings.currentMonth || "",
         isSuspended: currentDB.settings.isSuspended || false
@@ -726,7 +605,6 @@ function openStudentVoucher(studentId) {
 
   const buildVIPCopy = (copyTitle, accentBg) => `
     <div style="border: 2px solid #18181b; border-radius: 14px; overflow: hidden; background: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; display: flex; flex-direction: column; justify-content: space-between;">
-      <!-- Top Executive Banner -->
       <div>
         <div style="background: #18181b; color: #ffffff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
           <div>
@@ -738,8 +616,7 @@ function openStudentVoucher(studentId) {
           </span>
         </div>
 
-        <div style="padding: 14px 16px; space-y: 12px;">
-          <!-- Voucher Meta & Status Bar -->
+        <div style="padding: 14px 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px;">
             <div>
               <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Challan No.</span>
@@ -760,7 +637,6 @@ function openStudentVoucher(studentId) {
             </div>
           </div>
 
-          <!-- Resident Profile Strip -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; border: 1px solid #e4e4e7; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
             <div><span style="color:#71717a;">Resident:</span> <strong style="color:#18181b;">${s.name}</strong></div>
             <div><span style="color:#71717a;">Roll ID:</span> <strong style="color:#047857; font-family:monospace;">${s.id}</strong></div>
@@ -768,7 +644,6 @@ function openStudentVoucher(studentId) {
             <div><span style="color:#71717a;">Phone:</span> <strong style="color:#18181b;">${s.phone || '—'}</strong></div>
           </div>
 
-          <!-- Itemized Fee Table -->
           <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
             <thead>
               <tr style="background: #f4f4f5; border-top: 1px solid #d4d4d8; border-bottom: 1px solid #d4d4d8; text-transform: uppercase; font-size: 9.5px; color: #52525b;">
@@ -785,7 +660,6 @@ function openStudentVoucher(studentId) {
             </tbody>
           </table>
 
-          <!-- Net Payable VIP Ribbon -->
           <div style="background: #18181b; color: #ffffff; padding: 10px 14px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <div>
               <span style="font-size: 9px; color: #a1a1aa; text-transform: uppercase; font-weight: 700; display: block;">Total Net Payable</span>
@@ -819,7 +693,6 @@ function openStudentVoucher(studentId) {
         </div>
       </div>
 
-      <!-- Footer Signatures -->
       <div style="padding: 10px 16px 12px 16px; border-top: 1px dashed #d4d4d8; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #71717a; background: #fafafa;">
         <span>Issued: ${issueDate}</span>
         <span>Depositor Sign: _____________</span>
