@@ -226,7 +226,7 @@
             <div class="p-4 sm:px-5 sm:py-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Online Admission Applications Queue</h3>
-                <p class="text-xs text-zinc-500">Click <strong>Approve & Allot</strong> to assign a room and generate a Resident ID.</p>
+                <p class="text-xs text-zinc-500">Click <strong>Approve & Allot</strong> to assign a room, set Student Password, and generate Resident ID.</p>
               </div>
               <button onclick="switchTab('students')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold self-start sm:self-auto">
                 + Direct Resident Enrollment
@@ -312,15 +312,15 @@
           </div>
         </div>
 
-        <!-- VIEW 3: STUDENTS -->
+        <!-- VIEW 3: STUDENTS (WITH STUDENT PORTAL PASSWORD MANAGEMENT) -->
         <div id="view-students" class="hidden space-y-4 sm:space-y-6 w-full">
           <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="border-b border-zinc-100 pb-3">
               <h3 class="text-sm font-bold text-zinc-900">Register New Resident & Allot Bed</h3>
-              <p class="text-xs text-zinc-500">Directly enroll a walk-in student with custom agreed monthly rent.</p>
+              <p class="text-xs text-zinc-500">Directly enroll a walk-in student with custom agreed monthly rent and Student Portal password.</p>
             </div>
 
-            <form onsubmit="addStudentManual(event)" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs items-end">
+            <form onsubmit="addStudentManual(event)" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs items-end">
               <div>
                 <label class="block font-bold text-zinc-700 mb-1">Full Name *</label>
                 <input id="stuName" type="text" required placeholder="Student Name" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
@@ -357,6 +357,10 @@
                 <label class="block font-bold text-zinc-700 mb-1">Security Deposit (Rs.)</label>
                 <input id="stuSecurity" type="number" value="2000" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
               </div>
+              <div class="lg:col-span-2">
+                <label class="block font-bold text-emerald-800 mb-1">Student Portal Password / PIN *</label>
+                <input id="stuPass" type="text" required placeholder="Set Password for Student Login" class="w-full bg-emerald-50/50 border border-emerald-300 rounded-lg px-3 py-2 text-zinc-900 font-mono font-bold" />
+              </div>
               <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2.5 px-4 rounded-lg font-bold transition">
                 <i class="fa-solid fa-check mr-1"></i> Enroll Resident
               </button>
@@ -367,7 +371,7 @@
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Active Residents & Fee Billing Ledger</h3>
-                <p class="text-xs text-zinc-500">All resident tools are inside each row.</p>
+                <p class="text-xs text-zinc-500">Manage student passwords, vouchers, QR IDs, reminders, room shifts, and mess rebates.</p>
               </div>
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <select id="filterFeeStatus" onchange="renderStudentsTable()" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs font-semibold">
@@ -383,7 +387,7 @@
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
                   <tr>
-                    <th class="p-3.5">Resident & Roll ID</th>
+                    <th class="p-3.5">Resident, Roll ID & Password</th>
                     <th class="p-3.5">Room</th>
                     <th class="p-3.5">Billing Breakdown</th>
                     <th class="p-3.5">Net Payable</th>
@@ -637,7 +641,9 @@
 
   </div>
 
-  <!-- ✅ APPROVE & ALLOT SEAT CONFIRMATION MODAL -->
+  <!-- ===================================================================== -->
+  <!-- ✅ APPROVE & ALLOT SEAT CONFIRMATION MODAL (WITH STUDENT PASSWORD)     -->
+  <!-- ===================================================================== -->
   <div id="approveAllotModal" class="fixed inset-0 bg-zinc-900/60 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
     <div class="bg-white border border-zinc-300 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
       <div class="flex justify-between items-start border-b border-zinc-200 pb-3">
@@ -672,9 +678,15 @@
           </div>
         </div>
 
-        <div>
-          <label class="block font-bold text-zinc-700 mb-1">Refundable Security Deposit (Rs.)</label>
-          <input id="allotSecInput" type="number" value="2000" class="w-full bg-white border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-zinc-700 mb-1">Security Deposit (Rs.)</label>
+            <input id="allotSecInput" type="number" value="2000" class="w-full bg-white border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
+          </div>
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">Set Student Password *</label>
+            <input id="allotPassInput" type="text" required placeholder="Student Login PIN/Pass" class="w-full bg-emerald-50/50 border border-emerald-300 rounded-lg px-3 py-2 text-zinc-900 font-mono font-bold" />
+          </div>
         </div>
 
         <div class="pt-3 border-t border-zinc-200 flex justify-end gap-2">
@@ -687,7 +699,9 @@
     </div>
   </div>
 
-  <!-- 🚀 COMPLETE ERP CONTROLLER -->
+  <!-- ===================================================================== -->
+  <!-- 🚀 COMPLETE ERP CONTROLLER                                            -->
+  <!-- ===================================================================== -->
   <script>
     const VIEW_TITLES = {
       dashboard: "Overview & Online Applications",
@@ -887,101 +901,4 @@
 
     function openApproveModal(appId) {
       const db = getDB();
-      const app = (db.applications || []).find(a => String(a.id) === String(appId));
-      if (!app) return alert("Application not found!");
-
-      const rooms = db.rooms || [];
-      if (rooms.length === 0) {
-        alert("No rooms exist yet! Please create a room in the 'Rooms & Bed Map' tab first.");
-        switchTab("rooms");
-        return;
-      }
-
-      const activeStudents = (db.students || []).filter(s => s.status === "Active");
-      const sel = document.getElementById("allotRoomSelect");
-      sel.innerHTML = "";
-
-      const pref = String(app.room || app.roomPref || "").trim();
-      let hasFree = false;
-
-      rooms.forEach(r => {
-        const occ = activeStudents.filter(s => String(s.room) === String(r.no)).length;
-        const free = Math.max(0, Number(r.capacity || 0) - occ);
-        if (free > 0) {
-          hasFree = true;
-          const selected = String(r.no) === pref ? "selected" : "";
-          sel.innerHTML += `<option value="${r.no}" data-rent="${r.rent || 0}" ${selected}>Room ${r.no} (${r.type || 'Standard'} — ${free} Free — Rs. ${r.rent || 0})</option>`;
-        }
-      });
-
-      if (!hasFree) {
-        alert("All rooms are currently FULL! Please add a new room or increase bed capacity.");
-        switchTab("rooms");
-        return;
-      }
-
-      document.getElementById("allotAppId").value = app.id;
-      document.getElementById("allotAppName").innerText = app.name || "Applicant";
-      document.getElementById("allotAppCnic").innerText = app.cnic || "—";
-      document.getElementById("allotAppPhone").innerText = app.phone || "—";
-      document.getElementById("allotAppPref").innerText = pref || "Any Available";
-
-      updateAllotModalRent();
-
-      const modal = document.getElementById("approveAllotModal");
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    }
-
-    function updateAllotModalRent() {
-      const sel = document.getElementById("allotRoomSelect");
-      const opt = sel.options[sel.selectedIndex];
-      if (opt) document.getElementById("allotRentInput").value = opt.getAttribute("data-rent") || 0;
-    }
-
-    function closeApproveModal() {
-      const modal = document.getElementById("approveAllotModal");
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    }
-
-    function confirmApproveAndAllot(e) {
-      e.preventDefault();
-      const db = getDB();
-      const appId = document.getElementById("allotAppId").value;
-      const app = (db.applications || []).find(a => String(a.id) === String(appId));
-      if (!app) return;
-
-      const selectedRoom = document.getElementById("allotRoomSelect").value;
-      const agreedRent = Number(document.getElementById("allotRentInput").value || 0);
-      const messFee = Number(document.getElementById("allotMessInput").value || 0);
-      const secDeposit = Number(document.getElementById("allotSecInput").value || 0);
-
-      const existingIds = (db.students || []).map(s => Number(String(s.id).replace(/\D/g, "")) || 100);
-      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 101;
-      const newRollId = "ST-" + nextNum;
-
-      const newStudent = {
-        id: newRollId,
-        name: app.name,
-        cnic: app.cnic || "",
-        phone: app.phone || "",
-        guardian: app.guardian || "",
-        uni: app.uni || "",
-        room: selectedRoom,
-        rent: agreedRent,
-        mess: messFee,
-        elec: 0,
-        otherCharges: 0,
-        discount: 0,
-        security: secDeposit,
-        feeStatus: "Unpaid",
-        status: "Active",
-        joinedDate: new Date().toLocaleDateString("en-GB")
-      };
-
-      db.students = db.students || [];
-      db.students.unshift(newStudent);
-      app.status = "Approved";
-
-      saveDB(db, `Approved application & allotted Room ${selectedRoom} to ${newStudent.name} (${newR
+      const app = (db.applications || []).find(a => String(a.id) === String
