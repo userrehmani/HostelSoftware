@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Hostel ERP — Management Console</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,36 +15,35 @@
   <script src="db.js"></script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
-    /* 🛑 FIX RIGHT SIDE EMPTY SPACE: Hide elements auto-injected onto body by db.js */
     #settingsBackupBox, #saasBrandingFooter, #enterpriseAdminToolbar { display: none !important; }
-    #globalLiveNoticeBanner { position: fixed; bottom: 0; left: 16rem; right: 0; z-index: 40; }
-    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    #globalLiveNoticeBanner { position: fixed; top: 0; left: 0; right: 0; z-index: 45; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
   </style>
 </head>
-<body class="antialiased h-screen w-screen overflow-hidden">
+<body class="antialiased h-dvh w-screen overflow-hidden select-none sm:select-auto">
 
   <!-- ===================================================================== -->
   <!-- 🔒 SECURITY LOGIN GATE                                                -->
   <!-- ===================================================================== -->
   <div id="adminLoginGate" class="fixed inset-0 bg-zinc-900/95 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-    <div class="bg-white border border-zinc-200 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
       <div class="flex items-center gap-3 border-b border-zinc-100 pb-4">
-        <div class="w-10 h-10 rounded-lg bg-zinc-900 text-white flex items-center justify-center text-base font-bold">
+        <div class="w-11 h-11 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-base font-bold shrink-0">
           <i class="fa-solid fa-shield-halved"></i>
         </div>
-        <div>
-          <h2 id="gateHostelName" class="text-base font-bold text-zinc-900 leading-tight">ERP Administration</h2>
+        <div class="min-w-0">
+          <h2 id="gateHostelName" class="text-base font-extrabold text-zinc-900 truncate">ERP Administration</h2>
           <p class="text-xs text-zinc-500">Authorized Personnel Login</p>
         </div>
       </div>
       <form onsubmit="verifyAdminLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-zinc-700 mb-1.5">Administrator Password</label>
-          <input id="adminPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none" />
+          <input id="adminPassInput" type="password" required placeholder="Enter password (default: 123)" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 focus:border-zinc-900 focus:bg-white outline-none" />
         </div>
-        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition">
-          Sign In to Workspace
+        <button type="submit" class="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition">
+          Sign In to Workspace →
         </button>
       </form>
       <div class="pt-3 border-t border-zinc-100 flex justify-between text-xs text-zinc-500 font-medium">
@@ -55,12 +54,17 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 🖥️ FULL-SCREEN WRAPPER (PREVENTS ANY RIGHT-SIDE EMPTY GAP)            -->
+  <!-- 📱 MOBILE SIDEBAR BACKDROP OVERLAY                                    -->
   <!-- ===================================================================== -->
-  <div class="flex h-screen w-screen overflow-hidden">
+  <div id="adminSidebarBackdrop" onclick="toggleAdminMobileMenu()" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
 
-    <!-- 🧭 LEFT DESKTOP ERP SIDEBAR NAVIGATION -->
-    <aside class="w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full">
+  <!-- ===================================================================== -->
+  <!-- 🖥️ FULL-SCREEN WRAPPER                                                -->
+  <!-- ===================================================================== -->
+  <div class="flex h-dvh w-screen overflow-hidden">
+
+    <!-- 🧭 LEFT SIDEBAR NAVIGATION (SLIDE-OUT DRAWER ON MOBILE, FIXED ON DESKTOP) -->
+    <aside id="adminSidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 text-zinc-300 flex flex-col justify-between shrink-0 select-none h-full transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-200 ease-in-out">
       <div>
         <!-- Software Brand Header -->
         <div class="h-16 px-5 flex items-center justify-between border-b border-zinc-800">
@@ -73,45 +77,49 @@
               <span class="text-[10px] text-emerald-400 font-semibold block">● Cloud Synced</span>
             </div>
           </div>
+          <!-- Mobile Close Drawer Button -->
+          <button onclick="toggleAdminMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white text-lg px-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
         <!-- Navigation Menu -->
-        <div class="p-3 space-y-1 text-xs font-semibold custom-scroll overflow-y-auto max-h-[calc(100vh-140px)]">
+        <div class="p-3 space-y-1 text-xs font-semibold custom-scroll overflow-y-auto max-h-[calc(100dvh-140px)]">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Core Operations</p>
           
-          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition">
+          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-zinc-800 text-white font-bold transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-table-columns w-4 text-center text-emerald-400"></i> Dashboard & Apps</span>
             <span id="navBadgeApps" class="bg-amber-500 text-zinc-950 font-extrabold px-1.5 py-0.2 rounded text-[10px]">0</span>
           </button>
 
-          <button onclick="switchTab('rooms')" id="nav-rooms" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchTab('rooms')" id="nav-rooms" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-bed w-4 text-center"></i> Rooms & Bed Map</span>
             <span id="navBadgeBeds" class="text-[10px] text-zinc-400">0 Free</span>
           </button>
 
-          <button onclick="switchTab('students')" id="nav-students" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchTab('students')" id="nav-students" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-graduate w-4 text-center"></i> Residents & Billing</span>
             <span id="navBadgeStudents" class="text-[10px] text-zinc-400">0</span>
           </button>
 
           <p class="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Administration & HR</p>
 
-          <button onclick="switchTab('finance')" id="nav-finance" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchTab('finance')" id="nav-finance" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-receipt w-4 text-center"></i> Expenses & Audit</span>
           </button>
 
-          <button onclick="switchTab('operations')" id="nav-operations" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchTab('operations')" id="nav-operations" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-check w-4 text-center"></i> Complaints, Leaves & Gate</span>
             <span id="navBadgeOps" class="bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded text-[10px]">0</span>
           </button>
 
-          <button onclick="switchTab('staff')" id="nav-staff" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchTab('staff')" id="nav-staff" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-users-gear w-4 text-center"></i> Staff, Inventory & Mess</span>
           </button>
 
           <p class="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">System</p>
 
-          <button onclick="switchTab('settings')" id="nav-settings" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
+          <button onclick="switchTab('settings')" id="nav-settings" class="erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white transition">
             <span class="flex items-center gap-2.5"><i class="fa-solid fa-sliders w-4 text-center"></i> Settings & Backup</span>
           </button>
         </div>
@@ -130,100 +138,108 @@
       </div>
     </aside>
 
-    <!-- 🖥️ RIGHT MAIN SOFTWARE VIEWPORT (100% Remaining Width) -->
+    <!-- 🖥️ RIGHT MAIN SOFTWARE VIEWPORT -->
     <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden bg-zinc-100">
 
-      <!-- Top Workspace Utility Header -->
-      <header class="h-16 bg-white border-b border-zinc-200 px-6 flex items-center justify-between shrink-0 w-full">
-        <div class="flex items-center gap-3">
-          <h2 id="currentViewTitle" class="text-base font-extrabold text-zinc-900">Executive Overview & Online Applications</h2>
-          <span class="text-xs bg-zinc-100 border border-zinc-200 text-zinc-700 px-2.5 py-1 rounded-md font-semibold">
-            Cycle: <strong id="headerBillingMonth">—</strong>
-          </span>
+      <!-- Top Mobile & Desktop Header -->
+      <header class="h-14 sm:h-16 bg-white border-b border-zinc-200 px-3.5 sm:px-6 flex items-center justify-between shrink-0 w-full gap-2">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <!-- Mobile Hamburger Drawer Button -->
+          <button onclick="toggleAdminMobileMenu()" class="lg:hidden w-9 h-9 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-bars text-sm"></i>
+          </button>
+          <div class="min-w-0">
+            <h2 id="currentViewTitle" class="text-sm sm:text-base font-extrabold text-zinc-900 truncate">Overview & Applications</h2>
+            <span class="text-[10px] sm:text-xs text-zinc-500 font-semibold block sm:inline">
+              Cycle: <strong id="headerBillingMonth" class="text-zinc-800">—</strong>
+            </span>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2.5 text-xs">
-          <button onclick="startNewBillingMonth()" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-3 py-2 rounded-lg font-bold transition">
-            <i class="fa-solid fa-calendar-plus text-emerald-700 mr-1"></i> Start New Month Cycle
+        <div class="flex items-center gap-1.5 sm:gap-2.5 text-xs shrink-0">
+          <button onclick="startNewBillingMonth()" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2.5 sm:px-3 py-2 rounded-lg font-bold transition" title="Start New Billing Month">
+            <i class="fa-solid fa-calendar-plus text-emerald-700 sm:mr-1"></i> <span class="hidden sm:inline">New Month</span>
           </button>
-          <button onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3.5 py-2 rounded-lg font-bold transition">
-            <i class="fa-solid fa-file-invoice-dollar text-emerald-400 mr-1"></i> P&L Audit PDF
+          <button onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3.5 py-2 rounded-lg font-bold transition">
+            <i class="fa-solid fa-file-invoice-dollar text-emerald-400 sm:mr-1"></i> <span class="hidden sm:inline">Audit PDF</span>
           </button>
         </div>
       </header>
 
-      <!-- Scrollable Content Canvas -->
-      <main class="flex-1 overflow-y-auto p-6 w-full custom-scroll">
+      <!-- Scrollable Content Canvas (pb-24 on mobile for Bottom App Nav) -->
+      <main class="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-24 lg:pb-6 w-full custom-scroll">
 
         <!-- =============================================================== -->
-        <!-- VIEW 1: DASHBOARD (KPI CARDS ARE NOW STRICTLY INSIDE DASHBOARD) -->
+        <!-- VIEW 1: DASHBOARD                                               -->
         <!-- =============================================================== -->
-        <div id="view-dashboard" class="space-y-6 w-full">
+        <div id="view-dashboard" class="space-y-4 sm:space-y-6 w-full">
 
-          <!-- 6-Card Financial & Occupancy KPI Ribbon (ONLY ON DASHBOARD NOW!) -->
-          <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
-            <div class="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs">
-              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Total Occupancy</span>
-              <strong id="kpiBeds" class="text-xl font-extrabold text-zinc-900 block mt-1">0 / 0</strong>
-              <span id="kpiVacantText" class="text-[11px] font-bold text-emerald-700">0 Beds Available</span>
+          <!-- 6-Card KPI Ribbon (2x3 Grid on Mobile, 6 Cols on Desktop) -->
+          <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 w-full">
+            <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Occupancy</span>
+              <strong id="kpiBeds" class="text-base sm:text-xl font-extrabold text-zinc-900 block mt-0.5">0 / 0</strong>
+              <span id="kpiVacantText" class="text-[10px] sm:text-[11px] font-bold text-emerald-700">0 Available</span>
             </div>
-            <div class="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs">
-              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Fee Collected</span>
-              <strong id="kpiCollected" class="text-xl font-extrabold text-emerald-700 block mt-1">Rs. 0</strong>
-              <span id="kpiPaidCount" class="text-[11px] text-zinc-500">0 Paid Residents</span>
+            <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Collected</span>
+              <strong id="kpiCollected" class="text-base sm:text-xl font-extrabold text-emerald-700 block mt-0.5">Rs. 0</strong>
+              <span id="kpiPaidCount" class="text-[10px] sm:text-[11px] text-zinc-500">0 Paid</span>
             </div>
-            <div class="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs">
-              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Receivable Dues</span>
-              <strong id="kpiPending" class="text-xl font-extrabold text-amber-600 block mt-1">Rs. 0</strong>
-              <span id="kpiUnpaidCount" class="text-[11px] text-rose-600 font-semibold">0 Unpaid</span>
+            <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Receivable</span>
+              <strong id="kpiPending" class="text-base sm:text-xl font-extrabold text-amber-600 block mt-0.5">Rs. 0</strong>
+              <span id="kpiUnpaidCount" class="text-[10px] sm:text-[11px] text-rose-600 font-semibold">0 Unpaid</span>
             </div>
-            <div class="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs">
-              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Total Expenses</span>
-              <strong id="kpiExpenses" class="text-xl font-extrabold text-rose-600 block mt-1">Rs. 0</strong>
-              <span id="kpiExpensesSub" class="text-[11px] text-zinc-500">Bills, Ration & Pay</span>
+            <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Expenses</span>
+              <strong id="kpiExpenses" class="text-base sm:text-xl font-extrabold text-rose-600 block mt-0.5">Rs. 0</strong>
+              <span class="text-[10px] sm:text-[11px] text-zinc-500">Bills & Ration</span>
             </div>
-            <div class="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs">
-              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Net Cashflow</span>
-              <strong id="kpiProfit" class="text-xl font-extrabold text-zinc-900 block mt-1">Rs. 0</strong>
-              <span class="text-[11px] text-zinc-500">Collected − Spent</span>
+            <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Net Cashflow</span>
+              <strong id="kpiProfit" class="text-base sm:text-xl font-extrabold text-zinc-900 block mt-0.5">Rs. 0</strong>
+              <span class="text-[10px] sm:text-[11px] text-zinc-500">Collected − Spent</span>
             </div>
-            <div class="bg-white border border-zinc-200/90 rounded-xl p-4 shadow-2xs">
-              <span class="text-[11px] font-semibold text-zinc-500 uppercase">Security Held</span>
-              <strong id="kpiSecurity" class="text-xl font-extrabold text-zinc-800 block mt-1">Rs. 0</strong>
-              <span class="text-[11px] text-zinc-500">Refundable Deposit</span>
+            <div class="bg-white border border-zinc-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs">
+              <span class="text-[10px] sm:text-[11px] font-semibold text-zinc-500 uppercase block">Security Held</span>
+              <strong id="kpiSecurity" class="text-base sm:text-xl font-extrabold text-zinc-800 block mt-0.5">Rs. 0</strong>
+              <span class="text-[10px] sm:text-[11px] text-zinc-500">Refundable</span>
             </div>
           </section>
 
           <!-- Live Digital Notice Broadcast Bar -->
-          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3 w-full">
-            <div class="flex items-center gap-3 w-full md:w-auto">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 w-full">
+            <div class="flex items-center gap-3">
               <div class="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-700 flex items-center justify-center font-bold shrink-0">
                 <i class="fa-solid fa-bullhorn"></i>
               </div>
               <div>
                 <h4 class="text-xs font-bold text-zinc-900">Live Notice Board Broadcast</h4>
-                <p class="text-[11px] text-zinc-500">Displays instantly at the top of Student, Warden & Public portals.</p>
+                <p class="text-[11px] text-zinc-500">Displays instantly on Student, Warden & Public portals.</p>
               </div>
             </div>
-            <div class="flex items-center gap-2 w-full md:w-1/2">
-              <input id="adminNoticeInput" type="text" placeholder="Type urgent announcement (e.g., Mess timing, fee deadline)..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 focus:border-zinc-900 outline-none" />
-              <button onclick="saveLiveNotice()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap">
-                Post Notice
-              </button>
-              <button onclick="clearLiveNotice()" class="bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-700 border border-zinc-300 px-3 py-2 rounded-lg text-xs font-bold">
-                Clear
-              </button>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-1/2">
+              <input id="adminNoticeInput" type="text" placeholder="Type urgent announcement..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 focus:border-zinc-900 outline-none" />
+              <div class="flex gap-2">
+                <button onclick="saveLiveNotice()" class="flex-1 sm:flex-none bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap">
+                  Post Notice
+                </button>
+                <button onclick="clearLiveNotice()" class="bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-700 border border-zinc-300 px-3 py-2 rounded-lg text-xs font-bold">
+                  Clear
+                </button>
+              </div>
             </div>
           </div>
 
           <!-- Online Admission Applications Queue -->
           <div class="bg-white border border-zinc-200 rounded-xl shadow-2xs overflow-hidden w-full">
-            <div class="px-5 py-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="p-4 sm:px-5 sm:py-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Online Admission Applications Queue</h3>
-                <p class="text-xs text-zinc-500">Applications submitted from the Public Website. Click <strong>Approve & Allot</strong> to assign a room and generate a Resident ID.</p>
+                <p class="text-xs text-zinc-500">Click <strong>Approve & Allot</strong> to assign a room and generate a Resident ID.</p>
               </div>
-              <button onclick="switchTab('students')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold">
+              <button onclick="switchTab('students')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-bold self-start sm:self-auto">
                 + Direct Resident Enrollment
               </button>
             </div>
@@ -231,13 +247,13 @@
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
                   <tr>
-                    <th class="p-3.5">App ID / Date</th>
-                    <th class="p-3.5">Applicant Name & CNIC</th>
-                    <th class="p-3.5">Contact & Guardian</th>
-                    <th class="p-3.5">Institute / Note</th>
-                    <th class="p-3.5">Requested Room</th>
-                    <th class="p-3.5">Status</th>
-                    <th class="p-3.5 text-right">Allotment Action</th>
+                    <th class="p-3">App ID / Date</th>
+                    <th class="p-3">Applicant & CNIC</th>
+                    <th class="p-3">Contact & Guardian</th>
+                    <th class="p-3">Institute / Note</th>
+                    <th class="p-3">Room</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody id="applicationsTableBody" class="divide-y divide-zinc-200"></tbody>
@@ -246,7 +262,7 @@
           </div>
 
           <!-- Audit Activity Trail -->
-          <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-3 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-3 w-full">
             <div class="flex items-center justify-between border-b border-zinc-100 pb-2.5">
               <h3 class="text-sm font-bold text-zinc-900">System Activity & Audit Trail</h3>
               <span class="text-[11px] text-zinc-400">Real-Time Cloud Logs</span>
@@ -259,27 +275,27 @@
         <!-- =============================================================== -->
         <!-- VIEW 2: ROOMS & VISUAL BED OCCUPANCY MAP                        -->
         <!-- =============================================================== -->
-        <div id="view-rooms" class="hidden space-y-6 w-full">
+        <div id="view-rooms" class="hidden space-y-4 sm:space-y-6 w-full">
           
-          <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Add / Update Hostel Room</h3>
                 <p class="text-xs text-zinc-500">Define room capacity and standard per-bed monthly rent.</p>
               </div>
-              <button onclick="splitRoomElectricityPrompt()" class="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 px-3.5 py-2 rounded-lg text-xs font-bold transition">
-                <i class="fa-solid fa-bolt text-amber-600 mr-1"></i> Split Room Sub-Meter Electricity Bill
+              <button onclick="splitRoomElectricityPrompt()" class="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 px-3.5 py-2 rounded-lg text-xs font-bold transition self-start sm:self-auto">
+                <i class="fa-solid fa-bolt text-amber-600 mr-1"></i> Split Sub-Meter Electricity
               </button>
             </div>
 
             <form onsubmit="saveRoom(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs items-end">
               <div>
                 <label class="block font-bold text-zinc-700 mb-1">Room Number *</label>
-                <input id="rmNo" type="text" required placeholder="e.g., 101" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
+                <input id="rmNo" type="text" required placeholder="e.g., 101" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
               </div>
               <div>
                 <label class="block font-bold text-zinc-700 mb-1">Room Type *</label>
-                <select id="rmType" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900">
+                <select id="rmType" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900">
                   <option value="Standard Shared">Standard Shared</option>
                   <option value="Executive AC">Executive AC</option>
                   <option value="2-Seater VIP">2-Seater VIP</option>
@@ -288,11 +304,11 @@
               </div>
               <div>
                 <label class="block font-bold text-zinc-700 mb-1">Total Beds Capacity *</label>
-                <input id="rmCap" type="number" min="1" max="15" required placeholder="e.g., 4" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
+                <input id="rmCap" type="number" min="1" max="15" required placeholder="e.g., 4" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
               </div>
               <div>
                 <label class="block font-bold text-zinc-700 mb-1">Default Bed Rent (Rs.) *</label>
-                <input id="rmRent" type="number" required placeholder="e.g., 5000" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
+                <input id="rmRent" type="number" required placeholder="e.g., 5000" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
               </div>
               <button type="submit" class="bg-zinc-900 hover:bg-zinc-800 text-white py-2.5 px-4 rounded-lg font-bold transition">
                 + Save Room
@@ -300,13 +316,12 @@
             </form>
           </div>
 
-          <!-- Visual Bed Map Grid -->
           <div class="space-y-3 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 class="text-sm font-bold text-zinc-900">Interactive Room & Bed Occupancy Map</h3>
-              <div class="flex gap-2 text-xs font-semibold">
-                <span class="bg-emerald-50 border border-emerald-300 text-emerald-800 px-2.5 py-1 rounded-md">🟢 Vacant Bed (Click to Allot)</span>
-                <span class="bg-white border border-zinc-300 text-zinc-700 px-2.5 py-1 rounded-md">👤 Occupied Bed (Click for Voucher)</span>
+              <div class="flex flex-wrap gap-2 text-[11px] font-semibold">
+                <span class="bg-emerald-50 border border-emerald-300 text-emerald-800 px-2.5 py-1 rounded-md">🟢 Vacant Bed (Tap to Allot)</span>
+                <span class="bg-white border border-zinc-300 text-zinc-700 px-2.5 py-1 rounded-md">👤 Occupied Bed (Tap for Voucher)</span>
               </div>
             </div>
             <div id="vvipBedMapGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full"></div>
@@ -317,10 +332,10 @@
         <!-- =============================================================== -->
         <!-- VIEW 3: RESIDENTS DIRECTORY & COMPLETE BILLING ACTIONS          -->
         <!-- =============================================================== -->
-        <div id="view-students" class="hidden space-y-6 w-full">
+        <div id="view-students" class="hidden space-y-4 sm:space-y-6 w-full">
           
           <!-- Enroll New Resident Form -->
-          <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="border-b border-zinc-100 pb-3">
               <h3 class="text-sm font-bold text-zinc-900">Register New Resident & Allot Bed</h3>
               <p class="text-xs text-zinc-500">Directly enroll a walk-in student with custom agreed monthly rent.</p>
@@ -374,15 +389,15 @@
             <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Active Residents & Fee Billing Ledger</h3>
-                <p class="text-xs text-zinc-500">All resident tools (Voucher, QR Card, WhatsApp Remind, Parent Alert, Room Shift, Mess Off, Edit & Clearance) are built into each row.</p>
+                <p class="text-xs text-zinc-500">All resident tools (Voucher, QR ID, Remind, Parent, Shift, Mess Off, Edit & Clearance) are inside each row.</p>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <select id="filterFeeStatus" onchange="renderStudentsTable()" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs font-semibold">
                   <option value="ALL">All Residents</option>
                   <option value="Unpaid">Unpaid Only</option>
                   <option value="Paid">Paid Only</option>
                 </select>
-                <input id="searchStudentInput" oninput="renderStudentsTable()" type="text" placeholder="Search name, ID, room..." class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 w-56 outline-none focus:border-zinc-900" />
+                <input id="searchStudentInput" oninput="renderStudentsTable()" type="text" placeholder="Search name, ID, room..." class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-xs text-zinc-900 sm:w-56 outline-none focus:border-zinc-900" />
               </div>
             </div>
 
@@ -408,25 +423,25 @@
         <!-- =============================================================== -->
         <!-- VIEW 4: EXPENSES LEDGER & FINANCIAL AUDIT                       -->
         <!-- =============================================================== -->
-        <div id="view-finance" class="hidden space-y-6 w-full">
-          <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4 w-full">
+        <div id="view-finance" class="hidden space-y-4 sm:space-y-6 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
               <div>
                 <h3 class="text-sm font-bold text-zinc-900">Hostel Operational Expense Ledger</h3>
-                <p class="text-xs text-zinc-500">Record kitchen ration, electricity bills, repairs, and salaries for the monthly Profit & Loss Audit.</p>
+                <p class="text-xs text-zinc-500">Record kitchen ration, electricity bills, repairs, and salaries.</p>
               </div>
-              <button onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold">
+              <button onclick="openMonthlyAuditPDF()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-lg text-xs font-bold self-start sm:self-auto">
                 <i class="fa-solid fa-file-pdf text-emerald-400 mr-1"></i> Generate Monthly P&L Statement PDF
               </button>
             </div>
 
             <form onsubmit="addExpense(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-              <input id="expTitle" type="text" required placeholder="Expense description (e.g., WAPDA Bill)" class="sm:col-span-2 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
-              <input id="expAmount" type="number" required placeholder="Amount (Rs.)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900" />
-              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2 px-4">+ Record Expense</button>
+              <input id="expTitle" type="text" required placeholder="Expense description (e.g., WAPDA Bill)" class="sm:col-span-2 bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
+              <input id="expAmount" type="number" required placeholder="Amount (Rs.)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5 text-zinc-900" />
+              <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2.5 px-4">+ Record Expense</button>
             </form>
 
-            <div class="border border-zinc-200 rounded-lg overflow-hidden">
+            <div class="border border-zinc-200 rounded-lg overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200 font-bold">
                   <tr><th class="p-3">Expense Title</th><th class="p-3">Date Recorded</th><th class="p-3 text-right">Amount</th><th class="p-3 text-right">Action</th></tr>
@@ -440,11 +455,10 @@
         <!-- =============================================================== -->
         <!-- VIEW 5: COMPLAINTS, LEAVE REQUESTS & GATE VISITORS LOG          -->
         <!-- =============================================================== -->
-        <div id="view-operations" class="hidden space-y-6 w-full">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <div id="view-operations" class="hidden space-y-4 sm:space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
             
-            <!-- Resident Complaints Desk -->
-            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Maintenance & Resident Complaints</h3>
                 <p class="text-xs text-zinc-500">Submitted by students from the Student Portal.</p>
@@ -452,8 +466,7 @@
               <div id="adminComplaintsList" class="space-y-2.5 max-h-96 overflow-y-auto text-xs custom-scroll"></div>
             </div>
 
-            <!-- Student Leave Applications -->
-            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Resident Leave Requests</h3>
                 <p class="text-xs text-zinc-500">Approve leaves and manage student departures.</p>
@@ -463,19 +476,18 @@
 
           </div>
 
-          <!-- Gate Visitors Log -->
-          <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="border-b border-zinc-100 pb-3">
               <h3 class="text-sm font-bold text-zinc-900">Gate Visitor Security Register</h3>
               <p class="text-xs text-zinc-500">Record guests visiting hostel residents.</p>
             </div>
             <form onsubmit="addVisitor(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-              <input id="visName" type="text" required placeholder="Visitor Name & CNIC" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
-              <input id="visStudent" type="text" required placeholder="Visiting Student / Room #" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
-              <input id="visRelation" type="text" required placeholder="Relation / Purpose" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
-              <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2 px-4">+ Log Visitor Entry</button>
+              <input id="visName" type="text" required placeholder="Visitor Name & CNIC" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5" />
+              <input id="visStudent" type="text" required placeholder="Visiting Student / Room #" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5" />
+              <input id="visRelation" type="text" required placeholder="Relation / Purpose" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2.5" />
+              <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2.5 px-4">+ Log Visitor Entry</button>
             </form>
-            <div class="border border-zinc-200 rounded-lg overflow-hidden">
+            <div class="border border-zinc-200 rounded-lg overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-50 text-zinc-500 uppercase border-b border-zinc-200">
                   <tr><th class="p-2.5">Visitor</th><th class="p-2.5">Host Student / Room</th><th class="p-2.5">Purpose</th><th class="p-2.5">Time</th></tr>
@@ -489,11 +501,10 @@
         <!-- =============================================================== -->
         <!-- VIEW 6: STAFF PAYROLL, INVENTORY ASSETS & WEEKLY MESS MENU      -->
         <!-- =============================================================== -->
-        <div id="view-staff" class="hidden space-y-6 w-full">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        <div id="view-staff" class="hidden space-y-4 sm:space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 w-full">
             
-            <!-- Staff & Payroll Management -->
-            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Hostel Staff & Payroll</h3>
                 <p class="text-xs text-zinc-500">Manage Warden, Cook, Security Guard, and Cleaners.</p>
@@ -504,7 +515,7 @@
                 <input id="stfSalary" type="number" required placeholder="Salary (Rs.)" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
                 <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2">+ Add Staff</button>
               </form>
-              <div class="border border-zinc-200 rounded-lg overflow-hidden">
+              <div class="border border-zinc-200 rounded-lg overflow-x-auto">
                 <table class="w-full text-left text-xs">
                   <thead class="bg-zinc-50 text-zinc-500 border-b border-zinc-200">
                     <tr><th class="p-2.5">Name & Role</th><th class="p-2.5">Salary</th><th class="p-2.5 text-right">Actions</th></tr>
@@ -514,8 +525,7 @@
               </div>
             </div>
 
-            <!-- Hostel Inventory & Assets Tracker -->
-            <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4">
+            <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-sm font-bold text-zinc-900">Hostel Inventory & Fixed Assets</h3>
                 <p class="text-xs text-zinc-500">Track beds, mattresses, fans, routers, and kitchen stock.</p>
@@ -525,7 +535,7 @@
                 <input id="invQty" type="number" required placeholder="Qty" class="bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2" />
                 <button type="submit" class="bg-zinc-900 text-white rounded-lg font-bold py-2">+ Add Asset</button>
               </form>
-              <div class="border border-zinc-200 rounded-lg overflow-hidden">
+              <div class="border border-zinc-200 rounded-lg overflow-x-auto">
                 <table class="w-full text-left text-xs">
                   <thead class="bg-zinc-50 text-zinc-500 border-b border-zinc-200">
                     <tr><th class="p-2.5">Item Name</th><th class="p-2.5">Quantity</th><th class="p-2.5 text-right">Delete</th></tr>
@@ -537,8 +547,7 @@
 
           </div>
 
-          <!-- Weekly Mess Schedule -->
-          <div class="bg-white border border-zinc-200 rounded-xl p-5 shadow-2xs space-y-4 w-full">
+          <div class="bg-white border border-zinc-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4 w-full">
             <div class="border-b border-zinc-100 pb-3">
               <h3 class="text-sm font-bold text-zinc-900">Weekly Mess Menu Editor</h3>
               <p class="text-xs text-zinc-500">Updates live on both the Public Website and Student Portal.</p>
@@ -552,7 +561,7 @@
               <input id="messD" type="text" required placeholder="Dinner dish" class="bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2" />
               <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg font-bold py-2">Save Day Menu</button>
             </form>
-            <div class="border border-zinc-200 rounded-lg overflow-hidden">
+            <div class="border border-zinc-200 rounded-lg overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-zinc-50 text-zinc-500 border-b border-zinc-200">
                   <tr><th class="p-2.5">Day</th><th class="p-2.5">Breakfast</th><th class="p-2.5">Lunch</th><th class="p-2.5">Dinner</th></tr>
@@ -566,11 +575,10 @@
         <!-- =============================================================== -->
         <!-- VIEW 7: SETTINGS, CLOUD BACKUP / RESTORE & DATA RESET           -->
         <!-- =============================================================== -->
-        <div id="view-settings" class="hidden space-y-6 w-full">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+        <div id="view-settings" class="hidden space-y-4 sm:space-y-6 w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
             
-            <!-- Left 2 Columns: Profile & Security Credentials -->
-            <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs space-y-5">
+            <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs space-y-5">
               <div class="border-b border-zinc-100 pb-3">
                 <h3 class="text-base font-bold text-zinc-900">Hostel Profile & Security Credentials</h3>
                 <p class="text-xs text-zinc-500">Update official hostel title, JazzCash/Bank details, and access passwords.</p>
@@ -602,15 +610,14 @@
                   <input id="setWardenPass" type="text" required class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3.5 py-2.5 text-zinc-900 font-mono" />
                 </div>
                 <div class="sm:col-span-2 flex justify-end pt-2">
-                  <button type="submit" class="bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-lg font-bold transition">
+                  <button type="submit" class="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-lg font-bold transition">
                     Save Configuration
                   </button>
                 </div>
               </form>
             </div>
 
-            <!-- Right Column: Cloud Backup, Restore & Reset -->
-            <div class="bg-white border border-zinc-200 rounded-xl p-6 shadow-2xs flex flex-col justify-between space-y-6">
+            <div class="bg-white border border-zinc-200 rounded-xl p-5 sm:p-6 shadow-2xs flex flex-col justify-between space-y-6">
               <div class="space-y-3">
                 <h4 class="text-base font-bold text-zinc-900 border-b border-zinc-100 pb-3">Database Backup & Restore</h4>
                 <p class="text-xs text-zinc-500 leading-relaxed">Download a complete offline backup copy (`.json`) of your hostel data or restore from a saved file anytime.</p>
@@ -628,7 +635,7 @@
               <div class="pt-4 border-t border-zinc-200 space-y-2">
                 <h4 class="text-xs font-bold text-rose-700">Factory Reset Tenant Database</h4>
                 <p class="text-[11px] text-zinc-500">Permanently erase all rooms, students, and records for this hostel.</p>
-                <button type="button" onclick="wipeAllData()" class="w-full bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 py-2 rounded-lg text-xs font-bold transition">
+                <button type="button" onclick="wipeAllData()" class="w-full bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 py-2.5 rounded-lg text-xs font-bold transition">
                   Wipe All Hostel Data
                 </button>
               </div>
@@ -638,6 +645,33 @@
         </div>
 
       </main>
+
+      <!-- ================================================================= -->
+      <!-- 📱 MOBILE BOTTOM APP NAVIGATION BAR (ONLY ON MOBILE)              -->
+      <!-- ================================================================= -->
+      <nav class="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-zinc-200 grid grid-cols-5 z-30 shadow-lg">
+        <button onclick="switchTab('dashboard')" id="abnav-dashboard" class="flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[10px]">
+          <i class="fa-solid fa-table-columns text-sm"></i>
+          <span>Overview</span>
+        </button>
+        <button onclick="switchTab('rooms')" id="abnav-rooms" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[10px]">
+          <i class="fa-solid fa-bed text-sm"></i>
+          <span>Beds</span>
+        </button>
+        <button onclick="switchTab('students')" id="abnav-students" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[10px]">
+          <i class="fa-solid fa-user-graduate text-sm"></i>
+          <span>Residents</span>
+        </button>
+        <button onclick="switchTab('finance')" id="abnav-finance" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[10px]">
+          <i class="fa-solid fa-receipt text-sm"></i>
+          <span>Finance</span>
+        </button>
+        <button onclick="toggleAdminMobileMenu()" class="flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[10px]">
+          <i class="fa-solid fa-bars text-sm"></i>
+          <span>More</span>
+        </button>
+      </nav>
+
     </div>
 
   </div>
@@ -699,14 +733,27 @@
   <!-- ===================================================================== -->
   <script>
     const VIEW_TITLES = {
-      dashboard: "Executive Overview & Online Applications",
-      rooms: "Rooms Directory & Interactive Visual Bed Map",
-      students: "Enrolled Residents & Fee Billing Ledger",
-      finance: "Operational Expenses & Profit/Loss Audit",
-      operations: "Resident Complaints, Leave Requests & Gate Visitors",
-      staff: "Staff Payroll, Fixed Inventory & Weekly Mess Menu",
-      settings: "Institution Settings & Database Backup"
+      dashboard: "Overview & Online Applications",
+      rooms: "Rooms & Interactive Bed Map",
+      students: "Residents & Fee Billing Ledger",
+      finance: "Expenses & Profit/Loss Audit",
+      operations: "Complaints, Leaves & Visitors",
+      staff: "Staff Payroll, Inventory & Mess",
+      settings: "Settings & Database Backup"
     };
+
+    function toggleAdminMobileMenu() {
+      const sb = document.getElementById("adminSidebar");
+      const bd = document.getElementById("adminSidebarBackdrop");
+      const isHidden = sb.classList.contains("-translate-x-full");
+      if (isHidden) {
+        sb.classList.remove("-translate-x-full");
+        bd.classList.remove("hidden");
+      } else {
+        sb.classList.add("-translate-x-full");
+        bd.classList.add("hidden");
+      }
+    }
 
     function checkAdminSession() {
       const db = getDB();
@@ -738,13 +785,27 @@
       Object.keys(VIEW_TITLES).forEach(id => {
         const el = document.getElementById("view-" + id);
         if (el) el.classList.toggle("hidden", id !== viewId);
+
         const nav = document.getElementById("nav-" + id);
         if (nav) {
           nav.className = id === viewId
-            ? "erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-800 text-white font-bold transition"
-            : "erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+            ? "erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-zinc-800 text-white font-bold transition"
+            : "erp-nav w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-zinc-800/60 text-zinc-400 hover:text-white font-semibold transition";
+        }
+
+        const bnav = document.getElementById("abnav-" + id);
+        if (bnav) {
+          bnav.className = id === viewId
+            ? "flex flex-col items-center justify-center gap-1 text-emerald-700 font-extrabold text-[10px]"
+            : "flex flex-col items-center justify-center gap-1 text-zinc-500 font-semibold text-[10px]";
         }
       });
+
+      const sb = document.getElementById("adminSidebar");
+      if (sb && !sb.classList.contains("-translate-x-full")) {
+        toggleAdminMobileMenu();
+      }
+
       document.getElementById("currentViewTitle").innerText = VIEW_TITLES[viewId] || "Hostel ERP";
       renderAdminAll();
     }
@@ -758,9 +819,9 @@
       document.getElementById("headerBillingMonth").innerText = set.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
       document.getElementById("kpiBeds").innerText = `${m.occupiedBeds} / ${m.totalCapacity}`;
-      document.getElementById("kpiVacantText").innerText = `${m.emptyBeds} Beds Available`;
+      document.getElementById("kpiVacantText").innerText = `${m.emptyBeds} Available`;
       document.getElementById("kpiCollected").innerText = `Rs. ${m.collectedFee.toLocaleString()}`;
-      document.getElementById("kpiPaidCount").innerText = `${m.paidCount} Paid Residents`;
+      document.getElementById("kpiPaidCount").innerText = `${m.paidCount} Paid`;
       document.getElementById("kpiPending").innerText = `Rs. ${m.pendingFee.toLocaleString()}`;
       document.getElementById("kpiUnpaidCount").innerText = `${m.unpaidCount} Unpaid`;
       document.getElementById("kpiExpenses").innerText = `Rs. ${m.totalExpenses.toLocaleString()}`;
@@ -806,29 +867,29 @@
 
         return `
           <tr class="hover:bg-zinc-50/80">
-            <td class="p-3.5 font-mono text-[11px] text-zinc-500">
+            <td class="p-3 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
               <strong class="text-zinc-900 block">${app.id}</strong>
               ${app.date || ''}
             </td>
-            <td class="p-3.5">
-              <strong class="text-zinc-900 text-sm block">${app.name || 'Applicant'}</strong>
+            <td class="p-3">
+              <strong class="text-zinc-900 text-sm block whitespace-nowrap">${app.name || 'Applicant'}</strong>
               <span class="text-zinc-500 font-mono text-[11px]">CNIC: ${app.cnic || '—'}</span>
             </td>
-            <td class="p-3.5">
+            <td class="p-3 whitespace-nowrap">
               <div class="font-semibold text-zinc-800">${app.phone || '—'}</div>
               <div class="text-zinc-500 text-[11px]">Guardian: ${app.guardian || '—'}</div>
             </td>
-            <td class="p-3.5 text-zinc-600">
+            <td class="p-3 text-zinc-600">
               <div>${app.uni || '—'}</div>
               ${app.note ? `<span class="text-[11px] text-amber-800 font-medium">"${app.note}"</span>` : ''}
             </td>
-            <td class="p-3.5 font-bold text-zinc-900">Room ${reqRoom}</td>
-            <td class="p-3.5">
+            <td class="p-3 font-bold text-zinc-900 whitespace-nowrap">Room ${reqRoom}</td>
+            <td class="p-3">
               <span class="px-2.5 py-1 rounded-md text-[11px] font-bold ${isPending ? 'bg-amber-100 text-amber-900' : app.status === 'Approved' ? 'bg-emerald-100 text-emerald-900' : 'bg-zinc-200 text-zinc-600'}">
                 ${app.status || 'Pending'}
               </span>
             </td>
-            <td class="p-3.5 text-right whitespace-nowrap space-x-1.5">
+            <td class="p-3 text-right whitespace-nowrap space-x-1">
               ${isPending ? `
                 <button type="button" onclick="openApproveModal('${app.id}')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold transition">
                   <i class="fa-solid fa-check mr-1"></i> Approve & Allot
@@ -1185,25 +1246,25 @@
 
         return `
           <tr class="hover:bg-zinc-50/80">
-            <td class="p-3.5">
+            <td class="p-3.5 whitespace-nowrap">
               <strong class="text-zinc-900 text-sm block">${s.name}</strong>
               <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span> • <span class="text-zinc-500">${s.phone}</span>
             </td>
-            <td class="p-3.5 font-bold text-zinc-900">Room ${s.room}</td>
-            <td class="p-3.5 text-[11px] text-zinc-600">
+            <td class="p-3.5 font-bold text-zinc-900 whitespace-nowrap">Room ${s.room}</td>
+            <td class="p-3.5 text-[11px] text-zinc-600 whitespace-nowrap">
               Rent: <strong>${rent}</strong> | Mess: <strong>${mess}</strong> | Elec: <strong>${elec}</strong>
               ${fine > 0 ? `| <span class="text-rose-600 font-bold">Fine: ${fine}</span>` : ''}
               ${disc > 0 ? `| <span class="text-emerald-700 font-bold">Rebate: -${disc}</span>` : ''}
             </td>
-            <td class="p-3.5 font-extrabold text-zinc-900 text-sm">Rs. ${total.toLocaleString()}</td>
-            <td class="p-3.5">
+            <td class="p-3.5 font-extrabold text-zinc-900 text-sm whitespace-nowrap">Rs. ${total.toLocaleString()}</td>
+            <td class="p-3.5 whitespace-nowrap">
               <button onclick="toggleFeeStatus('${s.id}')" class="px-2.5 py-1 rounded-md text-[11px] font-bold transition ${isPaid ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}">
                 ${isPaid ? '✓ PAID' : 'UNPAID (Mark Paid)'}
               </button>
               ${s.paymentTid ? `<span class="block text-[10px] font-mono text-zinc-700 font-bold mt-1">TID: ${s.paymentTid}</span>` : ''}
             </td>
             <td class="p-3.5 text-right whitespace-nowrap">
-              <div class="inline-flex flex-wrap justify-end gap-1" data-wa-injected="true">
+              <div class="inline-flex items-center justify-end gap-1" data-wa-injected="true">
                 <button onclick="openStudentVoucher('${s.id}')" data-wa-injected="true" class="bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1 rounded text-[11px] font-semibold" title="Print 2-Copy Fee Voucher">
                   <i class="fa-solid fa-file-invoice"></i> Voucher
                 </button>
@@ -1498,7 +1559,7 @@
         ? `<tr><td colspan="4" class="p-4 text-center text-zinc-400">No mess menu configured.</td></tr>`
         : db.messMenu.map(m => `
           <tr>
-            <td class="p-2.5 font-bold text-zinc-900">${m.day}</td>
+            <td class="p-2.5 font-bold text-zinc-900 whitespace-nowrap">${m.day}</td>
             <td class="p-2.5 text-zinc-600">${m.b || m.breakfast || '—'}</td>
             <td class="p-2.5 text-zinc-600">${m.l || m.lunch || '—'}</td>
             <td class="p-2.5 font-semibold text-zinc-800">${m.d || m.dinner || '—'}</td>
