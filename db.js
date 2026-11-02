@@ -1260,3 +1260,74 @@ window.openKYCDocumentsModal = function(recordId) {
     window.showSaaSPopup(message);
   };
 })();
+// ============================================================================
+// 🧾 PAYMENT RECEIPT VIEWER & SECURITY DEPOSIT VOUCHER SYNC
+// Paste at the very bottom of db.js
+// ============================================================================
+window.openPaymentReceiptModal = function(studentId) {
+  injectUniversalModal();
+  const db = getDB();
+  const s = (db.students || []).find(st => st.id === studentId);
+  if (!s || !s.paymentImg) return alert("⚠️ No receipt screenshot attached by student!");
+
+  document.getElementById("uniModalTitle").innerText = `Payment Receipt Proof — ${s.name} (${s.id})`;
+  document.getElementById("uniPrintArea").innerHTML = `
+    <div class="max-w-md mx-auto text-center space-y-4 p-2 text-xs">
+      <div class="bg-zinc-100 border border-zinc-300 rounded-xl p-3 flex justify-between items-center">
+        <span>Student: <strong>${s.name} (${s.id})</strong></span>
+        <span>TID: <strong class="font-mono text-emerald-800">${s.paymentTid || '—'}</strong></span>
+      </div>
+      <img src="${s.paymentImg}" class="w-full max-h-[480px] object-contain rounded-xl border-2 border-zinc-900 mx-auto shadow-md" />
+    </div>
+  `;
+  showUniModal(`Payment_Receipt_${s.id}.pdf`, "portrait");
+};
+
+// Update getLiveMetrics & startNewBillingMonth so 1st-Month Security is calculated accurately
+window.getLiveMetrics = function() {
+  const db = getDB();
+  const totalCapacity = (db.rooms || []).reduce((sum, r) => sum + Number(r.capacity || 0), 0);
+  const activeStudents = (db.students || []).filter(s => s.status === "Active");
+  const occupiedBeds = activeStudents.length;
+  const emptyBeds = Math.max(0, totalCapacity - occupiedBeds);
+
+  let collectedFee = 0, pendingFee = 0, paidCount = 0, unpaidCount = 0, totalSecurity = 0;
+
+  activeStudents.forEach(s => {
+    const secDue = s.securityPaid ? 0 : Number(s.security || 0);
+    const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) + secDue - Number(s.discount || 0);
+    totalSecurity += Number(s.security || 0);
+    if (s.feeStatus === "Paid") {
+      collectedFee += total;
+      paidCount++;
+    } else {
+      pendingFee += total;
+      unpaidCount++;
+    }
+  });
+
+  const totalExpenses = (db.expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const netProfit = collectedFee - totalExpenses;
+  const pendingApps = (db.applications || []).filter(a => a.status === "Pending").length;
+  const openComplaints = (db.complaints || []).filter(c => c.status !== "Resolved").length;
+
+  return {
+    totalCapacity, occupiedBeds, emptyBeds,
+    collectedFee, pendingFee, paidCount, unpaidCount,
+    totalExpenses, netProfit, totalSecurity,
+    pendingApps, openComplaints
+  };
+};
+
+// Mark 1st-month security as paid when starting a new billing month for paid students
+const _origStartNewMonth = window.startNewBillingMonth;
+window.startNewBillingMonth = function() {
+  const db = getDB();
+  (db.students || []).forEach(s => {
+    if (s.status === "Active" && s.feeStatus === "Paid") {
+      s.securityPaid = true;
+    }
+  });
+  saveDB(db);
+  if (typeof _origStartNewMonth === "function") _origStartNewMonth();
+};
