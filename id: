@@ -398,7 +398,7 @@
                     <th class="p-3.5">Room</th>
                     <th class="p-3.5">Billing Breakdown</th>
                     <th class="p-3.5">Net Payable</th>
-                    <th class="p-3.5">Fee Status & TID</th>
+                    <th class="p-3.5">Fee Status, TID & Receipt</th>
                     <th class="p-3.5 text-right">Built-In Resident Actions</th>
                   </tr>
                 </thead>
@@ -719,14 +719,11 @@
       settings: "Settings & Database Backup"
     };
 
-    // Enlarge Profile Photo in Lightbox when clicked
     function openPhotoLightbox(recordId) {
       const db = getDB();
       const rec = (db.applications || []).find(a => String(a.id) === String(recordId)) ||
                   (db.students || []).find(s => String(s.id) === String(recordId));
-      if (!rec || !rec.photo) {
-        return openKYCDocumentsModal(recordId);
-      }
+      if (!rec || !rec.photo) return openKYCDocumentsModal(recordId);
       document.getElementById("lightboxStudentName").innerText = `${rec.name} (${rec.id})`;
       document.getElementById("lightboxPhotoImg").src = rec.photo;
       document.getElementById("lightboxOpenKycBtn").onclick = () => {
@@ -747,6 +744,26 @@
         modal.style.setProperty("display", "none", "important");
       }
     }
+
+    function openPaymentReceiptModal(studentId) {
+      injectUniversalModal();
+      const db = getDB();
+      const s = (db.students || []).find(st => st.id === studentId);
+      if (!s || !s.paymentImg) return alert("⚠️ No receipt screenshot attached by student!");
+
+      document.getElementById("uniModalTitle").innerText = `Payment Receipt Proof — ${s.name} (${s.id})`;
+      document.getElementById("uniPrintArea").innerHTML = `
+        <div class="max-w-md mx-auto text-center space-y-4 p-2 text-xs">
+          <div class="bg-zinc-100 border border-zinc-300 rounded-xl p-3 flex justify-between items-center">
+            <span>Student: <strong>${s.name} (${s.id})</strong></span>
+            <span>TID: <strong class="font-mono text-emerald-800">${s.paymentTid || '—'}</strong></span>
+          </div>
+          <img src="${s.paymentImg}" class="w-full max-h-[480px] object-contain rounded-xl border-2 border-zinc-900 mx-auto shadow-md" />
+        </div>
+      `;
+      showUniModal(`Payment_Receipt_${s.id}.pdf`, "portrait");
+    }
+    window.openPaymentReceiptModal = openPaymentReceiptModal;
 
     function openPortalPage(pageName, newTab = false) {
       const isHtml = window.location.pathname.endsWith(".html");
@@ -867,7 +884,6 @@
       populateSettingsForm();
     }
 
-    // 1. APPLICATIONS TABLE (PROFILE PIC + 1 KYC BUTTON NEXT TO NAME + ORIGINAL ACTION BUTTONS)
     function renderApplicationsTable() {
       const db = getDB();
       const tbody = document.getElementById("applicationsTableBody");
@@ -1025,10 +1041,10 @@
 
       if (!stuPass) return alert("Please set a Student Portal Password!");
 
-      const existingIds = (db.students || []).map(s => Number(String(s.id).replace(/\D/g, "")) || 100);
-      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 101;
+      // Generate Roll ID from CNIC digits + 2 random digits (e.g. ST-482193)
       const cnicDigits = String(app.cnic || "").replace(/\D/g, "").slice(-4) || Math.floor(1000 + Math.random() * 9000);
-const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
+      const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
+
       const newStudent = {
         id: newRollId,
         name: app.name,
@@ -1043,6 +1059,7 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
         otherCharges: 0,
         discount: 0,
         security: secDeposit,
+        securityPaid: false,
         pass: stuPass,
         photo: app.photo || "",
         cnicFront: app.cnicFront || "",
@@ -1060,10 +1077,10 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
       closeApproveModal();
       renderAdminAll();
 
-      if (confirm(`✅ Seat Allotted Successfully!\n\nResident: ${newStudent.name}\nRoll ID: ${newRollId}\nStudent Password: ${stuPass}\nRoom: ${selectedRoom}\n\nSend Welcome Message & Login Details via WhatsApp?`)) {
+      if (confirm(`✅ Seat Allotted Successfully!\n\nResident: ${newStudent.name}\nRoll ID: ${newRollId}\nCNIC: ${newStudent.cnic}\nStudent Password: ${stuPass}\nRoom: ${selectedRoom}\n\nSend Welcome Message & Login Details via WhatsApp?`)) {
         const cleanPhone = "92" + (newStudent.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "");
         const stuUrl = `${window.location.origin}/student?hostel=${TENANT_ID}`;
-        const msg = `*ADMISSION APPROVED — ${db.settings.hostelName}*\n\nSalam *${newStudent.name}*,\nYour seat has been allotted!\n\n🎓 *Roll ID:* ${newRollId}\n🔑 *Student Password:* ${stuPass}\n🚪 *Room:* Room ${selectedRoom}\n💰 *Monthly Rent:* Rs. ${agreedRent.toLocaleString()}\n\n🔗 *Student Portal Login:*\n${stuUrl}`;
+        const msg = `*ADMISSION APPROVED — ${db.settings.hostelName}*\n\nSalam *${newStudent.name}*,\nYour seat has been allotted!\n\n🎓 *Roll ID:* ${newRollId}\n🪪 *CNIC Login:* ${newStudent.cnic}\n🔑 *Student Password:* ${stuPass}\n🚪 *Room:* Room ${selectedRoom}\n💰 *Monthly Rent:* Rs. ${agreedRent.toLocaleString()}\n🛡️ *Security Deposit:* Rs. ${secDeposit.toLocaleString()}\n\n🔗 *Student Portal Login:*\n${stuUrl}`;
         window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
       }
     }
@@ -1242,18 +1259,18 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
       e.preventDefault();
       const db = getDB();
       db.students = db.students || [];
-      const existingIds = db.students.map(s => Number(String(s.id).replace(/\D/g, "")) || 100);
-      const nextNum = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 101;
       const stuPass = (document.getElementById("stuPass")?.value || "").trim();
-
       if (!stuPass) return alert("Please set a Student Portal Password!");
 
+      const cnicVal = document.getElementById("stuCnic").value.trim();
+      const cnicDigits = cnicVal.replace(/\D/g, "").slice(-4) || Math.floor(1000 + Math.random() * 9000);
+      const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
       const uploads = window.kycTempUploads || {};
 
       const newStudent = {
-        id: "ST-" + nextNum,
+        id: newRollId,
         name: document.getElementById("stuName").value.trim(),
-        cnic: document.getElementById("stuCnic").value.trim(),
+        cnic: cnicVal,
         phone: document.getElementById("stuPhone").value.trim(),
         guardian: document.getElementById("stuGuardian").value.trim(),
         uni: document.getElementById("stuUni").value.trim(),
@@ -1264,6 +1281,7 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
         otherCharges: 0,
         discount: 0,
         security: Number(document.getElementById("stuSecurity").value || 0),
+        securityPaid: false,
         pass: stuPass,
         photo: uploads.photo || "",
         cnicFront: uploads.cnicFront || "",
@@ -1278,10 +1296,9 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
       saveDB(db, `Enrolled ${newStudent.name} (${newStudent.id}) in Room ${newStudent.room}`, "Admin");
       e.target.reset();
       renderAdminAll();
-      alert(`✅ Enrolled ${newStudent.name}\n🎓 Roll ID: ${newStudent.id}\n🔑 Student Password: ${stuPass}`);
+      alert(`✅ Enrolled ${newStudent.name}\n🎓 Roll ID: ${newStudent.id}\n🪪 CNIC: ${newStudent.cnic}\n🔑 Password: ${stuPass}`);
     }
 
-    // 3. RESIDENTS TABLE (PROFILE PIC + 1 KYC BUTTON NEXT TO NAME + ALL ORIGINAL ROW BUTTONS)
     function renderStudentsTable() {
       const db = getDB();
       const tbody = document.getElementById("studentsTableBody");
@@ -1291,7 +1308,7 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
       const list = (db.students || []).filter(s => {
         if (s.status !== "Active") return false;
         if (statusFilter !== "ALL" && s.feeStatus !== statusFilter) return false;
-        return String(s.name || "").toLowerCase().includes(q) || String(s.id || "").toLowerCase().includes(q) || String(s.room || "").toLowerCase().includes(q) || String(s.phone || "").includes(q);
+        return String(s.name || "").toLowerCase().includes(q) || String(s.id || "").toLowerCase().includes(q) || String(s.room || "").toLowerCase().includes(q) || String(s.phone || "").includes(q) || String(s.cnic || "").toLowerCase().includes(q);
       });
 
       if (list.length === 0) {
@@ -1301,7 +1318,8 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
 
       tbody.innerHTML = list.map(s => {
         const rent = Number(s.rent || 0), mess = Number(s.mess || 0), elec = Number(s.elec || 0), fine = Number(s.otherCharges || 0), disc = Number(s.discount || 0);
-        const total = rent + mess + elec + fine - disc;
+        const secDue = s.securityPaid ? 0 : Number(s.security || 0);
+        const total = rent + mess + elec + fine + secDue - disc;
         const isPaid = s.feeStatus === "Paid";
 
         const stuAvatar = s.photo
@@ -1320,7 +1338,7 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
                       <i class="fa-solid fa-id-card mr-0.5"></i> KYC
                     </button>
                   </div>
-                  <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span> • <span class="text-zinc-500">${s.phone}</span>
+                  <span class="font-mono text-[11px] text-emerald-800 font-bold">${s.id}</span> • <span class="text-zinc-500 font-mono text-[11px]">${s.cnic || s.phone}</span>
                   <div class="text-[11px] font-mono mt-0.5">
                     🔑 Pass: <strong class="${s.pass ? 'text-zinc-900' : 'text-rose-600'}">${s.pass || 'Not Set'}</strong>
                   </div>
@@ -1330,6 +1348,7 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
             <td class="p-3.5 font-bold text-zinc-900 whitespace-nowrap">Room ${s.room}</td>
             <td class="p-3.5 text-[11px] text-zinc-600 whitespace-nowrap">
               Rent: <strong>${rent}</strong> | Mess: <strong>${mess}</strong> | Elec: <strong>${elec}</strong>
+              ${secDue > 0 ? `| <span class="text-indigo-700 font-bold">Sec: ${secDue}</span>` : ''}
               ${fine > 0 ? `| <span class="text-rose-600 font-bold">Fine: ${fine}</span>` : ''}
               ${disc > 0 ? `| <span class="text-emerald-700 font-bold">Rebate: -${disc}</span>` : ''}
             </td>
@@ -1338,7 +1357,7 @@ const newRollId = "ST-" + cnicDigits + Math.floor(10 + Math.random() * 90);
               <button type="button" onclick="toggleFeeStatus('${s.id}')" class="px-2.5 py-1 rounded-md text-[11px] font-bold transition cursor-pointer ${isPaid ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-amber-100 text-amber-900 border border-amber-300'}">
                 ${isPaid ? '✓ PAID' : 'UNPAID (Mark Paid)'}
               </button>
-              ${s.paymentTid ? `<span class="block text-[10px] font-mono text-zinc-700 font-bold mt-1">TID: ${s.paymentTid}</span>` : ''}
+              ${s.paymentTid ? `<span class="block text-[10px] font-mono text-zinc-700 font-bold mt-1">TID: ${s.paymentTid} ${s.paymentImg ? `<button type="button" onclick="openPaymentReceiptModal('${s.id}')" class="bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded font-sans font-bold ml-1 cursor-pointer">🧾 Receipt</button>` : ''}</span>` : ''}
             </td>
             <td class="p-3.5 text-right whitespace-nowrap">
               <div class="inline-flex items-center justify-end gap-1" data-wa-injected="true">
