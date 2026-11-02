@@ -798,4 +798,52 @@
     window.addEventListener("DOMContentLoaded", initStudentPortal);
   </script>
 </body>
-</html>
+</html> 
+window.openStudentVoucher = function(studentId) {
+  injectUniversalModal();
+  const db = getDB();
+  const s = (db.students || []).find(st => st.id === studentId);
+  if (!s) return alert("❌ Student not found!");
+
+  const rent = Number(s.rent || 0);
+  const mess = Number(s.mess || 0);
+  const elec = Number(s.elec || 0);
+  const other = Number(s.otherCharges || 0);
+  const disc = Number(s.discount || 0);
+  const secHeld = Number(s.security || 0);
+  const secDue = s.securityPaid ? 0 : secHeld;
+  const total = rent + mess + elec + other + secDue - disc;
+
+  const challanNo = "VIP-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
+  const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const issueDate = new Date().toLocaleDateString("en-GB");
+  const dueDateText = `05 ${billingMonth}`;
+  const isPaid = s.feeStatus === "Paid";
+
+  const payOption1 = (db.settings && db.settings.jazzcash) ? db.settings.jazzcash : "Not Configured in Settings";
+  const payOption2 = (db.settings && db.settings.bankAccount) ? db.settings.bankAccount : "";
+
+  const qrData = encodeURIComponent(`VOUCHER:${challanNo}|HOSTEL:${db.settings.hostelName}|ID:${s.id}|NAME:${s.name}|ROOM:${s.room}|AMT:${total}|STATUS:${s.feeStatus}`);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${qrData}`;
+
+  const buildVIPCopy = (copyTitle, accentBg) => `
+    <div style="border: 2px solid #18181b; border-radius: 14px; overflow: hidden; background: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="background: #18181b; color: #ffffff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #34d399; font-weight: 800; display: block;">OFFICIAL HOSTEL FEE CHALLAN</span>
+            <h4 style="font-size: 15px; font-weight: 800; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.3px;">${db.settings.hostelName || 'Hostel ERP'}</h4>
+          </div>
+          <span style="background: ${accentBg}; color: #ffffff; font-size: 9px; font-weight: 800; padding: 4px 9px; border-radius: 6px; letter-spacing: 0.8px; text-transform: uppercase;">
+            ${copyTitle}
+          </span>
+        </div>
+
+        <div style="padding: 14px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px;">
+            <div>
+              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Challan No.</span>
+              <strong style="color: #18181b; font-family: monospace; font-size: 12px;">${challanNo}</strong>
+            </div>
+            <div>
+              <span style="color
