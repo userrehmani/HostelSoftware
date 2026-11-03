@@ -901,3 +901,93 @@
   </script>
 </body>
 </html>
+// ============================================================================
+// 📜 HOSTEL RULES (rules.jpg) MODAL & MANDATORY TERMS CHECKBOX
+// Paste at the bottom of index.html <script> (or bottom of db.js)
+// ============================================================================
+window.openHostelRulesModal = function() {
+  let modal = document.getElementById("hostelRulesImgModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "hostelRulesImgModal";
+    modal.className = "fixed inset-0 bg-zinc-950/85 backdrop-blur-xs hidden items-center justify-center z-[85] p-3 sm:p-5";
+    modal.innerHTML = `
+      <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
+        <div class="px-5 py-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-900 text-white shrink-0">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-scroll text-emerald-400"></i>
+            <h3 class="text-sm font-extrabold">Official Hostel Rules & Terms</h3>
+          </div>
+          <button type="button" onclick="closeHostelRulesModal()" class="text-zinc-400 hover:text-white text-2xl leading-none px-1 cursor-pointer">&times;</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-3 bg-zinc-100 text-center custom-scroll">
+          <img src="rules.jpg" alt="Hostel Rules & Terms" class="w-full h-auto rounded-xl border border-zinc-300 shadow-sm mx-auto" onerror="this.outerHTML='<div class=\\'p-8 text-xs text-rose-600 font-bold\\'>⚠️ rules.jpg file not found in root folder! Make sure the image is named rules.jpg</div>'" />
+        </div>
+
+        <div class="p-3.5 border-t border-zinc-200 bg-white flex justify-end gap-2 shrink-0 text-xs">
+          <button type="button" onclick="closeHostelRulesModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold cursor-pointer">
+            Close
+          </button>
+          <button type="button" onclick="acceptHostelRules()" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold cursor-pointer">
+            <i class="fa-solid fa-check mr-1"></i> I Have Read & Agree
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  modal.style.setProperty("display", "flex", "important");
+};
+
+window.closeHostelRulesModal = function() {
+  const modal = document.getElementById("hostelRulesImgModal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    modal.style.setProperty("display", "none", "important");
+  }
+};
+
+window.acceptHostelRules = function() {
+  const chk = document.getElementById("agreeRulesCheckbox");
+  if (chk) chk.checked = true;
+  closeHostelRulesModal();
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const admForm = document.getElementById("onlineAdmissionForm");
+  if (admForm && !document.getElementById("agreeRulesCheckbox")) {
+    const termsBox = document.createElement("div");
+    termsBox.className = "bg-zinc-50 border border-zinc-300 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs";
+    termsBox.innerHTML = `
+      <label class="flex items-start sm:items-center gap-2.5 cursor-pointer select-none">
+        <input id="agreeRulesCheckbox" type="checkbox" required class="w-4 h-4 mt-0.5 sm:mt-0 accent-emerald-700 rounded cursor-pointer shrink-0" />
+        <span class="font-bold text-zinc-800 leading-snug">
+          I have read and agree to the <span class="text-emerald-800 underline">Hostel Rules, Terms & Conditions</span> *
+        </span>
+      </label>
+      <button type="button" onclick="openHostelRulesModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer">
+        <i class="fa-solid fa-file-contract text-emerald-400 mr-1"></i> Read Rules & Terms
+      </button>
+    `;
+
+    const submitBar = admForm.lastElementChild;
+    admForm.insertBefore(termsBox, submitBar);
+
+    const origSubmit = window.submitOnlineAdmission;
+    if (typeof origSubmit === "function") {
+      window.submitOnlineAdmission = function(e) {
+        if (e) e.preventDefault();
+        const chk = document.getElementById("agreeRulesCheckbox");
+        if (chk && !chk.checked) {
+          alert("⚠️ Please read and tick 'I agree to the Hostel Rules, Terms & Conditions' before submitting!");
+          return false;
+        }
+        return origSubmit(e);
+      };
+    }
+  }
+});
