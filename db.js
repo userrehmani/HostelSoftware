@@ -1453,3 +1453,77 @@ window.openStudentVoucher = function(studentId) {
   `;
   showUniModal(`VIP_Fee_Voucher_${s.id}_${billingMonth.replace(/\s+/g, "_")}.pdf`, "landscape");
 };
+
+window.addEventListener("DOMContentLoaded", () => {
+  // 1. Add "Security Status" dropdown inside Admin's "Approve & Allot" Modal
+  const allotSecInput = document.getElementById("allotSecInput");
+  if (allotSecInput && !document.getElementById("allotSecStatus")) {
+    const secStatDiv = document.createElement("div");
+    secStatDiv.className = "col-span-2";
+    secStatDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1">Security Deposit Billing Status *</label>
+      <select id="allotSecStatus" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900 font-bold">
+        <option value="already_paid">✓ Already Paid Earlier (Existing Student — Do NOT Add to Voucher)</option>
+        <option value="charge_now">➕ Unpaid (New Admission — Add to 1st Month Voucher)</option>
+      </select>
+    `;
+    allotSecInput.parentElement.parentElement.insertAdjacentElement("afterend", secStatDiv);
+  }
+
+  // 2. Add "Security Status" dropdown inside Admin's Walk-In Enrollment Form
+  const stuSecInput = document.getElementById("stuSecurity");
+  if (stuSecInput && !document.getElementById("stuSecStatus")) {
+    const stuStatDiv = document.createElement("div");
+    stuStatDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1">Security Status *</label>
+      <select id="stuSecStatus" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2 text-zinc-900 font-bold">
+        <option value="already_paid">✓ Already Paid (Old Student)</option>
+        <option value="charge_now">➕ Add to Voucher (New)</option>
+      </select>
+    `;
+    stuSecInput.parentElement.insertAdjacentElement("afterend", stuStatDiv);
+  }
+
+  // 3. Auto-detect if applicant selected "Existing Student" on Public Form when opening Approve Modal
+  if (typeof window.openApproveModal === "function") {
+    const _origOpenApprove = window.openApproveModal;
+    window.openApproveModal = function(appId) {
+      _origOpenApprove(appId);
+      const db = getDB();
+      const app = (db.applications || []).find(a => String(a.id) === String(appId));
+      const sel = document.getElementById("allotSecStatus");
+      if (app && sel) {
+        sel.value = (app.resType === "Existing") ? "already_paid" : "charge_now";
+      }
+    };
+  }
+
+  // 4. Save securityPaid = true/false when Admin Approves or Enrolls Student
+  if (typeof window.confirmApproveAndAllot === "function") {
+    const _origConfirmAllot = window.confirmApproveAndAllot;
+    window.confirmApproveAndAllot = function(e) {
+      const isAlreadyPaid = document.getElementById("allotSecStatus")?.value === "already_paid";
+      _origConfirmAllot(e);
+      const db = getDB();
+      if (db.students && db.students[0]) {
+        db.students[0].securityPaid = isAlreadyPaid;
+        saveDB(db);
+        if (typeof renderAdminAll === "function") renderAdminAll();
+      }
+    };
+  }
+
+  if (typeof window.addStudentManual === "function") {
+    const _origAddManual = window.addStudentManual;
+    window.addStudentManual = function(e) {
+      const isAlreadyPaid = document.getElementById("stuSecStatus")?.value === "already_paid";
+      _origAddManual(e);
+      const db = getDB();
+      if (db.students && db.students[0]) {
+        db.students[0].securityPaid = isAlreadyPaid;
+        saveDB(db);
+        if (typeof renderAdminAll === "function") renderAdminAll();
+      }
+    };
+  }
+});
