@@ -505,16 +505,33 @@ function getLiveMetrics() {
   let collectedFee = 0, pendingFee = 0, paidCount = 0, unpaidCount = 0, totalSecurity = 0;
 
   activeStudents.forEach(s => {
-    const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
-    totalSecurity += Number(s.security || 0);
+    const secAmount = Number(s.security || 0);
+    const secDue = s.securityPaid ? 0 : secAmount;
+    const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) + secDue - Number(s.discount || 0);
+
     if (s.feeStatus === "Paid") {
       collectedFee += total;
+      totalSecurity += secAmount; // Paid hone par Security Held me bhi count hogi
       paidCount++;
     } else {
-      pendingFee += total;
+      pendingFee += total; // Unpaid hone par Receivable me poora 7,000 (5000 + 2000) aayega!
+      if (s.securityPaid) totalSecurity += secAmount; // Agar purana student hai to Security Held me aayegi
       unpaidCount++;
     }
   });
+
+  const totalExpenses = (db.expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const netProfit = collectedFee - totalExpenses;
+  const pendingApps = (db.applications || []).filter(a => a.status === "Pending").length;
+  const openComplaints = (db.complaints || []).filter(c => c.status !== "Resolved").length;
+
+  return {
+    totalCapacity, occupiedBeds, emptyBeds,
+    collectedFee, pendingFee, paidCount, unpaidCount,
+    totalExpenses, netProfit, totalSecurity,
+    pendingApps, openComplaints
+  };
+}
 
   const totalExpenses = (db.expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const netProfit = collectedFee - totalExpenses;
