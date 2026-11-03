@@ -28,7 +28,8 @@
     .animate-section { animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
     #admissionModal:not(.hidden) > div,
     #appSuccessModal:not(.hidden) > div,
-    #appSubmittingOverlay:not(.hidden) > div {
+    #appSubmittingOverlay:not(.hidden) > div,
+    #rulesModal:not(.hidden) > div {
       animation: modalSpring 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
 
@@ -365,7 +366,7 @@
   <!-- ===================================================================== -->
   <!-- 📝 ONLINE ADMISSION APPLICATION MODAL (WITH PHOTO & CNIC FRONT/BACK)  -->
   <!-- ===================================================================== -->
-  <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4 overflow-y-auto">
+  <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4 overflow-y-auto animate-section">
     <div class="bg-white border border-zinc-300 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl my-8 text-zinc-800">
       <div class="flex justify-between items-start border-b border-zinc-200 pb-3.5">
         <div>
@@ -375,7 +376,7 @@
         <button type="button" onclick="closeAdmissionModal()" class="text-zinc-400 hover:text-zinc-700 text-2xl leading-none cursor-pointer">&times;</button>
       </div>
 
-      <form id="onlineAdmissionForm" onsubmit="return submitOnlineAdmission(event)" class="space-y-4 text-xs">
+      <form id="onlineAdmissionForm" onsubmit="return submitOnlineAdmission(event)" class="space-y-4 text-xs animate-section">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-zinc-700 font-bold mb-1">Applicant Full Name *</label>
@@ -451,6 +452,17 @@
           <input id="appNote" type="text" placeholder="Any specific preference" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 focus:border-zinc-900 outline-none" />
         </div>
 
+        <!-- 🛡️ PRIVACY POLICY & RULES ACCEPTANCE CHECKBOX -->
+        <div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <input id="appPolicyCheck" type="checkbox" required class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" />
+            <label for="appPolicyCheck" class="text-[11px] font-semibold text-zinc-700 select-none cursor-pointer">
+              I certify that all details & files provided are 100% genuine, and I read & agree to the 
+              <button type="button" onclick="openRulesModal()" class="text-emerald-700 hover:text-emerald-600 font-extrabold underline inline-block">Official Hostel Rules & Privacy Policy</button>. *
+            </label>
+          </div>
+        </div>
+
         <div class="pt-3 border-t border-zinc-200 flex justify-end gap-2">
           <button type="button" onclick="closeAdmissionModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold cursor-pointer">Cancel</button>
           <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold cursor-pointer">
@@ -462,10 +474,37 @@
   </div>
 
   <!-- ===================================================================== -->
+  <!-- 📜 HOSTEL RULES & PRIVACY POLICY ZOOM MODAL                           -->
+  <!-- ===================================================================== -->
+  <div id="rulesModal" class="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm hidden items-center justify-center z-[55] p-4 overflow-y-auto">
+    <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl my-8 text-zinc-800">
+      <div class="flex justify-between items-center border-b border-zinc-200 pb-3">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Official Policy Document</span>
+          <h3 class="text-base font-extrabold text-zinc-900">Hostel Rules & Privacy Policy</h3>
+        </div>
+        <button type="button" onclick="closeRulesModal()" class="text-zinc-400 hover:text-zinc-700 text-2xl leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <!-- Scrollable Image Display Container -->
+      <div class="border border-zinc-200 rounded-xl overflow-hidden max-h-[60vh] overflow-y-auto bg-zinc-50 relative">
+        <!-- Change source to target URL if hosting rules.jpg elsewhere -->
+        <img src="rules.jpg" onerror="this.src='https://placehold.co/600x800?text=%D8%B6%D8%B1%D9%88%D8%B1%DB%8C+%DB%81%D8%AF%D8%A7%DB%8C%D8%A7%D8%AA%5Cn(Please+save+rules.jpg+to+root)'" alt="Official Hostel Rules" class="w-full h-auto object-contain mx-auto" />
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button type="button" onclick="acceptRulesFromModal()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-square-check"></i> Read & Close Policy
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <!-- ⏳ ANIMATED CLOUD LOADING OVERLAY                                      -->
   <!-- ===================================================================== -->
   <div id="appSubmittingOverlay" class="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm hidden items-center justify-center z-[60] p-4">
-    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
+    <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4 animate-section">
       <div class="w-14 h-14 rounded-2xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-md">
         <i class="fa-solid fa-circle-notch fa-spin"></i>
       </div>
@@ -483,7 +522,7 @@
   <!-- ===================================================================== -->
   <!-- ✅ CUSTOM UI "APPLICATION SUBMITTED" RECEIPT MODAL                     -->
   <!-- ===================================================================== -->
-  <div id="appSuccessModal" class="fixed inset-0 bg-zinc-950/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+  <div id="appSuccessModal" class="fixed inset-0 bg-zinc-950/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4 animate-section">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5 text-center">
       <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl mx-auto shadow-md">
         <i class="fa-solid fa-check"></i>
@@ -597,6 +636,24 @@
     function closeAppSuccessModal() {
       setFlexModal("appSuccessModal", false);
     }
+
+    // Rules Overlay Triggers
+    function openRulesModal() {
+      setFlexModal("rulesModal", true);
+    }
+    window.openRulesModal = openRulesModal;
+
+    function closeRulesModal() {
+      setFlexModal("rulesModal", false);
+    }
+    window.closeRulesModal = closeRulesModal;
+
+    function acceptRulesFromModal() {
+      const cb = document.getElementById("appPolicyCheck");
+      if (cb) cb.checked = true;
+      closeRulesModal();
+    }
+    window.acceptRulesFromModal = acceptRulesFromModal;
 
     function copyTrackingId() {
       if (!lastSubmittedAppId) return;
@@ -754,6 +811,12 @@
       const uploads = window.kycTempUploads || {};
       if (!uploads.photo || !uploads.cnicFront || !uploads.cnicBack) {
         alert("⚠️ Please upload your Student Photo, CNIC Front, and CNIC Back before submitting!");
+        return false;
+      }
+
+      const cb = document.getElementById("appPolicyCheck");
+      if (!cb || !cb.checked) {
+        alert("⚠️ You must accept and check 'I read & agree to the Hostel Rules & Privacy Policy' before submitting!");
         return false;
       }
 
