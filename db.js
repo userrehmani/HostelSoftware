@@ -38,7 +38,7 @@ const emptyDB = {
 };
 
 // ============================================================================
-// 1. MULTI-TENANT SAAS ENGINE & SECURE CLOUD AUTHENTICATION
+// 1. MULTI-TENANT SAAS ENGINE & CLOUD SYNC
 // ============================================================================
 const urlParams = new URLSearchParams(window.location.search);
 const TENANT_ID = (urlParams.get("hostel") || "main_hostel").toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -61,7 +61,6 @@ function isMasterPage() {
 function startFirestoreListener() {
   try {
     const firestore = firebase.firestore();
-
     if (isMasterPage()) {
       if (typeof loadAllCloudTenants === "function" && sessionStorage.getItem("MASTER_HQ_AUTH") === "true") {
         loadAllCloudTenants();
@@ -70,20 +69,18 @@ function startFirestoreListener() {
     }
 
     cloudDocRef = firestore.collection("hostel_system").doc(TENANT_ID);
-
     cloudDocRef.onSnapshot((docSnap) => {
       if (docSnap.exists) {
         const cloudData = docSnap.data();
         cloudData.settings = cloudData.settings || {};
 
-        // 🔒 REMOTE SAAS KILL-SWITCH
         if (cloudData.settings.isSuspended === true && !isMasterPage()) {
           document.body.innerHTML = `
             <div style="background:#020617;color:white;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:24px;">
               <div style="width:70px;height:70px;border-radius:20px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);display:flex;align-items:center;justify-content:center;font-size:32px;color:#f43f5e;margin-bottom:16px;">🔒</div>
               <h1 style="color:#f43f5e;font-size:26px;font-weight:800;margin:0;">Software License Suspended</h1>
               <p style="color:#94a3b8;max-width:420px;margin-top:10px;font-size:14px;line-height:1.6;">
-                Access to <strong>${cloudData.settings.hostelName || TENANT_ID}</strong> has been temporarily locked due to an expired subscription. Please contact the software provider to renew your license.
+                Access to <strong>${cloudData.settings.hostelName || TENANT_ID}</strong> has been temporarily locked due to an expired subscription.
               </p>
             </div>`;
           return;
@@ -93,7 +90,7 @@ function startFirestoreListener() {
         refreshCurrentPortalUI();
       }
     }, (err) => {
-      console.error("Firestore Sync Blocked:", err);
+      console.error("Firestore Sync Error:", err);
     });
   } catch (err) {
     console.error("Firestore Listener Error:", err);
@@ -106,22 +103,19 @@ function initSecureFirebase() {
 
   const connectWithAuth = () => {
     let started = false;
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        if (!started) {
-          started = true;
-          startFirestoreListener();
+    if (typeof firebase.auth === "function") {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          if (!started) { started = true; startFirestoreListener(); }
+        } else {
+          firebase.auth().signInAnonymously().catch(() => {
+            if (!started) { started = true; startFirestoreListener(); }
+          });
         }
-      } else {
-        firebase.auth().signInAnonymously().catch((err) => {
-          console.warn("Auth note:", err.message);
-          if (!started) {
-            started = true;
-            startFirestoreListener();
-          }
-        });
-      }
-    });
+      });
+    } else {
+      startFirestoreListener();
+    }
   };
 
   if (typeof firebase.auth === "function") {
@@ -130,6 +124,7 @@ function initSecureFirebase() {
     const authScript = document.createElement("script");
     authScript.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js";
     authScript.onload = connectWithAuth;
+    authScript.onerror = () => startFirestoreListener();
     document.head.appendChild(authScript);
   }
 }
@@ -137,11 +132,13 @@ function initSecureFirebase() {
 initSecureFirebase();
 
 // ============================================================================
-// 2. STRICT ZERO-TRUST LOGIN GATES & 2-CHANNEL PAYMENT SETTINGS UPGRADER
+// 2. LOGIN GATES, 2-PAYMENT OPTIONS & OLD/NEW SECURITY SELECTOR
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
   upgradePortalLoginGates();
   upgradeAdminPaymentSettings();
+  upgradeSecurityStatusSelectors();
+  injectRulesCheckboxInAdmissionForm();
 });
 
 function upgradeAdminPaymentSettings() {
@@ -199,13 +196,9 @@ function upgradeAdminPaymentSettings() {
       db.settings.bankAccount = (document.getElementById("setBankAccount")?.value || "").trim();
       db.settings.adminWhatsApp = document.getElementById("setWhatsApp").value.trim();
       db.settings.currentMonth = document.getElementById("setMonth").value.trim();
-      if (document.getElementById("setAdminEmail")) {
-        db.settings.adminEmail = document.getElementById("setAdminEmail").value.trim().toLowerCase();
-      }
+      if (document.getElementById("setAdminEmail")) db.settings.adminEmail = document.getElementById("setAdminEmail").value.trim().toLowerCase();
       db.settings.adminPass = document.getElementById("setAdminPass").value.trim();
-      if (document.getElementById("setWardenEmail")) {
-        db.settings.wardenEmail = document.getElementById("setWardenEmail").value.trim().toLowerCase();
-      }
+      if (document.getElementById("setWardenEmail")) db.settings.wardenEmail = document.getElementById("setWardenEmail").value.trim().toLowerCase();
       db.settings.wardenPass = document.getElementById("setWardenPass").value.trim();
 
       saveDB(db, "Updated hostel settings, payment channels & security credentials", "Admin");
@@ -214,6 +207,76 @@ function upgradeAdminPaymentSettings() {
     };
 
     window.populateSettingsForm();
+  }
+}
+
+function upgradeSecurityStatusSelectors() {
+  const allotSecInput = document.getElementById("allotSecInput");
+  if (allotSecInput && !document.getElementById("allotSecStatus")) {
+    const secStatDiv = document.createElement("div");
+    secStatDiv.className = "col-span-2";
+    secStatDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1">Security Deposit Billing Status *</label>
+      <select id="allotSecStatus" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900 font-bold">
+        <option value="charge_now">➕ Unpaid (New Admission — Add to 1st Month Voucher)</option>
+        <option value="already_paid">✓ Already Paid Earlier (Existing Student — Do NOT Add to Voucher)</option>
+      </select>
+    `;
+    allotSecInput.parentElement.parentElement.insertAdjacentElement("afterend", secStatDiv);
+  }
+
+  const stuSecInput = document.getElementById("stuSecurity");
+  if (stuSecInput && !document.getElementById("stuSecStatus")) {
+    const stuStatDiv = document.createElement("div");
+    stuStatDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1">Security Status *</label>
+      <select id="stuSecStatus" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2 text-zinc-900 font-bold">
+        <option value="charge_now">➕ Add to Voucher (New)</option>
+        <option value="already_paid">✓ Already Paid (Old Student)</option>
+      </select>
+    `;
+    stuSecInput.parentElement.insertAdjacentElement("afterend", stuStatDiv);
+  }
+
+  if (typeof window.openApproveModal === "function") {
+    const _origOpenApprove = window.openApproveModal;
+    window.openApproveModal = function(appId) {
+      _origOpenApprove(appId);
+      const db = getDB();
+      const app = (db.applications || []).find(a => String(a.id) === String(appId));
+      const sel = document.getElementById("allotSecStatus");
+      if (app && sel) {
+        sel.value = (app.resType === "Existing") ? "already_paid" : "charge_now";
+      }
+    };
+  }
+
+  if (typeof window.confirmApproveAndAllot === "function") {
+    const _origConfirmAllot = window.confirmApproveAndAllot;
+    window.confirmApproveAndAllot = function(e) {
+      const isAlreadyPaid = document.getElementById("allotSecStatus")?.value === "already_paid";
+      _origConfirmAllot(e);
+      const db = getDB();
+      if (db.students && db.students[0]) {
+        db.students[0].securityPaid = isAlreadyPaid;
+        saveDB(db);
+        if (typeof renderAdminAll === "function") renderAdminAll();
+      }
+    };
+  }
+
+  if (typeof window.addStudentManual === "function") {
+    const _origAddManual = window.addStudentManual;
+    window.addStudentManual = function(e) {
+      const isAlreadyPaid = document.getElementById("stuSecStatus")?.value === "already_paid";
+      _origAddManual(e);
+      const db = getDB();
+      if (db.students && db.students[0]) {
+        db.students[0].securityPaid = isAlreadyPaid;
+        saveDB(db);
+        if (typeof renderAdminAll === "function") renderAdminAll();
+      }
+    };
   }
 }
 
@@ -251,10 +314,9 @@ function upgradePortalLoginGates() {
 }
 
 // ============================================================================
-// 3. STRICT PRE-AUTHORIZED LOGIN VERIFIERS (Admin, Warden & Student)
+// 3. STRICT PRE-AUTHORIZED LOGIN VERIFIERS
 // ============================================================================
 window.addEventListener("DOMContentLoaded", () => {
-  // 1. Admin Login
   window.verifyAdminLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById("adminEmailInput");
@@ -267,10 +329,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (cloudDocRef) {
       try {
         const snap = await cloudDocRef.get();
-        if (snap.exists) {
-          db = snap.data();
-          localStorage.setItem(DB_KEY, JSON.stringify(db));
-        }
+        if (snap.exists) { db = snap.data(); localStorage.setItem(DB_KEY, JSON.stringify(db)); }
       } catch (err) {}
     }
 
@@ -284,18 +343,13 @@ window.addEventListener("DOMContentLoaded", () => {
     if (isFounder || isTenantAdmin) {
       try { sessionStorage.setItem("ADMIN_AUTH_" + TENANT_ID, "true"); } catch (err) {}
       const gate = document.getElementById("adminLoginGate");
-      if (gate) {
-        gate.classList.remove("flex");
-        gate.classList.add("hidden");
-        gate.style.setProperty("display", "none", "important");
-      }
+      if (gate) { gate.classList.remove("flex"); gate.classList.add("hidden"); gate.style.setProperty("display", "none", "important"); }
       if (typeof renderAdminAll === "function") renderAdminAll();
     } else {
       alert("❌ Access Denied!\nInvalid Admin Email or Password.");
     }
   };
 
-  // 2. Warden Login
   window.handleWardenLogin = async function(e) {
     if (e) e.preventDefault();
     const emailInput = document.getElementById("wardenEmailInput");
@@ -308,10 +362,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (cloudDocRef) {
       try {
         const snap = await cloudDocRef.get();
-        if (snap.exists) {
-          db = snap.data();
-          localStorage.setItem(DB_KEY, JSON.stringify(db));
-        }
+        if (snap.exists) { db = snap.data(); localStorage.setItem(DB_KEY, JSON.stringify(db)); }
       } catch (err) {}
     }
 
@@ -325,91 +376,23 @@ window.addEventListener("DOMContentLoaded", () => {
     if (isFounder || isTenantWarden) {
       try { sessionStorage.setItem("WARDEN_AUTH_" + TENANT_ID, "true"); } catch (err) {}
       const gate = document.getElementById("wardenLoginGate");
-      if (gate) {
-        gate.classList.remove("flex");
-        gate.classList.add("hidden");
-        gate.style.setProperty("display", "none", "important");
-      }
+      if (gate) { gate.classList.remove("flex"); gate.classList.add("hidden"); gate.style.setProperty("display", "none", "important"); }
       if (typeof renderWardenConsole === "function") renderWardenConsole();
     } else {
       alert("❌ Access Denied!\nInvalid Warden Email or Password.");
     }
   };
-
-  // 3. Student Login
-  window.handleStudentLogin = async function(e) {
-    if (e) e.preventDefault();
-    const loginInput = document.getElementById("stuLoginInput");
-    const passInput = document.getElementById("stuPassInput");
-    const q = loginInput ? loginInput.value.trim().toLowerCase() : "";
-    const pass = passInput ? passInput.value.trim() : "";
-    if (!q || !pass) return alert("⚠️ Please enter both your Roll ID/Phone and Student Password!");
-
-    let db = getDB();
-    const findStu = (database) => (database.students || []).find(s =>
-      s.status === "Active" && (
-        String(s.id || "").toLowerCase() === q ||
-        String(s.cnic || "").toLowerCase() === q ||
-        String(s.phone || "").toLowerCase() === q
-      )
-    );
-
-    let found = findStu(db);
-
-    if ((!found || String(found.pass || "").trim() !== pass) && cloudDocRef) {
-      try {
-        const snap = await cloudDocRef.get();
-        if (snap.exists) {
-          db = snap.data();
-          localStorage.setItem(DB_KEY, JSON.stringify(db));
-          found = findStu(db);
-        }
-      } catch (err) {}
-    }
-
-    if (!found) {
-      return alert("❌ Access Denied!\nYou are not an admitted resident of this hostel. Please apply online and wait for Admin approval.");
-    }
-
-    const assignedPass = found.pass ? String(found.pass).trim() : "";
-    if (!assignedPass) {
-      return alert("⚠️ Password Not Set!\nPlease ask your Hostel Admin to assign your Student Password in the Admin Panel.");
-    }
-
-    if (pass !== assignedPass) {
-      return alert("❌ Incorrect Student Password!");
-    }
-
-    window.loggedStudent = found;
-    try { sessionStorage.setItem("STU_AUTH_" + TENANT_ID, found.id); } catch (err) {}
-    const gate = document.getElementById("studentLoginGate");
-    if (gate) {
-      gate.classList.remove("flex");
-      gate.classList.add("hidden");
-      gate.style.setProperty("display", "none", "important");
-    }
-    if (typeof renderStudentDashboard === "function") renderStudentDashboard();
-  };
 });
 
 // ============================================================================
-// 4. CORE DATABASE HELPERS & LIVE METRICS
+// 4. CORE DATABASE HELPERS & ACCURATE LIVE METRICS (INCLUDING SECURITY DUE)
 // ============================================================================
 function refreshCurrentPortalUI() {
   if (typeof renderAdminAll === "function") renderAdminAll();
   if (typeof loadPublicSite === "function") loadPublicSite();
   if (typeof renderPublicPage === "function") renderPublicPage();
   if (typeof renderWardenConsole === "function") renderWardenConsole();
-  if (typeof renderStudentDashboard === "function" && window.loggedStudent) {
-    renderStudentDashboard();
-    const payBox = document.getElementById("payAccountBox");
-    const db = getDB();
-    if (payBox && db.settings) {
-      const opt1 = db.settings.jazzcash || "Contact Admin Office";
-      const opt2 = db.settings.bankAccount ? `<div class="mt-1 pt-1 border-t border-zinc-200 text-emerald-800">${db.settings.bankAccount}</div>` : "";
-      payBox.innerHTML = `<div>${opt1}</div>${opt2}`;
-    }
-  }
+  if (typeof renderStudentDashboard === "function" && window.loggedStudent) renderStudentDashboard();
 }
 
 function getDB() {
@@ -442,7 +425,6 @@ function saveDB(db, actionText, actor = "Admin") {
     });
   }
   try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch (e) {}
-
   if (cloudDocRef) {
     cloudDocRef.set(db).catch(err => console.error("Cloud Sync Error:", err));
   }
@@ -468,11 +450,8 @@ function wipeAllData() {
       };
     }
     try { localStorage.setItem(DB_KEY, JSON.stringify(fresh)); } catch (e) {}
-    if (cloudDocRef) {
-      cloudDocRef.set(fresh).then(() => location.reload());
-    } else {
-      location.reload();
-    }
+    if (cloudDocRef) cloudDocRef.set(fresh).then(() => location.reload());
+    else location.reload();
   }
 }
 
@@ -483,7 +462,7 @@ function saveLiveNotice() {
   db.settings = db.settings || {};
   db.settings.liveNotice = input.value.trim();
   saveDB(db, "Updated live notice broadcast", "Admin");
-  alert("✅ Live Notice Broadcasted!\nYour announcement is now live across all portals.");
+  alert("✅ Live Notice Broadcasted!");
 }
 
 function clearLiveNotice() {
@@ -511,11 +490,11 @@ function getLiveMetrics() {
 
     if (s.feeStatus === "Paid") {
       collectedFee += total;
-      totalSecurity += secAmount; // Paid hone par Security Held me bhi count hogi
+      totalSecurity += secAmount;
       paidCount++;
     } else {
-      pendingFee += total; // Unpaid hone par Receivable me poora 7,000 (5000 + 2000) aayega!
-      if (s.securityPaid) totalSecurity += secAmount; // Agar purana student hai to Security Held me aayegi
+      pendingFee += total;
+      if (s.securityPaid) totalSecurity += secAmount;
       unpaidCount++;
     }
   });
@@ -533,21 +512,8 @@ function getLiveMetrics() {
   };
 }
 
-  const totalExpenses = (db.expenses || []).reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const netProfit = collectedFee - totalExpenses;
-  const pendingApps = (db.applications || []).filter(a => a.status === "Pending").length;
-  const openComplaints = (db.complaints || []).filter(c => c.status !== "Resolved").length;
-
-  return {
-    totalCapacity, occupiedBeds, emptyBeds,
-    collectedFee, pendingFee, paidCount, unpaidCount,
-    totalExpenses, netProfit, totalSecurity,
-    pendingApps, openComplaints
-  };
-}
-
 // ============================================================================
-// 5. VIP EXECUTIVE 2-COPY VOUCHER, QR ID CARD & AUDIT PDF ENGINE
+// 5. VIP 2-COPY VOUCHER (WITH SECURITY DEPOSIT), QR CARD & AUDIT PDF
 // ============================================================================
 function injectUniversalModal() {
   if (document.getElementById("universalDocModal")) return;
@@ -576,11 +542,7 @@ function injectUniversalModal() {
 
 function closeUniModal() {
   const modal = document.getElementById("universalDocModal");
-  if (modal) {
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-    modal.style.setProperty("display", "none", "important");
-  }
+  if (modal) { modal.classList.add("hidden"); modal.classList.remove("flex"); modal.style.setProperty("display", "none", "important"); }
 }
 
 function showUniModal(filename, orientation) {
@@ -600,17 +562,22 @@ function showUniModal(filename, orientation) {
   };
 }
 
-// VIP 2-Copy Fee Challan
 function openStudentVoucher(studentId) {
   injectUniversalModal();
   const db = getDB();
   const s = (db.students || []).find(st => st.id === studentId);
   if (!s) return alert("❌ Student not found!");
 
-  const rent = Number(s.rent || 0), mess = Number(s.mess || 0), elec = Number(s.elec || 0), other = Number(s.otherCharges || 0), disc = Number(s.discount || 0);
-  const total = rent + mess + elec + other - disc;
-  const challanNo = "VIP-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
+  const rent = Number(s.rent || 0);
+  const mess = Number(s.mess || 0);
+  const elec = Number(s.elec || 0);
+  const other = Number(s.otherCharges || 0);
+  const disc = Number(s.discount || 0);
+  const secHeld = Number(s.security || 0);
+  const secDue = s.securityPaid ? 0 : secHeld;
+  const total = rent + mess + elec + other + secDue - disc;
 
+  const challanNo = "VIP-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
   const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const issueDate = new Date().toLocaleDateString("en-GB");
   const dueDateText = `05 ${billingMonth}`;
@@ -628,39 +595,26 @@ function openStudentVoucher(studentId) {
         <div style="background: #18181b; color: #ffffff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
           <div>
             <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #34d399; font-weight: 800; display: block;">OFFICIAL HOSTEL FEE CHALLAN</span>
-            <h4 style="font-size: 15px; font-weight: 800; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.3px;">${db.settings.hostelName || 'Hostel ERP'}</h4>
+            <h4 style="font-size: 15px; font-weight: 800; margin: 2px 0 0 0; text-transform: uppercase;">${db.settings.hostelName || 'Hostel ERP'}</h4>
           </div>
-          <span style="background: ${accentBg}; color: #ffffff; font-size: 9px; font-weight: 800; padding: 4px 9px; border-radius: 6px; letter-spacing: 0.8px; text-transform: uppercase;">
+          <span style="background: ${accentBg}; color: #ffffff; font-size: 9px; font-weight: 800; padding: 4px 9px; border-radius: 6px; text-transform: uppercase;">
             ${copyTitle}
           </span>
         </div>
 
         <div style="padding: 14px 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px;">
-            <div>
-              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Challan No.</span>
-              <strong style="color: #18181b; font-family: monospace; font-size: 12px;">${challanNo}</strong>
-            </div>
-            <div>
-              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Billing Month</span>
-              <strong style="color: #047857;">${billingMonth}</strong>
-            </div>
-            <div>
-              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span>
-              <strong style="color: #e11d48;">${dueDateText}</strong>
-            </div>
-            <div style="text-align: right;">
-              <span style="padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; background: ${isPaid ? '#d1fae5' : '#fef3c7'}; color: ${isPaid ? '#065f46' : '#92400e'}; border: 1px solid ${isPaid ? '#6ee7b7' : '#fcd34d'};">
-                ${isPaid ? '✓ PAID' : '● UNPAID'}
-              </span>
-            </div>
+            <div><span style="color:#71717a;font-size:9px;text-transform:uppercase;font-weight:700;display:block;">Challan No.</span><strong style="color:#18181b;font-family:monospace;font-size:12px;">${challanNo}</strong></div>
+            <div><span style="color:#71717a;font-size:9px;text-transform:uppercase;font-weight:700;display:block;">Billing Month</span><strong style="color:#047857;">${billingMonth}</strong></div>
+            <div><span style="color:#71717a;font-size:9px;text-transform:uppercase;font-weight:700;display:block;">Due Date</span><strong style="color:#e11d48;">${dueDateText}</strong></div>
+            <div style="text-align:right;"><span style="padding:3px 8px;border-radius:6px;font-size:10px;font-weight:800;background:${isPaid ? '#d1fae5' : '#fef3c7'};color:${isPaid ? '#065f46' : '#92400e'};border:1px solid ${isPaid ? '#6ee7b7' : '#fcd34d'};">${isPaid ? '✓ PAID' : '● UNPAID'}</span></div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; border: 1px solid #e4e4e7; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
             <div><span style="color:#71717a;">Resident:</span> <strong style="color:#18181b;">${s.name}</strong></div>
             <div><span style="color:#71717a;">Roll ID:</span> <strong style="color:#047857; font-family:monospace;">${s.id}</strong></div>
             <div><span style="color:#71717a;">Room No:</span> <strong style="color:#18181b;">Room ${s.room}</strong></div>
-            <div><span style="color:#71717a;">Phone:</span> <strong style="color:#18181b;">${s.phone || '—'}</strong></div>
+            <div><span style="color:#71717a;">CNIC:</span> <strong style="color:#18181b;">${s.cnic || s.phone || '—'}</strong></div>
           </div>
 
           <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
@@ -671,11 +625,12 @@ function openStudentVoucher(studentId) {
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 6px 8px;">01. Monthly Room / Seat Rent</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${rent.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 6px 8px;">02. Mess & Dining Charges</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${mess.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 6px 8px;">03. Electricity Sub-Meter Share</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${elec.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5; color: #e11d48;"><td style="padding: 6px 8px;">04. Late Fine / Previous Arrears</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">Rs. ${other.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #e4e4e7; color: #047857;"><td style="padding: 6px 8px;">05. Mess-Off Rebate / Scholarship</td><td style="padding: 6px 8px; text-align: right; font-weight: 700;">- Rs. ${disc.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">01. Monthly Room / Seat Rent</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${rent.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">02. Mess & Dining Charges</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${mess.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">03. Electricity Sub-Meter Share</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${elec.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">04. Refundable Security Deposit ${s.securityPaid ? '(Already Paid)' : '(1st Month)'}</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${secDue.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #f4f4f5; color: #e11d48;"><td style="padding: 5px 8px;">05. Late Fine / Previous Arrears</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${other.toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #e4e4e7; color: #047857;"><td style="padding: 5px 8px;">06. Mess-Off Rebate / Scholarship</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">- Rs. ${disc.toLocaleString()}</td></tr>
             </tbody>
           </table>
 
@@ -687,24 +642,13 @@ function openStudentVoucher(studentId) {
             <strong style="font-size: 16px; font-weight: 800; color: #34d399;">Rs. ${total.toLocaleString()}</strong>
           </div>
 
-          <!-- 💳 PAYABLE THROUGH (2 ADMIN-CONFIGURED PAYMENT OPTIONS) -->
           <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
             <div style="font-size: 10.5px; line-height: 1.45; flex: 1;">
-              <span style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: #065f46; letter-spacing: 0.5px; display: block; margin-bottom: 3px;">
+              <span style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: #065f46; display: block; margin-bottom: 3px;">
                 💳 PAYABLE THROUGH (OFFICIAL DEPOSIT CHANNELS):
               </span>
-              <div style="color: #18181b; font-weight: 700;">
-                <span style="color: #047857;">● Option 1:</span> ${payOption1}
-              </div>
-              ${payOption2 ? `
-                <div style="color: #18181b; font-weight: 700; margin-top: 2px;">
-                  <span style="color: #047857;">● Option 2:</span> ${payOption2}
-                </div>
-              ` : `
-                <div style="color: #52525b; font-size: 9.5px; margin-top: 2px;">
-                  (Or deposit cash directly at the Hostel Admin Office)
-                </div>
-              `}
+              <div style="color: #18181b; font-weight: 700;"><span style="color: #047857;">● Option 1:</span> ${payOption1}</div>
+              ${payOption2 ? `<div style="color: #18181b; font-weight: 700; margin-top: 2px;"><span style="color: #047857;">● Option 2:</span> ${payOption2}</div>` : ''}
               ${s.paymentTid ? `<div style="margin-top:4px; color:#1d4ed8; font-family:monospace; font-weight:700;">Submitted TID: ${s.paymentTid}</div>` : ''}
             </div>
             <img src="${qrUrl}" alt="QR" style="width: 56px; height: 56px; border: 1px solid #a7f3d0; border-radius: 8px; padding: 2px; background: #fff; flex-shrink: 0;" crossorigin="anonymous" />
@@ -721,16 +665,10 @@ function openStudentVoucher(studentId) {
   `;
 
   document.getElementById("uniModalTitle").innerText = `VIP Executive 2-Copy Fee Challan (${billingMonth})`;
-  document.getElementById("uniPrintArea").innerHTML = `
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      ${buildVIPCopy("HOSTEL OFFICE COPY", "#059669")}
-      ${buildVIPCopy("RESIDENT STUDENT COPY", "#2563eb")}
-    </div>
-  `;
+  document.getElementById("uniPrintArea").innerHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">${buildVIPCopy("HOSTEL OFFICE COPY", "#059669") + buildVIPCopy("RESIDENT STUDENT COPY", "#2563eb")}</div>`;
   showUniModal(`VIP_Fee_Voucher_${s.id}_${billingMonth.replace(/\s+/g, "_")}.pdf`, "landscape");
 }
 
-// Digital QR ID Card (With Real Student Photo Support)
 function openStudentQRCard(studentId) {
   injectUniversalModal();
   const db = getDB();
@@ -739,7 +677,6 @@ function openStudentQRCard(studentId) {
 
   const qrData = encodeURIComponent(`HOSTEL:${db.settings.hostelName}|ID:${s.id}|NAME:${s.name}|ROOM:${s.room}|CNIC:${s.cnic}`);
   const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrData}`;
-
   const avatarHtml = s.photo
     ? `<img src="${s.photo}" class="w-20 h-20 rounded-full object-cover mx-auto border-2 border-emerald-600 shadow-md" />`
     : `<div class="w-20 h-20 rounded-full bg-emerald-100 text-emerald-900 font-extrabold text-2xl flex items-center justify-center mx-auto border-2 border-emerald-600">${(s.name || 'ST').substring(0, 2).toUpperCase()}</div>`;
@@ -748,7 +685,7 @@ function openStudentQRCard(studentId) {
   document.getElementById("uniPrintArea").innerHTML = `
     <div class="max-w-sm mx-auto border-2 border-zinc-900 rounded-2xl overflow-hidden shadow-lg bg-white text-zinc-900">
       <div class="bg-zinc-900 text-white p-4 text-center">
-        <h3 class="font-extrabold text-base uppercase tracking-wider">${db.settings.hostelName}</h3>
+        <h3 class="font-extrabold text-base uppercase">${db.settings.hostelName}</h3>
         <span class="text-[10px] uppercase bg-emerald-600 text-white px-2.5 py-0.5 rounded-full font-bold">Official Resident Gate Pass ID</span>
       </div>
       <div class="p-5 text-center space-y-3">
@@ -790,12 +727,8 @@ function openClearanceCertificate(studentId) {
         <h2 class="text-xl font-extrabold uppercase">${db.settings.hostelName}</h2>
         <p class="text-xs font-bold text-emerald-700 uppercase mt-1">Official Leaving Clearance & Security Refund Certificate</p>
       </div>
-      <div class="flex justify-between text-zinc-600">
-        <span>Certificate Ref: <strong>CLR-${s.id}-${new Date().getFullYear()}</strong></span>
-        <span>Issue Date: <strong>${new Date().toLocaleDateString("en-GB")}</strong></span>
-      </div>
       <p class="text-sm leading-relaxed">
-        This is to certify that <strong>${s.name}</strong> (Roll ID: <strong>${s.id}</strong>, CNIC: <strong>${s.cnic}</strong>), occupant of Room <strong>${s.room}</strong>, is checking out of the hostel. Below is the final settlement of their account and refundable security deposit:
+        This is to certify that <strong>${s.name}</strong> (Roll ID: <strong>${s.id}</strong>, CNIC: <strong>${s.cnic}</strong>), occupant of Room <strong>${s.room}</strong>, is checking out of the hostel.
       </p>
       <table class="w-full text-left border border-zinc-300">
         <tbody class="divide-y divide-zinc-200">
@@ -804,11 +737,6 @@ function openClearanceCertificate(studentId) {
           <tr class="bg-zinc-900 text-white text-sm"><td class="p-2.5 font-bold">NET SECURITY REFUNDABLE TO STUDENT</td><td class="p-2.5 text-right font-bold">Rs. ${netRefund.toLocaleString()}</td></tr>
         </tbody>
       </table>
-      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-zinc-600">
-        <div>______________________<br>Warden (Room Key & Assets)</div>
-        <div>______________________<br>Accountant / Owner Stamp</div>
-        <div>______________________<br>Student Receiving Sign</div>
-      </div>
     </div>
   `;
   showUniModal(`Clearance_Certificate_${s.id}.pdf`, "portrait");
@@ -819,98 +747,33 @@ function openMonthlyAuditPDF() {
   const db = getDB();
   const m = getLiveMetrics();
   const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-
-  const expRows = (db.expenses || []).map((e, i) => `
-    <tr>
-      <td class="p-1.5 border border-zinc-300">${i + 1}</td>
-      <td class="p-1.5 border border-zinc-300 font-semibold">${e.title || e.category || 'Expense'}</td>
-      <td class="p-1.5 border border-zinc-300">${e.date || '-'}</td>
-      <td class="p-1.5 border border-zinc-300 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td>
-    </tr>
-  `).join("") || `<tr><td colspan="4" class="p-2 text-center text-zinc-400">No expenses recorded this month</td></tr>`;
+  const expRows = (db.expenses || []).map((e, i) => `<tr><td class="p-1.5 border border-zinc-300">${i + 1}</td><td class="p-1.5 border border-zinc-300 font-semibold">${e.title || 'Expense'}</td><td class="p-1.5 border border-zinc-300">${e.date || '-'}</td><td class="p-1.5 border border-zinc-300 text-right font-bold text-rose-600">Rs. ${Number(e.amount || 0).toLocaleString()}</td></tr>`).join("") || `<tr><td colspan="4" class="p-2 text-center text-zinc-400">No expenses recorded</td></tr>`;
 
   document.getElementById("uniModalTitle").innerText = `Official Monthly Financial Audit Report (${billingMonth})`;
   document.getElementById("uniPrintArea").innerHTML = `
     <div class="border-2 border-zinc-900 p-6 rounded-xl space-y-4 text-xs max-w-3xl mx-auto">
       <div class="flex justify-between items-start border-b-2 border-zinc-900 pb-3">
-        <div>
-          <h2 class="text-xl font-extrabold uppercase text-zinc-900">${db.settings.hostelName}</h2>
-          <p class="text-xs font-bold text-emerald-700 uppercase">Monthly Profit & Loss (P&L) Financial Audit Statement</p>
-        </div>
-        <div class="text-right">
-          <span class="bg-zinc-900 text-white px-3 py-1 rounded font-bold text-xs">${billingMonth}</span>
-          <p class="text-[10px] text-zinc-500 mt-1">Generated: ${new Date().toLocaleDateString("en-GB")}</p>
-        </div>
+        <div><h2 class="text-xl font-extrabold uppercase text-zinc-900">${db.settings.hostelName}</h2><p class="text-xs font-bold text-emerald-700 uppercase">Monthly P&L Financial Audit</p></div>
+        <span class="bg-zinc-900 text-white px-3 py-1 rounded font-bold text-xs">${billingMonth}</span>
       </div>
-
       <div class="grid grid-cols-4 gap-3 text-center bg-zinc-100 p-3 rounded-xl border border-zinc-300">
-        <div><span class="text-[10px] text-zinc-500 block">Occupancy</span><strong class="text-sm text-zinc-900">${m.occupiedBeds} / ${m.totalCapacity} Beds</strong></div>
-        <div><span class="text-[10px] text-zinc-500 block">Collected Revenue</span><strong class="text-sm text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
-        <div><span class="text-[10px] text-zinc-500 block">Total Expenses</span><strong class="text-sm text-rose-600">Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
-        <div><span class="text-[10px] text-zinc-500 block">Net Profit / Loss</span><strong class="text-sm ${m.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}">Rs. ${m.netProfit.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Occupancy</span><strong class="text-sm text-zinc-900">${m.occupiedBeds} / ${m.totalCapacity}</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Collected</span><strong class="text-sm text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Expenses</span><strong class="text-sm text-rose-600">Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
+        <div><span class="text-[10px] text-zinc-500 block">Net Profit</span><strong class="text-sm text-emerald-700">Rs. ${m.netProfit.toLocaleString()}</strong></div>
       </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <div class="border border-zinc-300 rounded-lg p-3 space-y-1.5">
-          <h4 class="font-bold text-emerald-800 border-b pb-1">A. REVENUE BREAKDOWN</h4>
-          <div class="flex justify-between"><span>Paid Students (${m.paidCount}):</span><strong class="text-emerald-700">Rs. ${m.collectedFee.toLocaleString()}</strong></div>
-          <div class="flex justify-between"><span>Pending Dues (${m.unpaidCount}):</span><strong class="text-amber-600">Rs. ${m.pendingFee.toLocaleString()}</strong></div>
-          <div class="flex justify-between"><span>Refundable Security Held:</span><strong>Rs. ${m.totalSecurity.toLocaleString()}</strong></div>
-        </div>
-        <div class="border border-zinc-300 rounded-lg p-3 space-y-1.5">
-          <h4 class="font-bold text-zinc-800 border-b pb-1">B. FINAL SETTLEMENT</h4>
-          <div class="flex justify-between"><span>Gross Collected Cash:</span><strong>Rs. ${m.collectedFee.toLocaleString()}</strong></div>
-          <div class="flex justify-between"><span>Less Operational Expenses:</span><strong class="text-rose-600">- Rs. ${m.totalExpenses.toLocaleString()}</strong></div>
-          <div class="flex justify-between border-t pt-1 text-sm font-extrabold"><span>NET DISTRIBUTABLE PROFIT:</span><span class="${m.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-600'}">Rs. ${m.netProfit.toLocaleString()}</span></div>
-        </div>
-      </div>
-
-      <div>
-        <h4 class="font-bold text-zinc-800 mb-1">C. ITEMIZED EXPENSE LEDGER</h4>
-        <table class="w-full text-left border-collapse border border-zinc-300 text-[11px]">
-          <thead class="bg-zinc-200">
-            <tr><th class="p-1.5 border border-zinc-300">#</th><th class="p-1.5 border border-zinc-300">Expense Head</th><th class="p-1.5 border border-zinc-300">Date</th><th class="p-1.5 border border-zinc-300 text-right">Amount</th></tr>
-          </thead>
-          <tbody>${expRows}</tbody>
-        </table>
-      </div>
-
-      <div class="grid grid-cols-3 gap-4 pt-8 text-center text-[11px] text-zinc-600">
-        <div>______________________<br>Prepared By (Manager)</div>
-        <div>______________________<br>Verified By (Accountant)</div>
-        <div>______________________<br>Approved By (Owner / Partner)</div>
-      </div>
+      <table class="w-full text-left border-collapse border border-zinc-300 text-[11px]">
+        <thead class="bg-zinc-200"><tr><th class="p-1.5 border border-zinc-300">#</th><th class="p-1.5 border border-zinc-300">Expense Head</th><th class="p-1.5 border border-zinc-300">Date</th><th class="p-1.5 border border-zinc-300 text-right">Amount</th></tr></thead>
+        <tbody>${expRows}</tbody>
+      </table>
     </div>
   `;
   showUniModal(`Financial_Audit_${billingMonth.replace(/\s+/g, "_")}.pdf`, "portrait");
 }
 
 // ============================================================================
-// 6. BILLING AUTOMATION, ROOM SHIFT, MESS REBATE, WHATSAPP & BACKUP
+// 6. BILLING, ROOM SHIFT, MESS REBATE, WHATSAPP, KYC & RULES MODAL
 // ============================================================================
-function checkAndApplyAutoLateFine() {
-  const today = new Date();
-  const currentDay = today.getDate();
-  const currentMonthKey = today.getFullYear() + "-" + (today.getMonth() + 1);
-
-  if (currentDay > 5 && !isMasterPage()) {
-    const db = getDB();
-    let updated = false;
-
-    (db.students || []).forEach(s => {
-      if (s.status === "Active" && s.feeStatus !== "Paid" && s.lastFineMonth !== currentMonthKey) {
-        s.otherCharges = Number(s.otherCharges || 0) + 200;
-        s.lastFineMonth = currentMonthKey;
-        updated = true;
-      }
-    });
-
-    if (updated) {
-      saveDB(db, "Auto-applied Rs. 200 Late Fine to Unpaid students (After 5th of month)", "System");
-    }
-  }
-}
-
 function startNewBillingMonth() {
   const monthName = prompt("Enter New Billing Month Name (e.g. November 2026):", "November 2026");
   if (!monthName) return;
@@ -919,12 +782,15 @@ function startNewBillingMonth() {
   db.settings.currentMonth = monthName;
   (db.students || []).forEach(s => {
     if (s.status === "Active") {
-      if (s.feeStatus !== "Paid") {
-        const prevUnpaid = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0);
-        s.otherCharges = Number(s.otherCharges || 0) + prevUnpaid;
-      } else {
+      if (s.feeStatus === "Paid") {
+        s.securityPaid = true;
         s.otherCharges = 0;
         s.elec = 0;
+      } else {
+        const secDue = s.securityPaid ? 0 : Number(s.security || 0);
+        const prevUnpaid = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + secDue;
+        s.otherCharges = Number(s.otherCharges || 0) + prevUnpaid;
+        s.securityPaid = true;
       }
       s.feeStatus = "Unpaid";
       s.paymentTid = "";
@@ -933,8 +799,8 @@ function startNewBillingMonth() {
     }
   });
 
-  saveDB(db, `Started new billing cycle for ${monthName} (Custom rents preserved)`, "Admin");
-  alert(`✅ New Month (${monthName}) Vouchers Generated!\nEach student's custom agreed rent has been applied.`);
+  saveDB(db, `Started new billing cycle for ${monthName}`, "Admin");
+  alert(`✅ New Month (${monthName}) Vouchers Generated!`);
   refreshCurrentPortalUI();
 }
 
@@ -942,14 +808,11 @@ function sendStudentFeeReminder(studentId) {
   const db = getDB();
   const s = (db.students || []).find(st => st.id === studentId);
   if (!s) return;
-
-  const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
+  const secDue = s.securityPaid ? 0 : Number(s.security || 0);
+  const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) + secDue - Number(s.discount || 0);
   const month = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const cleanPhone = "92" + (s.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "");
-  const opt1 = db.settings.jazzcash || "Not Set";
-  const opt2 = db.settings.bankAccount ? `\n🏦 *Option 2:* ${db.settings.bankAccount}` : "";
-
-  const msg = `*FEE REMINDER — ${db.settings.hostelName}*\n\nSalam *${s.name}* (ID: ${s.id}, Room: ${s.room}),\nYour hostel fee for *${month}* is *${s.feeStatus.toUpperCase()}*.\n\n💰 *Payable:* Rs. ${total.toLocaleString()}\n📅 *Due Date:* 05 ${month}\n\n*PAYABLE THROUGH:*\n💳 *Option 1:* ${opt1}${opt2}\n\nStudent Portal: ${window.location.origin}/student?hostel=${TENANT_ID}`;
+  const msg = `*FEE REMINDER — ${db.settings.hostelName}*\n\nSalam *${s.name}* (${s.id}, Room ${s.room}),\nYour hostel fee for *${month}* is *${s.feeStatus.toUpperCase()}*.\n\n💰 *Payable:* Rs. ${total.toLocaleString()}\n💳 *Account:* ${db.settings.jazzcash}`;
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
@@ -958,15 +821,11 @@ function sendGuardianAlert(studentId) {
   const s = (db.students || []).find(st => st.id === studentId);
   if (!s) return;
   const targetPhone = s.guardian || s.phone;
-  if (!targetPhone) return alert("⚠️ No Guardian or Student phone number saved!");
-
+  if (!targetPhone) return alert("⚠️ No Guardian phone number saved!");
   const cleanPhone = "92" + targetPhone.replace(/[^0-9]/g, "").replace(/^0/, "");
-  const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) - Number(s.discount || 0);
-  const statusText = s.feeStatus === "Paid"
-    ? `has *PAID* the monthly hostel dues of Rs. ${total.toLocaleString()}. Thank you!`
-    : `has *PENDING* hostel dues of Rs. ${total.toLocaleString()}. Kindly clear before the 5th.`;
-
-  const msg = `*GUARDIAN ALERT — ${db.settings.hostelName}*\n\nRespected Parent/Guardian of *${s.name}* (Room ${s.room}, ID: ${s.id}),\nYour ward ${statusText}`;
+  const secDue = s.securityPaid ? 0 : Number(s.security || 0);
+  const total = Number(s.rent || 0) + Number(s.mess || 0) + Number(s.elec || 0) + Number(s.otherCharges || 0) + secDue - Number(s.discount || 0);
+  const msg = `*GUARDIAN ALERT — ${db.settings.hostelName}*\n\nRespected Guardian of *${s.name}* (Room ${s.room}),\nStatus: *${s.feeStatus.toUpperCase()}* (Rs. ${total.toLocaleString()}).`;
   window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
@@ -975,7 +834,7 @@ function exportHostelBackupJSON() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
   const dlAnchor = document.createElement("a");
   dlAnchor.setAttribute("href", dataStr);
-  dlAnchor.setAttribute("download", `Backup_${TENANT_ID}_${new Date().toISOString().slice(0, 10)}.json`);
+  dlAnchor.setAttribute("download", `Backup_${TENANT_ID}.json`);
   document.body.appendChild(dlAnchor);
   dlAnchor.click();
   dlAnchor.remove();
@@ -988,8 +847,7 @@ function importHostelBackupJSON(event) {
   reader.onload = (e) => {
     try {
       const importedDB = JSON.parse(e.target.result);
-      if (!importedDB.settings || !Array.isArray(importedDB.rooms)) return alert("❌ Invalid backup file!");
-      if (confirm(`Restore backup for "${importedDB.settings.hostelName}"?`)) {
+      if (confirm(`Restore backup for "${importedDB.settings?.hostelName}"?`)) {
         saveDB(importedDB, "Restored database from JSON backup", "Admin");
         location.reload();
       }
@@ -1002,90 +860,49 @@ function shiftStudentRoom(studentId) {
   const db = getDB();
   const s = (db.students || []).find(st => st.id === studentId);
   if (!s) return;
-
-  const availRooms = (db.rooms || []).map(r => {
-    const occ = (db.students || []).filter(st => st.status === "Active" && String(st.room) === String(r.no)).length;
-    const free = Number(r.capacity || 0) - occ;
-    return free > 0 ? `Room ${r.no} (${free} beds free - Rs.${r.rent || s.rent})` : null;
-  }).filter(Boolean).join("\n");
-
-  const newRoomNo = prompt(
-    `🔄 SHIFT ROOM FOR: ${s.name} (Current Room: ${s.room})\n\nAvailable Rooms:\n${availRooms || "No rooms with free beds!"}\n\nEnter New Room Number:`,
-    s.room
-  );
+  const newRoomNo = prompt(`🔄 SHIFT ROOM FOR: ${s.name} (Current: ${s.room})\nEnter New Room Number:`, s.room);
   if (!newRoomNo || String(newRoomNo).trim() === String(s.room)) return;
-
   const targetRoom = (db.rooms || []).find(r => String(r.no) === String(newRoomNo).trim());
   if (!targetRoom) return alert(`❌ Room "${newRoomNo}" does not exist!`);
-
-  const occupied = (db.students || []).filter(st => st.status === "Active" && String(st.room) === String(targetRoom.no)).length;
-  if (occupied >= Number(targetRoom.capacity || 0)) {
-    return alert(`❌ Room ${targetRoom.no} is already FULL (${occupied}/${targetRoom.capacity} beds occupied)!`);
-  }
-
-  const oldRoom = s.room;
   s.room = targetRoom.no;
-  if (targetRoom.rent && confirm(`Update ${s.name}'s monthly rent to Room ${targetRoom.no}'s rate (Rs. ${targetRoom.rent})?`)) {
-    s.rent = Number(targetRoom.rent);
-  }
-
-  saveDB(db, `Shifted ${s.name} (${s.id}) from Room ${oldRoom} to Room ${targetRoom.no}`, "Admin");
+  saveDB(db, `Shifted ${s.name} to Room ${targetRoom.no}`, "Admin");
   refreshCurrentPortalUI();
-  alert(`✅ Room Shifted!\n${s.name} has been moved to Room ${targetRoom.no}.`);
+  alert(`✅ ${s.name} shifted to Room ${targetRoom.no}!`);
 }
 
 function applyMessRebate(studentId) {
   const db = getDB();
   const s = (db.students || []).find(st => st.id === studentId);
   if (!s) return;
-
-  const days = Number(prompt(`🍲 MESS-OFF REBATE CALCULATOR\nStudent: ${s.name} (${s.id})\n\nEnter number of Mess-Off / Leave days:`, "5"));
+  const days = Number(prompt(`🍲 Enter number of Mess-Off days for ${s.name}:`, "5"));
   if (!days || days <= 0) return;
-
-  const perDayRate = Number(prompt(`Enter Per-Day Mess Deduction Rate (Rs.):`, "250"));
+  const perDayRate = Number(prompt(`Enter Per-Day Mess Rate (Rs.):`, "250"));
   if (!perDayRate || perDayRate <= 0) return;
-
   const rebateAmount = days * perDayRate;
   s.discount = Number(s.discount || 0) + rebateAmount;
-
-  saveDB(db, `Applied Rs. ${rebateAmount} Mess-Off Rebate (${days} days @ Rs.${perDayRate}/day) to ${s.name}`, "Admin");
+  saveDB(db, `Applied Rs. ${rebateAmount} Mess Rebate to ${s.name}`, "Admin");
   refreshCurrentPortalUI();
-  alert(`✅ Mess Rebate Applied!\nRs. ${rebateAmount.toLocaleString()} discount added to ${s.name}'s fee voucher.`);
+  alert(`✅ Rs. ${rebateAmount.toLocaleString()} Mess Rebate added!`);
 }
 
-setTimeout(checkAndApplyAutoLateFine, 2500);
-
-// ============================================================================
-// 7. 📸 STUDENT PHOTO & CNIC (FRONT/BACK) KYC ENGINE + ADMIN VIEWER
-// ============================================================================
 window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
-
 window.handleKYCFileUpload = function(inputEl, key, previewId) {
   const file = inputEl.files && inputEl.files[0];
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxW = key === "photo" ? 320 : 600;
+      const maxW = key === "photo" ? 320 : 650;
       const scale = Math.min(1, maxW / img.width);
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.72);
-      window.kycTempUploads[key] = compressedDataUrl;
-
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+      window.kycTempUploads[key] = dataUrl;
       const prev = document.getElementById(previewId);
-      if (prev) {
-        prev.src = compressedDataUrl;
-        prev.classList.remove("hidden");
-        prev.style.setProperty("display", "block", "important");
-      }
+      if (prev) { prev.src = dataUrl; prev.classList.remove("hidden"); prev.style.setProperty("display", "block", "important"); }
     };
     img.src = e.target.result;
   };
@@ -1095,45 +912,30 @@ window.handleKYCFileUpload = function(inputEl, key, previewId) {
 window.openKYCDocumentsModal = function(recordId) {
   injectUniversalModal();
   const db = getDB();
-  const rec = (db.applications || []).find(a => String(a.id) === String(recordId)) ||
-              (db.students || []).find(s => String(s.id) === String(recordId));
+  const rec = (db.applications || []).find(a => String(a.id) === String(recordId)) || (db.students || []).find(s => String(s.id) === String(recordId));
   if (!rec) return alert("❌ Record not found!");
 
-  document.getElementById("uniModalTitle").innerText = `KYC Identity Documents — ${rec.name} (${rec.id})`;
+  document.getElementById("uniModalTitle").innerText = `Identity & KYC File — ${rec.name} (${rec.id})`;
   document.getElementById("uniPrintArea").innerHTML = `
     <div class="space-y-5 text-xs max-w-3xl mx-auto p-2">
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-4">
-        <div class="flex items-center gap-3.5">
-          ${rec.photo
-            ? `<img src="${rec.photo}" class="w-16 h-16 rounded-2xl object-cover border-2 border-zinc-900 shadow-sm" />`
-            : `<div class="w-16 h-16 rounded-2xl bg-zinc-200 flex items-center justify-center font-bold text-zinc-500">No Photo</div>`
-          }
+        <div class="flex items-center gap-4">
+          ${rec.photo ? `<img src="${rec.photo}" class="w-20 h-20 rounded-2xl object-cover border-2 border-zinc-900" />` : `<div class="w-20 h-20 rounded-2xl bg-zinc-200 flex items-center justify-center font-bold text-zinc-500">No Photo</div>`}
           <div>
-            <span class="text-[10px] font-extrabold uppercase text-emerald-700 block">Verified Resident KYC File</span>
             <h3 class="text-lg font-extrabold text-zinc-900">${rec.name}</h3>
             <p class="text-zinc-600 font-mono">ID: ${rec.id} • CNIC: ${rec.cnic || '—'} • Phone: ${rec.phone || '—'}</p>
           </div>
         </div>
-        <div class="text-right">
-          <span class="bg-zinc-900 text-white px-3 py-1 rounded-lg font-bold">Room ${rec.room || '—'}</span>
-          <p class="text-[11px] text-zinc-500 mt-1">Guardian: ${rec.guardian || '—'}</p>
-        </div>
+        <span class="bg-zinc-900 text-white px-3.5 py-1.5 rounded-xl font-bold">Room ${rec.room || '—'}</span>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="border border-zinc-300 rounded-xl p-3 bg-zinc-50 space-y-2 text-center">
-          <span class="text-[11px] font-bold uppercase text-zinc-700 block"><i class="fa-solid fa-id-card text-emerald-700 mr-1"></i> CNIC / B-Form (Front Side)</span>
-          ${rec.cnicFront
-            ? `<img src="${rec.cnicFront}" class="w-full h-52 object-contain rounded-lg border border-zinc-200 bg-white mx-auto" />`
-            : `<div class="h-52 flex items-center justify-center text-zinc-400 bg-white rounded-lg border border-dashed border-zinc-300">No CNIC Front Uploaded</div>`
-          }
+        <div class="border border-zinc-300 rounded-xl p-3 bg-zinc-50 text-center">
+          <span class="text-[11px] font-extrabold uppercase text-zinc-800 block mb-2">CNIC Front Side</span>
+          ${rec.cnicFront ? `<img src="${rec.cnicFront}" class="w-full h-56 object-contain rounded-lg bg-white mx-auto" />` : `<div class="h-56 flex items-center justify-center text-zinc-400">No CNIC Front</div>`}
         </div>
-        <div class="border border-zinc-300 rounded-xl p-3 bg-zinc-50 space-y-2 text-center">
-          <span class="text-[11px] font-bold uppercase text-zinc-700 block"><i class="fa-solid fa-id-card-clip text-emerald-700 mr-1"></i> CNIC / B-Form (Back Side)</span>
-          ${rec.cnicBack
-            ? `<img src="${rec.cnicBack}" class="w-full h-52 object-contain rounded-lg border border-zinc-200 bg-white mx-auto" />`
-            : `<div class="h-52 flex items-center justify-center text-zinc-400 bg-white rounded-lg border border-dashed border-zinc-300">No CNIC Back Uploaded</div>`
-          }
+        <div class="border border-zinc-300 rounded-xl p-3 bg-zinc-50 text-center">
+          <span class="text-[11px] font-extrabold uppercase text-zinc-800 block mb-2">CNIC Back Side</span>
+          ${rec.cnicBack ? `<img src="${rec.cnicBack}" class="w-full h-56 object-contain rounded-lg bg-white mx-auto" />` : `<div class="h-56 flex items-center justify-center text-zinc-400">No CNIC Back</div>`}
         </div>
       </div>
     </div>
@@ -1141,114 +943,98 @@ window.openKYCDocumentsModal = function(recordId) {
   showUniModal(`KYC_Docs_${rec.id}.pdf`, "portrait");
 };
 
-window.addEventListener("DOMContentLoaded", () => {
-  if (typeof window.confirmApproveAndAllot === "function") {
-    const origApprove = window.confirmApproveAndAllot;
-    window.confirmApproveAndAllot = function(e) {
-      const appId = document.getElementById("allotAppId")?.value;
-      const dbBefore = getDB();
-      const app = (dbBefore.applications || []).find(a => String(a.id) === String(appId));
-      origApprove(e);
-      if (app && (app.photo || app.cnicFront || app.cnicBack)) {
-        const dbAfter = getDB();
-        const newestStu = (dbAfter.students || [])[0];
-        if (newestStu && newestStu.name === app.name) {
-          newestStu.photo = app.photo || "";
-          newestStu.cnicFront = app.cnicFront || "";
-          newestStu.cnicBack = app.cnicBack || "";
-          saveDB(dbAfter);
-          if (typeof renderAdminAll === "function") renderAdminAll();
-        }
-      }
-    };
+window.openPaymentReceiptModal = function(studentId) {
+  injectUniversalModal();
+  const db = getDB();
+  const s = (db.students || []).find(st => st.id === studentId);
+  if (!s || !s.paymentImg) return alert("⚠️ No receipt screenshot attached by student!");
+  document.getElementById("uniModalTitle").innerText = `Payment Receipt Proof — ${s.name} (${s.id})`;
+  document.getElementById("uniPrintArea").innerHTML = `
+    <div class="max-w-md mx-auto text-center space-y-4 p-2 text-xs">
+      <div class="bg-zinc-100 border border-zinc-300 rounded-xl p-3 flex justify-between items-center">
+        <span>Student: <strong>${s.name} (${s.id})</strong></span>
+        <span>TID: <strong class="font-mono text-emerald-800">${s.paymentTid || '—'}</strong></span>
+      </div>
+      <img src="${s.paymentImg}" class="w-full max-h-[480px] object-contain rounded-xl border-2 border-zinc-900 mx-auto" />
+    </div>
+  `;
+  showUniModal(`Payment_Receipt_${s.id}.pdf`, "portrait");
+};
+
+// 📜 HOSTEL RULES (rules.jpg) MODAL & CHECKBOX
+window.openHostelRulesModal = function() {
+  let modal = document.getElementById("hostelRulesImgModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "hostelRulesImgModal";
+    modal.className = "fixed inset-0 bg-zinc-950/85 backdrop-blur-xs hidden items-center justify-center z-[85] p-3 sm:p-5";
+    modal.innerHTML = `
+      <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
+        <div class="px-5 py-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-900 text-white shrink-0">
+          <h3 class="text-sm font-extrabold"><i class="fa-solid fa-scroll text-emerald-400 mr-1.5"></i> Official Hostel Rules & Terms</h3>
+          <button type="button" onclick="closeHostelRulesModal()" class="text-zinc-400 hover:text-white text-2xl leading-none px-1 cursor-pointer">&times;</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3 bg-zinc-100 text-center custom-scroll">
+          <img src="rules.jpg" alt="Hostel Rules" class="w-full h-auto rounded-xl border border-zinc-300 mx-auto" />
+        </div>
+        <div class="p-3.5 border-t border-zinc-200 bg-white flex justify-end gap-2 shrink-0 text-xs">
+          <button type="button" onclick="closeHostelRulesModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold cursor-pointer">Close</button>
+          <button type="button" onclick="acceptHostelRules()" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold cursor-pointer"><i class="fa-solid fa-check mr-1"></i> I Have Read & Agree</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
   }
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  modal.style.setProperty("display", "flex", "important");
+};
 
-  const kycObserver = new MutationObserver(() => {
-    document.querySelectorAll("button[onclick*='openApproveModal(']").forEach(btn => {
-      if (btn.dataset.kycInjected) return;
-      const m = btn.getAttribute("onclick").match(/'([^']+)'/);
-      if (!m) return;
-      btn.dataset.kycInjected = "true";
-      const docBtn = document.createElement("button");
-      docBtn.type = "button";
-      docBtn.className = "bg-zinc-900 hover:bg-zinc-700 text-white px-2.5 py-1.5 rounded-lg font-bold transition mr-1 cursor-pointer";
-      docBtn.innerHTML = `<i class="fa-solid fa-id-card text-emerald-400 mr-1"></i> Photo & CNIC`;
-      docBtn.onclick = () => openKYCDocumentsModal(m[1]);
-      btn.insertAdjacentElement("beforebegin", docBtn);
-    });
+window.closeHostelRulesModal = function() {
+  const modal = document.getElementById("hostelRulesImgModal");
+  if (modal) { modal.classList.add("hidden"); modal.classList.remove("flex"); modal.style.setProperty("display", "none", "important"); }
+};
 
-    document.querySelectorAll("button[onclick*='openStudentQRCard(']").forEach(btn => {
-      if (btn.dataset.kycInjected) return;
-      const m = btn.getAttribute("onclick").match(/'([^']+)'/);
-      if (!m) return;
-      btn.dataset.kycInjected = "true";
-      const docBtn = document.createElement("button");
-      docBtn.type = "button";
-      docBtn.className = "bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-2 py-1 rounded text-[11px] font-semibold cursor-pointer";
-      docBtn.title = "View Student Photo & CNIC Front/Back";
-      docBtn.innerHTML = `<i class="fa-solid fa-id-card text-emerald-700"></i> CNIC`;
-      docBtn.onclick = () => openKYCDocumentsModal(m[1]);
-      btn.insertAdjacentElement("afterend", docBtn);
-    });
-  });
-  kycObserver.observe(document.body, { childList: true, subtree: true });
-});
+window.acceptHostelRules = function() {
+  const chk = document.getElementById("agreeRulesCheckbox");
+  if (chk) chk.checked = true;
+  closeHostelRulesModal();
+};
+
+function injectRulesCheckboxInAdmissionForm() {
+  const admForm = document.getElementById("onlineAdmissionForm");
+  if (admForm && !document.getElementById("agreeRulesCheckbox")) {
+    const termsBox = document.createElement("div");
+    termsBox.className = "bg-zinc-50 border border-zinc-300 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs";
+    termsBox.innerHTML = `
+      <label class="flex items-start sm:items-center gap-2.5 cursor-pointer select-none">
+        <input id="agreeRulesCheckbox" type="checkbox" required class="w-4 h-4 mt-0.5 sm:mt-0 accent-emerald-700 rounded cursor-pointer shrink-0" />
+        <span class="font-bold text-zinc-800 leading-snug">I have read and agree to the <span class="text-emerald-800 underline">Hostel Rules, Terms & Conditions</span> *</span>
+      </label>
+      <button type="button" onclick="openHostelRulesModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer">
+        <i class="fa-solid fa-file-contract text-emerald-400 mr-1"></i> Read Rules & Terms
+      </button>
+    `;
+    admForm.insertBefore(termsBox, admForm.lastElementChild);
+  }
+}
 
 // ============================================================================
-// 8. 🎨 UNIVERSAL CUSTOM UI POPUP & ANIMATION ENGINE (Replaces Browser Alerts!)
+// 7. 🎨 CUSTOM UI POPUP & ANIMATION ENGINE
 // ============================================================================
 (function initCustomSaaSUI() {
   if (document.getElementById("saasGlobalAnimations")) return;
-
   const style = document.createElement("style");
   style.id = "saasGlobalAnimations";
   style.innerHTML = `
-    @keyframes saasSlideUpFade {
-      0% { opacity: 0; transform: translateY(14px) scale(0.99); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes saasModalSpring {
-      0% { opacity: 0; transform: scale(0.88) translateY(18px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    @keyframes saasBackdropFade {
-      0% { opacity: 0; }
-      100% { opacity: 1; }
-    }
-
-    [id^="view-"]:not(.hidden),
-    [id^="stuView-"]:not(.hidden),
-    [id^="wardenView-"]:not(.hidden),
-    [id^="masterView-"]:not(.hidden),
-    #trackAppResult:not(.hidden),
-    #scanResultBox:not(.hidden),
-    #pubMobileNav:not(.hidden) {
-      animation: saasSlideUpFade 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    #admissionModal:not(.hidden),
-    #approveAllotModal:not(.hidden),
-    #universalDocModal:not(.hidden),
-    #customSaaSAlertModal:not(.hidden) {
-      animation: saasBackdropFade 0.22s ease-out forwards;
-    }
-
-    #admissionModal:not(.hidden) > div,
-    #approveAllotModal:not(.hidden) > div,
-    #universalDocModal:not(.hidden) > div,
-    #customSaaSAlertModal:not(.hidden) > div {
-      animation: saasModalSpring 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    }
-
-    button, a[class*="rounded"] {
-      transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, background-color 0.18s ease !important;
-    }
-    button:hover:not(:disabled), a[class*="rounded"]:hover { transform: translateY(-1.5px); }
-    button:active:not(:disabled), a[class*="rounded"]:active { transform: scale(0.96) translateY(0) !important; }
+    @keyframes saasSlideUpFade { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes saasModalSpring { 0% { opacity: 0; transform: scale(0.90) translateY(14px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+    [id^="view-"]:not(.hidden), [id^="stuView-"]:not(.hidden), [id^="wardenView-"]:not(.hidden), [id^="masterView-"]:not(.hidden) { animation: saasSlideUpFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    #customSaaSAlertModal:not(.hidden) > div, #hostelRulesImgModal:not(.hidden) > div { animation: saasModalSpring 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
   `;
   document.head.appendChild(style);
 
-  window.showSaaSPopup = function(rawMsg, customTitle = "") {
+  window.showSaaSPopup = function(rawMsg) {
     let modal = document.getElementById("customSaaSAlertModal");
     if (!modal) {
       modal = document.createElement("div");
@@ -1256,291 +1042,38 @@ window.addEventListener("DOMContentLoaded", () => {
       modal.className = "fixed inset-0 bg-zinc-950/75 backdrop-blur-xs hidden items-center justify-center z-[9999] p-4";
       document.body.appendChild(modal);
     }
-
     const msg = String(rawMsg || "").trim();
     const isError = msg.includes("❌") || /invalid|incorrect|denied|error|failed|full/i.test(msg);
-    const isWarn  = msg.includes("⚠️") || /warning|wait|cancel/i.test(msg);
-
+    const isWarn  = msg.includes("⚠️") || /warning|wait|please/i.test(msg);
     const cleanText = msg.replace(/^[✅❌⚠️🎉🗑️]+\s*/, "");
     const lines = cleanText.split("\n").filter(l => l.trim() !== "");
-    const headline = customTitle || (lines[0] || (isError ? "Action Blocked" : isWarn ? "System Notice" : "Confirmed"));
-    const bodyLines = customTitle ? lines : lines.slice(1);
-
-    const idMatch = msg.match(/\b(APP-\d+|ST-\d+)\b/);
-    const extractedId = idMatch ? idMatch[1] : "";
-
+    const headline = lines[0] || (isError ? "Action Blocked" : isWarn ? "System Notice" : "Confirmed");
+    const bodyLines = lines.slice(1);
     const badgeBg = isError ? "bg-rose-600 text-white" : isWarn ? "bg-amber-500 text-zinc-950" : "bg-emerald-600 text-white";
-    const iconHtml = isError
-      ? `<i class="fa-solid fa-shield-xmark"></i>`
-      : isWarn
-      ? `<i class="fa-solid fa-triangle-exclamation"></i>`
-      : `<i class="fa-solid fa-circle-check"></i>`;
-    const tagLabel = isError ? "Security / Validation Alert" : isWarn ? "System Notice" : "Confirmed & Synced";
-    const tagColor = isError ? "text-rose-600" : isWarn ? "text-amber-600" : "text-emerald-700";
+    const iconHtml = isError ? `<i class="fa-solid fa-shield-xmark"></i>` : isWarn ? `<i class="fa-solid fa-triangle-exclamation"></i>` : `<i class="fa-solid fa-circle-check"></i>`;
 
     modal.innerHTML = `
-      <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-zinc-900 font-sans">
+      <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-zinc-900">
         <div class="flex items-start gap-3.5 border-b border-zinc-100 pb-4">
-          <div class="w-11 h-11 rounded-xl ${badgeBg} flex items-center justify-center text-lg font-bold shrink-0 shadow-xs">
-            ${iconHtml}
-          </div>
+          <div class="w-11 h-11 rounded-xl ${badgeBg} flex items-center justify-center text-lg font-bold shrink-0">${iconHtml}</div>
           <div class="min-w-0 flex-1">
-            <span class="text-[10px] font-extrabold uppercase tracking-wider ${tagColor} block">${tagLabel}</span>
-            <h3 class="text-sm sm:text-base font-extrabold text-zinc-900 mt-0.5 leading-snug break-words">${headline}</h3>
+            <h3 class="text-sm sm:text-base font-extrabold text-zinc-900 leading-snug break-words">${headline}</h3>
           </div>
           <button type="button" onclick="closeSaaSPopup()" class="text-zinc-400 hover:text-zinc-800 text-xl leading-none">&times;</button>
         </div>
-
-        ${bodyLines.length > 0 ? `
-          <div class="bg-zinc-50 border border-zinc-200/80 rounded-xl p-3.5 space-y-1.5 text-xs text-zinc-700 font-medium leading-relaxed">
-            ${bodyLines.map(line => `<div class="break-words">${line}</div>`).join("")}
-          </div>
-        ` : ""}
-
-        ${extractedId ? `
-          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs">
-            <div>
-              <span class="text-[10px] uppercase font-bold text-emerald-700 block">Reference / Roll ID</span>
-              <strong class="font-mono text-sm font-extrabold text-zinc-900">${extractedId}</strong>
-            </div>
-            <button type="button" onclick="navigator.clipboard.writeText('${extractedId}');this.innerText='✓ Copied!';" class="bg-white hover:bg-emerald-700 hover:text-white border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer">
-              Copy ID
-            </button>
-          </div>
-        ` : ""}
-
-        <div class="pt-1 flex justify-end gap-2">
-          <button type="button" id="saasPopupOkBtn" onclick="closeSaaSPopup()" class="w-full ${isError ? 'bg-rose-600 hover:bg-rose-500' : 'bg-zinc-900 hover:bg-zinc-800'} text-white py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider transition cursor-pointer">
-            ${isError ? "Try Again" : "Continue →"}
-          </button>
-        </div>
+        ${bodyLines.length > 0 ? `<div class="bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 space-y-1 text-xs text-zinc-700 font-medium">${bodyLines.map(l => `<div>${l}</div>`).join("")}</div>` : ""}
+        <button type="button" onclick="closeSaaSPopup()" class="w-full ${isError ? 'bg-rose-600 hover:bg-rose-500' : 'bg-zinc-900 hover:bg-zinc-800'} text-white py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider cursor-pointer">Continue →</button>
       </div>
     `;
-
     modal.classList.remove("hidden");
     modal.classList.add("flex");
     modal.style.setProperty("display", "flex", "important");
-    setTimeout(() => document.getElementById("saasPopupOkBtn")?.focus(), 50);
   };
 
   window.closeSaaSPopup = function() {
     const modal = document.getElementById("customSaaSAlertModal");
-    if (modal) {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-      modal.style.setProperty("display", "none", "important");
-    }
+    if (modal) { modal.classList.add("hidden"); modal.classList.remove("flex"); modal.style.setProperty("display", "none", "important"); }
   };
 
-  window.alert = function(message) {
-    window.showSaaSPopup(message);
-  };
+  window.alert = function(message) { window.showSaaSPopup(message); };
 })();
-window.openStudentVoucher = function(studentId) {
-  injectUniversalModal();
-  const db = getDB();
-  const s = (db.students || []).find(st => st.id === studentId);
-  if (!s) return alert("❌ Student not found!");
-
-  const rent = Number(s.rent || 0);
-  const mess = Number(s.mess || 0);
-  const elec = Number(s.elec || 0);
-  const other = Number(s.otherCharges || 0);
-  const disc = Number(s.discount || 0);
-  const secHeld = Number(s.security || 0);
-  const secDue = s.securityPaid ? 0 : secHeld;
-  const total = rent + mess + elec + other + secDue - disc;
-
-  const challanNo = "VIP-" + new Date().getFullYear() + "-" + s.id.replace("ST-", "");
-  const billingMonth = db.settings.currentMonth || new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const issueDate = new Date().toLocaleDateString("en-GB");
-  const dueDateText = `05 ${billingMonth}`;
-  const isPaid = s.feeStatus === "Paid";
-
-  const payOption1 = (db.settings && db.settings.jazzcash) ? db.settings.jazzcash : "Not Configured in Settings";
-  const payOption2 = (db.settings && db.settings.bankAccount) ? db.settings.bankAccount : "";
-
-  const qrData = encodeURIComponent(`VOUCHER:${challanNo}|HOSTEL:${db.settings.hostelName}|ID:${s.id}|NAME:${s.name}|ROOM:${s.room}|AMT:${total}|STATUS:${s.feeStatus}`);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${qrData}`;
-
-  const buildVIPCopy = (copyTitle, accentBg) => `
-    <div style="border: 2px solid #18181b; border-radius: 14px; overflow: hidden; background: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; display: flex; flex-direction: column; justify-content: space-between;">
-      <div>
-        <div style="background: #18181b; color: #ffffff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <span style="font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #34d399; font-weight: 800; display: block;">OFFICIAL HOSTEL FEE CHALLAN</span>
-            <h4 style="font-size: 15px; font-weight: 800; margin: 2px 0 0 0; text-transform: uppercase; letter-spacing: 0.3px;">${db.settings.hostelName || 'Hostel ERP'}</h4>
-          </div>
-          <span style="background: ${accentBg}; color: #ffffff; font-size: 9px; font-weight: 800; padding: 4px 9px; border-radius: 6px; letter-spacing: 0.8px; text-transform: uppercase;">
-            ${copyTitle}
-          </span>
-        </div>
-
-        <div style="padding: 14px 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px;">
-            <div>
-              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Challan No.</span>
-              <strong style="color: #18181b; font-family: monospace; font-size: 12px;">${challanNo}</strong>
-            </div>
-            <div>
-              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Billing Month</span>
-              <strong style="color: #047857;">${billingMonth}</strong>
-            </div>
-            <div>
-              <span style="color: #71717a; font-size: 9px; text-transform: uppercase; font-weight: 700; display: block;">Due Date</span>
-              <strong style="color: #e11d48;">${dueDateText}</strong>
-            </div>
-            <div style="text-align: right;">
-              <span style="padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; background: ${isPaid ? '#d1fae5' : '#fef3c7'}; color: ${isPaid ? '#065f46' : '#92400e'}; border: 1px solid ${isPaid ? '#6ee7b7' : '#fcd34d'};">
-                ${isPaid ? '✓ PAID' : '● UNPAID'}
-              </span>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; border: 1px solid #e4e4e7; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
-            <div><span style="color:#71717a;">Resident:</span> <strong style="color:#18181b;">${s.name}</strong></div>
-            <div><span style="color:#71717a;">Roll ID:</span> <strong style="color:#047857; font-family:monospace;">${s.id}</strong></div>
-            <div><span style="color:#71717a;">Room No:</span> <strong style="color:#18181b;">Room ${s.room}</strong></div>
-            <div><span style="color:#71717a;">CNIC:</span> <strong style="color:#18181b;">${s.cnic || s.phone || '—'}</strong></div>
-          </div>
-
-          <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
-            <thead>
-              <tr style="background: #f4f4f5; border-top: 1px solid #d4d4d8; border-bottom: 1px solid #d4d4d8; text-transform: uppercase; font-size: 9.5px; color: #52525b;">
-                <th style="padding: 6px 8px; text-align: left;">Description of Charges</th>
-                <th style="padding: 6px 8px; text-align: right;">Amount (PKR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">01. Monthly Room / Seat Rent</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${rent.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">02. Mess & Dining Charges</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${mess.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">03. Electricity Sub-Meter Share</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${elec.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5;"><td style="padding: 5px 8px;">04. Refundable Security Deposit ${s.securityPaid ? '(Paid)' : '(1st Month)'}</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${secDue.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #f4f4f5; color: #e11d48;"><td style="padding: 5px 8px;">05. Late Fine / Previous Arrears</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">Rs. ${other.toLocaleString()}</td></tr>
-              <tr style="border-bottom: 1px solid #e4e4e7; color: #047857;"><td style="padding: 5px 8px;">06. Mess-Off Rebate / Scholarship</td><td style="padding: 5px 8px; text-align: right; font-weight: 700;">- Rs. ${disc.toLocaleString()}</td></tr>
-            </tbody>
-          </table>
-
-          <div style="background: #18181b; color: #ffffff; padding: 10px 14px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div>
-              <span style="font-size: 9px; color: #a1a1aa; text-transform: uppercase; font-weight: 700; display: block;">Total Net Payable</span>
-              <span style="font-size: 10px; color: #fbbf24;">* Rs. 200 Fine after 5th</span>
-            </div>
-            <strong style="font-size: 16px; font-weight: 800; color: #34d399;">Rs. ${total.toLocaleString()}</strong>
-          </div>
-
-          <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-            <div style="font-size: 10.5px; line-height: 1.45; flex: 1;">
-              <span style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: #065f46; letter-spacing: 0.5px; display: block; margin-bottom: 3px;">
-                💳 PAYABLE THROUGH (OFFICIAL DEPOSIT CHANNELS):
-              </span>
-              <div style="color: #18181b; font-weight: 700;">
-                <span style="color: #047857;">● Option 1:</span> ${payOption1}
-              </div>
-              ${payOption2 ? `
-                <div style="color: #18181b; font-weight: 700; margin-top: 2px;">
-                  <span style="color: #047857;">● Option 2:</span> ${payOption2}
-                </div>
-              ` : `
-                <div style="color: #52525b; font-size: 9.5px; margin-top: 2px;">
-                  (Or deposit cash directly at the Hostel Admin Office)
-                </div>
-              `}
-              ${s.paymentTid ? `<div style="margin-top:4px; color:#1d4ed8; font-family:monospace; font-weight:700;">Submitted TID: ${s.paymentTid}</div>` : ''}
-            </div>
-            <img src="${qrUrl}" alt="QR" style="width: 56px; height: 56px; border: 1px solid #a7f3d0; border-radius: 8px; padding: 2px; background: #fff; flex-shrink: 0;" crossorigin="anonymous" />
-          </div>
-        </div>
-      </div>
-
-      <div style="padding: 10px 16px 12px 16px; border-top: 1px dashed #d4d4d8; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #71717a; background: #fafafa;">
-        <span>Issued: ${issueDate}</span>
-        <span>Depositor Sign: _____________</span>
-        <span>Cashier / Stamp: _____________</span>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("uniModalTitle").innerText = `VIP Executive 2-Copy Fee Challan (${billingMonth})`;
-  document.getElementById("uniPrintArea").innerHTML = `
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      ${buildVIPCopy("HOSTEL OFFICE COPY", "#059669")}
-      ${buildVIPCopy("RESIDENT STUDENT COPY", "#2563eb")}
-    </div>
-  `;
-  showUniModal(`VIP_Fee_Voucher_${s.id}_${billingMonth.replace(/\s+/g, "_")}.pdf`, "landscape");
-};
-
-window.addEventListener("DOMContentLoaded", () => {
-  // 1. Add "Security Status" dropdown inside Admin's "Approve & Allot" Modal
-  const allotSecInput = document.getElementById("allotSecInput");
-  if (allotSecInput && !document.getElementById("allotSecStatus")) {
-    const secStatDiv = document.createElement("div");
-    secStatDiv.className = "col-span-2";
-    secStatDiv.innerHTML = `
-      <label class="block font-bold text-zinc-700 mb-1">Security Deposit Billing Status *</label>
-      <select id="allotSecStatus" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-3 py-2 text-zinc-900 font-bold">
-        <option value="already_paid">✓ Already Paid Earlier (Existing Student — Do NOT Add to Voucher)</option>
-        <option value="charge_now">➕ Unpaid (New Admission — Add to 1st Month Voucher)</option>
-      </select>
-    `;
-    allotSecInput.parentElement.parentElement.insertAdjacentElement("afterend", secStatDiv);
-  }
-
-  // 2. Add "Security Status" dropdown inside Admin's Walk-In Enrollment Form
-  const stuSecInput = document.getElementById("stuSecurity");
-  if (stuSecInput && !document.getElementById("stuSecStatus")) {
-    const stuStatDiv = document.createElement("div");
-    stuStatDiv.innerHTML = `
-      <label class="block font-bold text-zinc-700 mb-1">Security Status *</label>
-      <select id="stuSecStatus" class="w-full bg-zinc-50 border border-zinc-300 rounded-lg px-2.5 py-2 text-zinc-900 font-bold">
-        <option value="already_paid">✓ Already Paid (Old Student)</option>
-        <option value="charge_now">➕ Add to Voucher (New)</option>
-      </select>
-    `;
-    stuSecInput.parentElement.insertAdjacentElement("afterend", stuStatDiv);
-  }
-
-  // 3. Auto-detect if applicant selected "Existing Student" on Public Form when opening Approve Modal
-  if (typeof window.openApproveModal === "function") {
-    const _origOpenApprove = window.openApproveModal;
-    window.openApproveModal = function(appId) {
-      _origOpenApprove(appId);
-      const db = getDB();
-      const app = (db.applications || []).find(a => String(a.id) === String(appId));
-      const sel = document.getElementById("allotSecStatus");
-      if (app && sel) {
-        sel.value = (app.resType === "Existing") ? "already_paid" : "charge_now";
-      }
-    };
-  }
-
-  // 4. Save securityPaid = true/false when Admin Approves or Enrolls Student
-  if (typeof window.confirmApproveAndAllot === "function") {
-    const _origConfirmAllot = window.confirmApproveAndAllot;
-    window.confirmApproveAndAllot = function(e) {
-      const isAlreadyPaid = document.getElementById("allotSecStatus")?.value === "already_paid";
-      _origConfirmAllot(e);
-      const db = getDB();
-      if (db.students && db.students[0]) {
-        db.students[0].securityPaid = isAlreadyPaid;
-        saveDB(db);
-        if (typeof renderAdminAll === "function") renderAdminAll();
-      }
-    };
-  }
-
-  if (typeof window.addStudentManual === "function") {
-    const _origAddManual = window.addStudentManual;
-    window.addStudentManual = function(e) {
-      const isAlreadyPaid = document.getElementById("stuSecStatus")?.value === "already_paid";
-      _origAddManual(e);
-      const db = getDB();
-      if (db.students && db.students[0]) {
-        db.students[0].securityPaid = isAlreadyPaid;
-        saveDB(db);
-        if (typeof renderAdminAll === "function") renderAdminAll();
-      }
-    };
-  }
-});
