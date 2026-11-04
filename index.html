@@ -14,6 +14,13 @@
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f4f4f5; color: #18181b; margin: 0; padding: 0; }
     .hidden { display: none !important; }
+    
+    /* 🛑 Background Scroll Lock when modal is open */
+    body.overflow-hidden {
+      overflow: hidden !important;
+      height: 100vh;
+    }
+
     .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #a1a1aa; border-radius: 99px; }
 
@@ -381,7 +388,7 @@
   </footer>
 
   <!-- ===================================================================== -->
-  <!-- 📝 PERFECTLY SCROLLABLE ADMISSION MODAL (WITH DUPLICATE & RULES LOCK) -->
+  <!-- 📝 PERFECTLY SCROLLABLE ADMISSION MODAL (WITH DUPLICATE & SCROLL LOCK)-->
   <!-- ===================================================================== -->
   <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-sm hidden items-center justify-center z-50 p-3 sm:p-5">
     <div class="bg-white border border-zinc-300 rounded-2xl max-w-xl w-full max-h-[90dvh] flex flex-col shadow-2xl text-zinc-800 overflow-hidden">
@@ -640,7 +647,7 @@
         return {
           type: "Student",
           record: stuMatch,
-          shortMsg: ` CNIC or Phone Already Exist !`,
+          shortMsg: `⚠️ Already an Enrolled Resident (${stuMatch.name} — Roll ID: ${stuMatch.id}, Room ${stuMatch.room}). Please login to Student Portal!`,
           msg: `🚫 Registration Blocked!\n\nThis CNIC or Phone number is ALREADY registered as an Enrolled Resident (${stuMatch.name} — Roll ID: ${stuMatch.id}, Room ${stuMatch.room}).\n\nPlease login directly to the Student Portal.`
         };
       }
@@ -727,6 +734,7 @@
 
     function openAdmissionModal(preselectedRoom = "") {
       setModalVisibility("admissionModal", true);
+      document.body.classList.add("overflow-hidden"); // 🛑 Lock background scroll
       checkLiveDuplicate();
       if (preselectedRoom) {
         const sel = document.getElementById("appRoomSelect");
@@ -737,20 +745,24 @@
 
     function closeAdmissionModal() {
       setModalVisibility("admissionModal", false);
+      document.body.classList.remove("overflow-hidden"); // ✅ Restore background scroll
     }
     window.closeAdmissionModal = closeAdmissionModal;
 
     function closeAppSuccessModal() {
       setModalVisibility("appSuccessModal", false);
+      document.body.classList.remove("overflow-hidden");
     }
 
     function openHostelRulesModal() {
       setModalVisibility("hostelRulesImgModal", true);
+      document.body.classList.add("overflow-hidden"); // 🛑 Lock background scroll
     }
     window.openHostelRulesModal = openHostelRulesModal;
 
     function closeHostelRulesModal() {
       setModalVisibility("hostelRulesImgModal", false);
+      document.body.classList.remove("overflow-hidden"); // ✅ Restore background scroll
     }
     window.closeHostelRulesModal = closeHostelRulesModal;
 
@@ -1070,6 +1082,7 @@
         }
 
         setModalVisibility("appSuccessModal", true);
+        document.body.classList.add("overflow-hidden"); // Keep scroll locked for success modal
       }, 1500);
 
       return false;
