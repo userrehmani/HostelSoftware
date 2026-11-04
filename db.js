@@ -1077,3 +1077,89 @@ function injectRulesCheckboxInAdmissionForm() {
 
   window.alert = function(message) { window.showSaaSPopup(message); };
 })();
+
+// 🖼️ UNIVERSAL SAAS LOGO ENGINE (Auto-Applies logo.png + Admin Custom Logo!)
+
+window.handleHostelLogoUpload = function(inputEl) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(1, 200 / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const logoDataUrl = canvas.toDataURL("image/png");
+      const db = getDB();
+      db.settings = db.settings || {};
+      db.settings.logo = logoDataUrl;
+      saveDB(db, "Updated official hostel logo", "Admin");
+      applyBrandLogoEverywhere();
+      alert("✅ Official Hostel Logo Updated & Synced!");
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+function applyBrandLogoEverywhere() {
+  const db = getDB();
+  const logoSrc = (db.settings && db.settings.logo) ? db.settings.logo : "logo.png";
+
+  // 1. Set Browser Tab Favicon
+  let fav = document.querySelector("link[rel='icon']");
+  if (!fav) {
+    fav = document.createElement("link");
+    fav.rel = "icon";
+    document.head.appendChild(fav);
+  }
+  fav.href = logoSrc;
+
+  // 2. Replace Brand Icon Boxes in Header, Sidebars & Login Gates with Real Logo Image
+  const brandSelectors = [
+    "header .fa-building-shield",
+    "header .fa-building",
+    "#adminSidebar .fa-layer-group",
+    "#stuSidebar .fa-user-graduate",
+    "#wardenSidebar .fa-shield-halved",
+    "#masterSidebar .fa-crown",
+    "#adminLoginGate .fa-shield-halved",
+    "#studentLoginGate .fa-user-graduate",
+    "#wardenLoginGate .fa-user-shield",
+    "#masterLoginGate .fa-crown"
+  ];
+
+  brandSelectors.forEach(sel => {
+    const iconEl = document.querySelector(sel);
+    if (iconEl && iconEl.parentElement) {
+      const box = iconEl.parentElement;
+      box.innerHTML = `<img src="${logoSrc}" alt="Logo" class="w-full h-full object-contain rounded-lg p-0.5 bg-white" onerror="this.parentElement.innerHTML='<i class=\\'fa-solid fa-building-shield\\'></i>'" />`;
+    }
+  });
+
+  // 3. Inject "Upload Hostel Logo" inside Admin Settings Form
+  const nameInput = document.getElementById("setHostelName");
+  if (nameInput && !document.getElementById("setHostelLogoBox")) {
+    const logoDiv = document.createElement("div");
+    logoDiv.id = "setHostelLogoBox";
+    logoDiv.innerHTML = `
+      <label class="block font-bold text-zinc-700 mb-1">Official Hostel Logo (PNG/JPG)</label>
+      <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50 border border-dashed border-zinc-300 rounded-lg px-3.5 py-2 flex items-center justify-between gap-2 transition">
+        <span class="text-xs font-semibold text-zinc-700 truncate"><i class="fa-solid fa-image text-emerald-700 mr-1.5"></i> Upload / Change Logo</span>
+        <img src="${logoSrc}" class="w-7 h-7 object-contain rounded border border-zinc-200 bg-white" onerror="this.style.display='none'" />
+        <input type="file" accept="image/*" onchange="handleHostelLogoUpload(this)" class="hidden" />
+      </label>
+    `;
+    nameInput.parentElement.insertAdjacentElement("afterend", logoDiv);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  applyBrandLogoEverywhere();
+  setTimeout(applyBrandLogoEverywhere, 1000);
+});
