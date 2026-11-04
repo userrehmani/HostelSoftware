@@ -29,7 +29,8 @@
     .animate-section { animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
     #admissionModal:not(.hidden) > div,
     #appSuccessModal:not(.hidden) > div,
-    #appSubmittingOverlay:not(.hidden) > div {
+    #appSubmittingOverlay:not(.hidden) > div,
+    #hostelRulesImgModal:not(.hidden) > div {
       animation: modalSpring 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
 
@@ -48,10 +49,10 @@
   </div>
 
   <!-- 🧭 CLEAN SINGLE EXECUTIVE HEADER -->
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-2xs">
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-3">
       <div onclick="window.scrollTo({top:0,behavior:'smooth'})" class="cursor-pointer flex items-center gap-3 min-w-0">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-base sm:text-lg font-bold shadow-xs shrink-0">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-base sm:text-lg font-bold shadow-sm shrink-0">
           <i class="fa-solid fa-building-shield"></i>
         </div>
         <div class="min-w-0">
@@ -69,6 +70,7 @@
         <a href="#rooms" class="hover:text-zinc-900 transition">Live Rooms & Beds</a>
         <a href="#tracker" class="hover:text-zinc-900 transition">Track Admission</a>
         <a href="#mess" class="hover:text-zinc-900 transition">Mess Menu</a>
+        <button type="button" onclick="openHostelRulesModal()" class="hover:text-emerald-700 transition cursor-pointer">Hostel Rules</button>
         <a href="#contact" class="hover:text-zinc-900 transition">Portals & Contact</a>
       </nav>
 
@@ -76,7 +78,7 @@
         <a href="student" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-zinc-300 bg-zinc-50 hover:bg-zinc-100 text-zinc-800 text-xs font-bold">
           <i class="fa-solid fa-user-graduate text-emerald-700"></i> Student Login
         </a>
-        <button type="button" onclick="openAdmissionModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+        <button type="button" onclick="openAdmissionModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm cursor-pointer">
           <i class="fa-solid fa-file-signature mr-1"></i> Online Admission
         </button>
         <button type="button" onclick="togglePubMobileNav()" class="lg:hidden w-9 h-9 rounded-xl border border-zinc-300 bg-zinc-50 text-zinc-800 flex items-center justify-center">
@@ -90,7 +92,7 @@
         <a href="#rooms" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-bed text-emerald-700 mr-1.5"></i> Vacant Rooms</a>
         <a href="#tracker" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-magnifying-glass text-emerald-700 mr-1.5"></i> Track Status</a>
         <a href="#mess" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-utensils text-emerald-700 mr-1.5"></i> Mess Menu</a>
-        <a href="#contact" onclick="togglePubMobileNav()" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5"><i class="fa-solid fa-phone text-emerald-700 mr-1.5"></i> Contact Info</a>
+        <button type="button" onclick="togglePubMobileNav(); openHostelRulesModal();" class="bg-zinc-50 border border-zinc-200 rounded-lg p-2.5 text-left"><i class="fa-solid fa-scroll text-emerald-700 mr-1.5"></i> Hostel Rules</button>
       </div>
       <div class="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 text-center">
         <a href="student" class="bg-zinc-900 text-white py-2.5 rounded-lg">🎓 Student</a>
@@ -123,6 +125,9 @@
           <a href="#rooms" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-5 py-3.5 rounded-xl text-xs font-bold">
             <i class="fa-solid fa-bed mr-1.5 text-zinc-600"></i> View Vacant Beds
           </a>
+          <button type="button" onclick="openHostelRulesModal()" class="bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-800 px-4 py-3.5 rounded-xl text-xs font-bold cursor-pointer">
+            <i class="fa-solid fa-scroll mr-1.5 text-emerald-700"></i> Hostel Rules
+          </button>
           <a id="heroWhatsAppBtn" href="#contact" target="_blank" class="hidden items-center gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 px-4 py-3.5 rounded-xl text-xs font-bold">
             <i class="fa-brands fa-whatsapp text-emerald-700 text-sm"></i> WhatsApp Desk
           </a>
@@ -227,9 +232,13 @@
         <h2 class="text-2xl font-extrabold text-zinc-900 mt-0.5">Live Room & Bed Availability</h2>
         <p class="text-xs text-zinc-500 mt-1">Tap on any <strong class="text-emerald-800">🟢 Vacant Bed</strong> below to apply for that specific room.</p>
       </div>
-      <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
-        <span class="bg-emerald-50 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg">🟢 Vacant Bed (Tap to Apply)</span>
-        <span class="bg-white border border-zinc-300 text-zinc-600 px-3 py-1.5 rounded-lg">👤 Occupied Seat</span>
+      <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+        <button type="button" id="filterAllBtn" onclick="setRoomFilter('all')" class="bg-zinc-900 text-white px-3.5 py-2 rounded-xl cursor-pointer transition">
+          All Rooms
+        </button>
+        <button type="button" id="filterVacantBtn" onclick="setRoomFilter('vacant')" class="bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-100 px-3.5 py-2 rounded-xl cursor-pointer transition">
+          🟢 Vacant Only
+        </button>
       </div>
     </div>
 
@@ -238,7 +247,7 @@
 
   <!-- 🔍 ONLINE APPLICATION STATUS TRACKER CARD -->
   <section id="tracker" class="py-6 max-w-7xl mx-auto px-4 sm:px-6 w-full">
-    <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
+    <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-4">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Admission Status Lookup</span>
@@ -246,7 +255,7 @@
           <p class="text-xs text-zinc-500">Enter your Tracking ID (e.g. APP-1234), CNIC, or Phone number to check seat allotment & Roll ID.</p>
         </div>
         <div class="flex items-center gap-2 w-full md:w-96">
-          <input id="trackAppInput" type="text" placeholder="Enter APP ID, CNIC or Phone..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 outline-none focus:border-zinc-900" />
+          <input id="trackAppInput" type="text" onkeydown="if(event.key==='Enter') checkApplicationStatus()" placeholder="Enter APP ID, CNIC or Phone..." class="flex-1 bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 outline-none focus:border-zinc-900" />
           <button type="button" onclick="checkApplicationStatus()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer">
             Check Status
           </button>
@@ -264,10 +273,10 @@
           <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Hostel Dining</span>
           <h2 class="text-2xl font-extrabold text-zinc-900 mt-0.5">Weekly Mess Menu Schedule</h2>
         </div>
-        <span class="text-xs text-zinc-500 font-medium">Updated Live by Administration</span>
+        <span class="text-xs text-zinc-500 font-medium">Updated Live by Administration • Today's Menu Highlighted</span>
       </div>
 
-      <div class="border border-zinc-200 rounded-2xl overflow-x-auto shadow-2xs">
+      <div class="border border-zinc-200 rounded-2xl overflow-x-auto shadow-sm">
         <table class="w-full text-left text-xs">
           <thead class="bg-zinc-900 text-white uppercase font-bold">
             <tr>
@@ -286,7 +295,7 @@
   <!-- 💳 PAYMENT CHANNELS & OFFICIAL PORTALS CARDS -->
   <section id="contact" class="py-12 max-w-7xl mx-auto px-4 sm:px-6 w-full flex-1">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="hover-card lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs space-y-4">
+      <div class="hover-card lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-4">
         <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
             <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Verified Accounts</span>
@@ -321,7 +330,7 @@
         </div>
       </div>
 
-      <div class="hover-card lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-6 shadow-2xs flex flex-col justify-between space-y-4">
+      <div class="hover-card lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
         <div>
           <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Role-Based Access</span>
           <h3 class="text-base font-extrabold text-zinc-900 mt-0.5 border-b border-zinc-100 pb-3">
@@ -350,10 +359,31 @@
     </div>
   </section>
 
+  <!-- 🏛️ EXECUTIVE FOOTER -->
+  <footer class="bg-zinc-900 text-zinc-400 text-xs border-t border-zinc-800 py-6 px-4 mt-8">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-zinc-800 text-emerald-400 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-building-shield"></i>
+        </div>
+        <span id="footerHostelName" class="font-bold text-white">Hostel Cloud ERP</span>
+        <span>• Official Portal</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-4 font-semibold">
+        <button type="button" onclick="openHostelRulesModal()" class="text-emerald-400 hover:underline cursor-pointer">
+          <i class="fa-solid fa-scroll mr-1"></i> Hostel Rules & Policy
+        </button>
+        <a href="#rooms" class="hover:text-white">Vacant Rooms</a>
+        <a href="#tracker" class="hover:text-white">Track Status</a>
+        <a href="student" class="hover:text-white">Student Login</a>
+      </div>
+    </div>
+  </footer>
+
   <!-- ===================================================================== -->
-  <!-- 📝 PERFECTLY SCROLLABLE ADMISSION MODAL (NEVER CUTS OFF TOP/BOTTOM!)   -->
+  <!-- 📝 PERFECTLY SCROLLABLE ADMISSION MODAL (WITH RULES CHECKBOX)         -->
   <!-- ===================================================================== -->
-  <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-xs hidden items-center justify-center z-50 p-3 sm:p-5">
+  <div id="admissionModal" class="fixed inset-0 bg-zinc-900/75 backdrop-blur-sm hidden items-center justify-center z-50 p-3 sm:p-5">
     <div class="bg-white border border-zinc-300 rounded-2xl max-w-xl w-full max-h-[90dvh] flex flex-col shadow-2xl text-zinc-800 overflow-hidden">
       
       <!-- Sticky Top Modal Header -->
@@ -366,7 +396,7 @@
       </div>
 
       <!-- Smooth Scrollable Form Body -->
-      <form id="onlineAdmissionForm" onsubmit="submitOnlineAdmission(event); return false;" class="flex-1 overflow-y-auto p-5 space-y-4 text-xs custom-scroll">
+      <form id="onlineAdmissionForm" onsubmit="return submitOnlineAdmission(event);" class="flex-1 overflow-y-auto p-5 space-y-4 text-xs custom-scroll">
         
         <!-- NEW vs EXISTING RESIDENT SELECTOR -->
         <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
@@ -384,18 +414,18 @@
           </div>
           <div>
             <label class="block text-zinc-700 font-bold mb-1">CNIC / B-Form No. *</label>
-            <input id="appCnic" type="text" required placeholder="36302-0000000-0" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 focus:border-zinc-900 outline-none" />
+            <input id="appCnic" type="text" required maxlength="15" oninput="formatCnicInput(this)" placeholder="36302-0000000-0" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono focus:border-zinc-900 outline-none" />
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-zinc-700 font-bold mb-1">Student WhatsApp Phone *</label>
-            <input id="appPhone" type="text" required placeholder="03001234567" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 focus:border-zinc-900 outline-none" />
+            <input id="appPhone" type="tel" required maxlength="12" oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="03001234567" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono focus:border-zinc-900 outline-none" />
           </div>
           <div>
             <label class="block text-zinc-700 font-bold mb-1">Father / Guardian Contact *</label>
-            <input id="appGuardian" type="text" required placeholder="03007654321" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 focus:border-zinc-900 outline-none" />
+            <input id="appGuardian" type="tel" required maxlength="12" oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="03007654321" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 font-mono focus:border-zinc-900 outline-none" />
           </div>
         </div>
 
@@ -417,7 +447,7 @@
           </label>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
-              <img id="prevStuPhoto" class="hidden w-12 h-12 rounded-full object-cover border-2 border-emerald-600 mx-auto mb-1" />
+              <img id="prevStuPhoto" alt="Student Photo" class="hidden w-12 h-12 rounded-full object-cover border-2 border-emerald-600 mx-auto mb-1" />
               <i class="fa-solid fa-camera text-emerald-700 text-base"></i>
               <span class="font-extrabold text-zinc-800 text-[11px] block">1. Student Photo *</span>
               <span id="lblStuPhoto" class="text-[10px] text-zinc-400">Tap to Upload</span>
@@ -425,7 +455,7 @@
             </label>
 
             <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
-              <img id="prevCnicFront" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
+              <img id="prevCnicFront" alt="CNIC Front" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
               <i class="fa-solid fa-address-card text-zinc-700 text-base"></i>
               <span class="font-extrabold text-zinc-800 text-[11px] block">2. CNIC Front *</span>
               <span id="lblCnicFront" class="text-[10px] text-zinc-400">Front Picture</span>
@@ -433,7 +463,7 @@
             </label>
 
             <label class="cursor-pointer bg-zinc-50 hover:bg-emerald-50/60 border-2 border-dashed border-zinc-300 hover:border-emerald-600 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-1 transition">
-              <img id="prevCnicBack" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
+              <img id="prevCnicBack" alt="CNIC Back" class="hidden w-16 h-11 rounded object-cover border-2 border-emerald-600 mx-auto mb-1" />
               <i class="fa-solid fa-id-card-clip text-zinc-700 text-base"></i>
               <span class="font-extrabold text-zinc-800 text-[11px] block">3. CNIC Back *</span>
               <span id="lblCnicBack" class="text-[10px] text-zinc-400">Back Picture</span>
@@ -447,6 +477,19 @@
           <input id="appNote" type="text" placeholder="Any specific preference" class="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3.5 py-2.5 text-zinc-900 focus:border-zinc-900 outline-none" />
         </div>
 
+        <!-- 📜 MANDATORY HOSTEL RULES & PRIVACY POLICY CHECKBOX -->
+        <div class="bg-zinc-50 border border-zinc-300 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <label class="flex items-start sm:items-center gap-2.5 cursor-pointer select-none">
+            <input id="agreeRulesCheckbox" type="checkbox" required class="w-4 h-4 mt-0.5 sm:mt-0 accent-emerald-700 rounded cursor-pointer shrink-0" />
+            <span class="font-bold text-zinc-800 leading-snug">
+              I have read and agree to the <button type="button" onclick="openHostelRulesModal()" class="text-emerald-800 underline font-extrabold cursor-pointer">Hostel Rules, Terms & Conditions</button> *
+            </span>
+          </label>
+          <button type="button" onclick="openHostelRulesModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer">
+            <i class="fa-solid fa-file-contract text-emerald-400 mr-1"></i> Read Rules & Terms
+          </button>
+        </div>
+
         <!-- Sticky Bottom Submit Bar -->
         <div class="pt-3 border-t border-zinc-200 flex justify-end gap-2 sticky bottom-0 bg-white pb-1">
           <button type="button" onclick="closeAdmissionModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold cursor-pointer">Cancel</button>
@@ -458,8 +501,36 @@
     </div>
   </div>
 
+  <!-- ===================================================================== -->
+  <!-- 📜 HOSTEL RULES (rules.jpg) POPUP MODAL                               -->
+  <!-- ===================================================================== -->
+  <div id="hostelRulesImgModal" class="fixed inset-0 bg-zinc-950/85 backdrop-blur-sm hidden items-center justify-center z-[85] p-3 sm:p-5">
+    <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
+      <div class="px-5 py-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-900 text-white shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-scroll text-emerald-400"></i>
+          <h3 class="text-sm font-extrabold">Official Hostel Rules & Terms</h3>
+        </div>
+        <button type="button" onclick="closeHostelRulesModal()" class="text-zinc-400 hover:text-white text-2xl leading-none px-1 cursor-pointer">&times;</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-3 bg-zinc-100 text-center custom-scroll">
+        <img src="rules.jpg" alt="Hostel Rules & Terms" class="w-full h-auto rounded-xl border border-zinc-300 shadow-sm mx-auto" onerror="this.outerHTML='<div class=\'p-8 text-xs text-rose-600 font-bold\'>⚠️ rules.jpg file not found in root folder! Make sure the image is named rules.jpg</div>'" />
+      </div>
+
+      <div class="p-3.5 border-t border-zinc-200 bg-white flex justify-end gap-2 shrink-0 text-xs">
+        <button type="button" onclick="closeHostelRulesModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold cursor-pointer">
+          Close
+        </button>
+        <button type="button" onclick="acceptHostelRules()" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold cursor-pointer">
+          <i class="fa-solid fa-check mr-1"></i> I Have Read & Agree
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ⏳ ANIMATED CLOUD LOADING OVERLAY -->
-  <div id="appSubmittingOverlay" class="fixed inset-0 bg-zinc-950/80 backdrop-blur-xs hidden items-center justify-center z-[60] p-4">
+  <div id="appSubmittingOverlay" class="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm hidden items-center justify-center z-[60] p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center space-y-4">
       <div class="w-14 h-14 rounded-2xl bg-zinc-900 text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-md">
         <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -476,7 +547,7 @@
   </div>
 
   <!-- ✅ CUSTOM UI "APPLICATION SUBMITTED" RECEIPT MODAL -->
-  <div id="appSuccessModal" class="fixed inset-0 bg-zinc-950/75 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+  <div id="appSuccessModal" class="fixed inset-0 bg-zinc-950/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="bg-white border border-zinc-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5 text-center">
       <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-2xl mx-auto shadow-md">
         <i class="fa-solid fa-check"></i>
@@ -508,21 +579,46 @@
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-2 pt-1 text-xs">
-        <button type="button" onclick="trackSubmittedAppNow()" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold cursor-pointer">
-          <i class="fa-solid fa-magnifying-glass mr-1"></i> Track Status
-        </button>
-        <button type="button" onclick="closeAppSuccessModal()" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl font-bold cursor-pointer">
-          Done
-        </button>
+      <div class="space-y-2 pt-1 text-xs">
+        <a id="succWhatsAppNotifyBtn" href="#" target="_blank" class="hidden w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 py-2.5 rounded-xl font-bold items-center justify-center gap-1.5">
+          <i class="fa-brands fa-whatsapp text-emerald-700 text-sm"></i> Send Tracking ID to Admin WhatsApp
+        </a>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button type="button" onclick="trackSubmittedAppNow()" class="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold cursor-pointer">
+            <i class="fa-solid fa-magnifying-glass mr-1"></i> Track Status
+          </button>
+          <button type="button" onclick="closeAppSuccessModal()" class="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white py-3 rounded-xl font-bold cursor-pointer">
+            Done
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- 🚀 PUBLIC WEBSITE CONTROLLER -->
   <script>
-    let lastSubmittedAppId = "";
+    let lastSubmittedAppId = localStorage.getItem("lastHostelAppId") || "";
+    let currentRoomFilter = "all";
     window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
+
+    function setModalVisibility(id, show) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle("hidden", !show);
+      el.classList.toggle("flex", show);
+    }
+
+    // Auto-format CNIC as 36302-1234567-1
+    function formatCnicInput(inp) {
+      let digits = inp.value.replace(/\D/g, "").substring(0, 13);
+      let out = digits;
+      if (digits.length > 5 && digits.length <= 12) {
+        out = digits.slice(0, 5) + "-" + digits.slice(5);
+      } else if (digits.length > 12) {
+        out = digits.slice(0, 5) + "-" + digits.slice(5, 12) + "-" + digits.slice(12);
+      }
+      inp.value = out;
+    }
 
     function uploadKycLocal(inputEl, key, previewId, labelId) {
       const file = inputEl.files && inputEl.files[0];
@@ -548,7 +644,6 @@
           if (prev) {
             prev.src = dataUrl;
             prev.classList.remove("hidden");
-            prev.style.setProperty("display", "block", "important");
           }
           const lbl = document.getElementById(labelId);
           if (lbl) {
@@ -563,22 +658,11 @@
 
     function togglePubMobileNav() {
       const nav = document.getElementById("pubMobileNav");
-      if (!nav) return;
-      if (nav.classList.contains("hidden")) {
-        nav.classList.remove("hidden");
-        nav.style.setProperty("display", "block", "important");
-      } else {
-        nav.classList.add("hidden");
-        nav.style.setProperty("display", "none", "important");
-      }
+      if (nav) nav.classList.toggle("hidden");
     }
 
     function openAdmissionModal(preselectedRoom = "") {
-      const modal = document.getElementById("admissionModal");
-      if (!modal) return;
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-      modal.style.setProperty("display", "flex", "important");
+      setModalVisibility("admissionModal", true);
       if (preselectedRoom) {
         const sel = document.getElementById("appRoomSelect");
         if (sel) sel.value = String(preselectedRoom);
@@ -587,20 +671,45 @@
     window.openAdmissionModal = openAdmissionModal;
 
     function closeAdmissionModal() {
-      const modal = document.getElementById("admissionModal");
-      if (!modal) return;
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-      modal.style.setProperty("display", "none", "important");
+      setModalVisibility("admissionModal", false);
     }
     window.closeAdmissionModal = closeAdmissionModal;
 
     function closeAppSuccessModal() {
-      const modal = document.getElementById("appSuccessModal");
-      if (!modal) return;
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-      modal.style.setProperty("display", "none", "important");
+      setModalVisibility("appSuccessModal", false);
+    }
+
+    function openHostelRulesModal() {
+      setModalVisibility("hostelRulesImgModal", true);
+    }
+    window.openHostelRulesModal = openHostelRulesModal;
+
+    function closeHostelRulesModal() {
+      setModalVisibility("hostelRulesImgModal", false);
+    }
+    window.closeHostelRulesModal = closeHostelRulesModal;
+
+    function acceptHostelRules() {
+      const chk = document.getElementById("agreeRulesCheckbox");
+      if (chk) chk.checked = true;
+      closeHostelRulesModal();
+    }
+    window.acceptHostelRules = acceptHostelRules;
+
+    function setRoomFilter(mode) {
+      currentRoomFilter = mode;
+      const allBtn = document.getElementById("filterAllBtn");
+      const vacBtn = document.getElementById("filterVacantBtn");
+      if (allBtn && vacBtn) {
+        if (mode === "vacant") {
+          vacBtn.className = "bg-emerald-700 text-white px-3.5 py-2 rounded-xl cursor-pointer transition";
+          allBtn.className = "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-100 px-3.5 py-2 rounded-xl cursor-pointer transition";
+        } else {
+          allBtn.className = "bg-zinc-900 text-white px-3.5 py-2 rounded-xl cursor-pointer transition";
+          vacBtn.className = "bg-white border border-zinc-300 text-zinc-700 hover:bg-zinc-100 px-3.5 py-2 rounded-xl cursor-pointer transition";
+        }
+      }
+      loadPublicSite();
     }
 
     function copyTrackingId() {
@@ -621,11 +730,11 @@
     }
 
     function loadPublicSite() {
-      const db = getDB();
+      const db = typeof getDB === "function" ? getDB() : {};
       const set = db.settings || {};
       const rooms = db.rooms || [];
       const activeStudents = (db.students || []).filter(s => s.status === "Active");
-      const m = getLiveMetrics();
+      const m = typeof getLiveMetrics === "function" ? getLiveMetrics() : { totalCapacity: 0, occupiedBeds: 0, emptyBeds: 0 };
 
       const hName = set.hostelName || "Hostel Portal";
       const opt1 = (set.jazzcash && set.jazzcash !== "Not Set") ? set.jazzcash : "Contact Administration";
@@ -636,6 +745,7 @@
       document.getElementById("pubHostelName").innerText = hName;
       document.getElementById("heroHostelTitle").innerText = hName;
       document.getElementById("contactHostelName").innerText = hName;
+      if (document.getElementById("footerHostelName")) document.getElementById("footerHostelName").innerText = hName;
       document.getElementById("topPhoneText").innerText = set.adminWhatsApp || opt1;
       document.getElementById("topBillingCycle").innerText = `Session: ${currentCycle}`;
       document.getElementById("statJazzCash").innerText = opt1;
@@ -643,26 +753,31 @@
       if (document.getElementById("contactBank")) document.getElementById("contactBank").innerText = opt2;
       document.getElementById("contactMonth").innerText = `Cycle: ${currentCycle}`;
 
+      // Pre-fill last tracking ID if available
+      const trackInp = document.getElementById("trackAppInput");
+      if (trackInp && !trackInp.value && lastSubmittedAppId) {
+        trackInp.value = lastSubmittedAppId;
+      }
+
       const noticeBar = document.getElementById("pubNoticeBar");
       const noticeText = document.getElementById("pubNoticeText");
       if (set.liveNotice && set.liveNotice.trim()) {
         noticeText.innerText = set.liveNotice.trim();
         noticeBar.classList.remove("hidden");
-        noticeBar.style.setProperty("display", "block", "important");
       } else if (noticeBar) {
         noticeBar.classList.add("hidden");
-        noticeBar.style.setProperty("display", "none", "important");
       }
 
       const rawPhone = (set.adminWhatsApp || set.jazzcash || "").replace(/[^0-9]/g, "");
       const waBtn = document.getElementById("heroWhatsAppBtn");
       if (rawPhone.length >= 10) {
-        const cleanWa = "92" + rawPhone.replace(/^0/, "");
+        const cleanWa = rawPhone.startsWith("92") ? rawPhone : "92" + rawPhone.replace(/^0/, "");
         waBtn.href = `https://wa.me/${cleanWa}?text=${encodeURIComponent("Salam, I am inquiring about admission at " + hName)}`;
         waBtn.classList.remove("hidden");
         waBtn.classList.add("inline-flex");
       } else if (waBtn) {
         waBtn.classList.add("hidden");
+        waBtn.classList.remove("inline-flex");
       }
 
       document.getElementById("statTotalRooms").innerText = rooms.length;
@@ -672,6 +787,7 @@
 
       const roomsGrid = document.getElementById("publicRoomsGrid");
       const roomSelect = document.getElementById("appRoomSelect");
+      const currentSelectedRoom = roomSelect.value;
       roomsGrid.innerHTML = "";
       roomSelect.innerHTML = `<option value="">-- Choose Room --</option>`;
 
@@ -682,6 +798,7 @@
           </div>`;
         roomSelect.innerHTML = `<option value="Any Available">General Application (Room to be allotted by Admin)</option>`;
       } else {
+        let renderedCards = 0;
         rooms.forEach(room => {
           const cap = Number(room.capacity || 0);
           const occList = activeStudents.filter(s => String(s.room) === String(room.no));
@@ -689,8 +806,11 @@
           const isFull = freeBeds === 0;
           const rentAmount = Number(room.rent || 0);
 
-          // Allow selecting any room (so existing residents in a room can also register!)
+          // Populate dropdown for all rooms so both New & Existing residents can choose their room
           roomSelect.innerHTML += `<option value="${room.no}">Room ${room.no} (${room.type || 'Standard'} — ${freeBeds} Vacant — Rs. ${rentAmount.toLocaleString()})</option>`;
+
+          if (currentRoomFilter === "vacant" && isFull) return;
+          renderedCards++;
 
           let bedsHTML = "";
           for (let i = 0; i < cap; i++) {
@@ -712,7 +832,7 @@
           }
 
           roomsGrid.innerHTML += `
-            <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-5 shadow-2xs flex flex-col justify-between space-y-4">
+            <div class="hover-card bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
               <div class="flex justify-between items-start border-b border-zinc-100 pb-3">
                 <div>
                   <span class="text-[10px] font-bold uppercase text-zinc-400">${room.type || 'Standard Room'}</span>
@@ -729,21 +849,37 @@
             </div>
           `;
         });
+
+        if (renderedCards === 0) {
+          roomsGrid.innerHTML = `
+            <div class="col-span-full bg-white border border-zinc-200 rounded-2xl p-8 text-center text-zinc-500 text-xs">
+              No vacant rooms match your filter right now. <button type="button" onclick="setRoomFilter('all')" class="text-emerald-700 font-bold underline ml-1">Show All Rooms</button>
+            </div>`;
+        }
+        if (currentSelectedRoom) roomSelect.value = currentSelectedRoom;
       }
 
       const messTbody = document.getElementById("publicMessTable");
       const menuList = db.messMenu || [];
+      const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+
       if (menuList.length === 0) {
         messTbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-zinc-400 text-xs">Weekly mess schedule has not been published by administration yet.</td></tr>`;
       } else {
-        messTbody.innerHTML = menuList.map(m => `
-          <tr class="hover:bg-zinc-50">
-            <td class="p-3.5 font-bold text-zinc-900">${m.day || '—'}</td>
-            <td class="p-3.5 text-zinc-600">${m.b || m.breakfast || '—'}</td>
-            <td class="p-3.5 text-zinc-600">${m.l || m.lunch || '—'}</td>
-            <td class="p-3.5 font-semibold text-zinc-800">${m.d || m.dinner || '—'}</td>
-          </tr>
-        `).join("");
+        messTbody.innerHTML = menuList.map(m => {
+          const isToday = String(m.day || "").trim().toLowerCase() === todayName;
+          return `
+            <tr class="${isToday ? 'bg-emerald-50/80 font-semibold' : 'hover:bg-zinc-50'}">
+              <td class="p-3.5 font-bold text-zinc-900">
+                ${m.day || '—'}
+                ${isToday ? '<span class="ml-1.5 bg-emerald-700 text-white text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded">Today</span>' : ''}
+              </td>
+              <td class="p-3.5 text-zinc-600">${m.b || m.breakfast || '—'}</td>
+              <td class="p-3.5 text-zinc-600">${m.l || m.lunch || '—'}</td>
+              <td class="p-3.5 font-semibold text-zinc-800">${m.d || m.dinner || '—'}</td>
+            </tr>
+          `;
+        }).join("");
       }
     }
 
@@ -755,22 +891,43 @@
         return false;
       }
 
+      const chk = document.getElementById("agreeRulesCheckbox");
+      if (!chk || !chk.checked) {
+        alert("⚠️ Please read and tick 'I agree to the Hostel Rules, Terms & Conditions' before submitting!");
+        return false;
+      }
+
+      const db = getDB();
+      db.applications = db.applications || [];
+
+      const cnicVal = document.getElementById("appCnic").value.trim();
+      const phoneVal = document.getElementById("appPhone").value.trim();
+
+      // Prevent accidental duplicate pending applications
+      const existingPending = db.applications.find(a =>
+        a.status === "Pending" &&
+        ((cnicVal && a.cnic === cnicVal) || (phoneVal && a.phone === phoneVal))
+      );
+      if (existingPending) {
+        alert(`ℹ️ Your application is already submitted and Pending Review!\n\nYour Tracking ID is: ${existingPending.id}`);
+        lastSubmittedAppId = existingPending.id;
+        localStorage.setItem("lastHostelAppId", existingPending.id);
+        closeAdmissionModal();
+        trackSubmittedAppNow();
+        return false;
+      }
+
       const formEl = document.getElementById("onlineAdmissionForm");
       const submitBtn = formEl ? formEl.querySelector("button[type='submit']") : null;
       const origBtnHtml = submitBtn ? submitBtn.innerHTML : "Submit Application →";
 
-      const loader = document.getElementById("appSubmittingOverlay");
       const stepTitle = document.getElementById("loaderStepTitle");
       const progBar = document.getElementById("loaderProgressBar");
 
       if (stepTitle) stepTitle.innerText = "Uploading Photo & CNIC...";
       if (progBar) progBar.style.width = "35%";
 
-      if (loader) {
-        loader.classList.remove("hidden");
-        loader.classList.add("flex");
-        loader.style.setProperty("display", "flex", "important");
-      }
+      setModalVisibility("appSubmittingOverlay", true);
 
       if (submitBtn) {
         submitBtn.disabled = true;
@@ -785,8 +942,8 @@
       setTimeout(() => {
         if (progBar) progBar.style.width = "100%";
 
-        const db = getDB();
-        db.applications = db.applications || [];
+        const freshDb = getDB();
+        freshDb.applications = freshDb.applications || [];
 
         const resType = document.getElementById("appResType")?.value || "New";
         const userNote = document.getElementById("appNote").value.trim();
@@ -796,57 +953,64 @@
           id: "APP-" + Math.floor(1000 + Math.random() * 9000),
           resType,
           name: document.getElementById("appName").value.trim(),
-          cnic: document.getElementById("appCnic").value.trim(),
-          phone: document.getElementById("appPhone").value.trim(),
+          cnic: cnicVal,
+          phone: phoneVal,
           guardian: document.getElementById("appGuardian").value.trim(),
           uni: document.getElementById("appUni").value.trim(),
           room: document.getElementById("appRoomSelect").value,
           note: finalNote,
-          photo: uploads.photo || "",
-          cnicFront: uploads.cnicFront || "",
-          cnicBack: uploads.cnicBack || "",
+          photo: uploads.photo,
+          cnicFront: uploads.cnicFront,
+          cnicBack: uploads.cnicBack,
+          acceptedRules: true,
           date: new Date().toLocaleDateString("en-GB"),
           status: "Pending"
         };
 
-        db.applications.unshift(newApp);
-        saveDB(db, `Online ${resType} Application submitted by ${newApp.name} for Room ${newApp.room}`, "Applicant");
+        freshDb.applications.unshift(newApp);
+        saveDB(freshDb, `Online ${resType} Application submitted by ${newApp.name} for Room ${newApp.room}`, "Applicant");
 
         window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
         ["prevStuPhoto", "prevCnicFront", "prevCnicBack"].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) { el.classList.add("hidden"); el.style.display = "none"; }
+          document.getElementById(id)?.classList.add("hidden");
         });
-        ["lblStuPhoto", "lblCnicFront", "lblCnicBack"].forEach(id => {
+        const defaultLabels = { lblStuPhoto: "Tap to Upload", lblCnicFront: "Front Picture", lblCnicBack: "Back Picture" };
+        Object.entries(defaultLabels).forEach(([id, text]) => {
           const el = document.getElementById(id);
-          if (el) { el.innerText = "Tap to Upload"; el.className = "text-[10px] text-zinc-400"; }
+          if (el) { el.innerText = text; el.className = "text-[10px] text-zinc-400"; }
         });
 
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.innerHTML = origBtnHtml;
         }
-        if (loader) {
-          loader.classList.add("hidden");
-          loader.classList.remove("flex");
-          loader.style.setProperty("display", "none", "important");
-        }
+        setModalVisibility("appSubmittingOverlay", false);
 
         closeAdmissionModal();
         if (formEl) formEl.reset();
 
         lastSubmittedAppId = newApp.id;
+        localStorage.setItem("lastHostelAppId", newApp.id);
         document.getElementById("succAppId").innerText = newApp.id;
         document.getElementById("succAppName").innerText = newApp.name;
         document.getElementById("succAppRoom").innerText = `Room ${newApp.room}`;
         const copyBtn = document.getElementById("copyTrackBtn");
         if (copyBtn) copyBtn.innerText = "Copy";
 
-        const succModal = document.getElementById("appSuccessModal");
-        succModal.classList.remove("hidden");
-        succModal.classList.add("flex");
-        succModal.style.setProperty("display", "flex", "important");
-      }, 1700);
+        // Configure 1-click WhatsApp receipt to Admin
+        const set = freshDb.settings || {};
+        const rawPhone = (set.adminWhatsApp || set.jazzcash || "").replace(/[^0-9]/g, "");
+        const waNotifyBtn = document.getElementById("succWhatsAppNotifyBtn");
+        if (waNotifyBtn && rawPhone.length >= 10) {
+          const cleanWa = rawPhone.startsWith("92") ? rawPhone : "92" + rawPhone.replace(/^0/, "");
+          const msg = `Salam, I have submitted my online hostel application.\n• Name: ${newApp.name}\n• Tracking ID: ${newApp.id}\n• Room: ${newApp.room}\n• Type: ${newApp.resType}`;
+          waNotifyBtn.href = `https://wa.me/${cleanWa}?text=${encodeURIComponent(msg)}`;
+          waNotifyBtn.classList.remove("hidden");
+          waNotifyBtn.classList.add("flex");
+        }
+
+        setModalVisibility("appSuccessModal", true);
+      }, 1500);
 
       return false;
     }
@@ -858,20 +1022,26 @@
       if (!q) return;
 
       const db = getDB();
+      const qDigits = q.replace(/[^0-9]/g, "");
       const app = (db.applications || []).find(a =>
         String(a.id || "").toLowerCase() === q ||
         String(a.cnic || "").toLowerCase() === q ||
+        (qDigits.length >= 10 && String(a.cnic || "").replace(/[^0-9]/g, "") === qDigits) ||
         String(a.phone || "").toLowerCase() === q
       );
 
       resBox.classList.remove("hidden");
-      resBox.style.setProperty("display", "block", "important");
       if (!app) {
         resBox.innerHTML = `<div class="bg-rose-50 border border-rose-200 text-rose-800 p-3.5 rounded-xl font-medium">No application found matching "${q}". Please check your Application ID, CNIC, or Phone.</div>`;
         return;
       }
 
-      const enrolledStu = (db.students || []).find(s => s.name.toLowerCase() === (app.name || "").toLowerCase() || (s.phone && s.phone === app.phone));
+      const enrolledStu = (db.students || []).find(s =>
+        (s.name || "").toLowerCase() === (app.name || "").toLowerCase() ||
+        (s.phone && s.phone === app.phone) ||
+        (s.cnic && s.cnic === app.cnic)
+      );
+
       if (app.status === "Approved" && enrolledStu) {
         resBox.innerHTML = `
           <div class="bg-emerald-50 border border-emerald-300 text-emerald-950 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -901,93 +1071,3 @@
   </script>
 </body>
 </html>
-// ============================================================================
-// 📜 HOSTEL RULES (rules.jpg) MODAL & MANDATORY TERMS CHECKBOX
-// Paste at the bottom of index.html <script> (or bottom of db.js)
-// ============================================================================
-window.openHostelRulesModal = function() {
-  let modal = document.getElementById("hostelRulesImgModal");
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "hostelRulesImgModal";
-    modal.className = "fixed inset-0 bg-zinc-950/85 backdrop-blur-xs hidden items-center justify-center z-[85] p-3 sm:p-5";
-    modal.innerHTML = `
-      <div class="bg-white border border-zinc-300 rounded-2xl max-w-lg w-full max-h-[90dvh] flex flex-col shadow-2xl overflow-hidden text-zinc-900">
-        <div class="px-5 py-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-900 text-white shrink-0">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-scroll text-emerald-400"></i>
-            <h3 class="text-sm font-extrabold">Official Hostel Rules & Terms</h3>
-          </div>
-          <button type="button" onclick="closeHostelRulesModal()" class="text-zinc-400 hover:text-white text-2xl leading-none px-1 cursor-pointer">&times;</button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-3 bg-zinc-100 text-center custom-scroll">
-          <img src="rules.jpg" alt="Hostel Rules & Terms" class="w-full h-auto rounded-xl border border-zinc-300 shadow-sm mx-auto" onerror="this.outerHTML='<div class=\\'p-8 text-xs text-rose-600 font-bold\\'>⚠️ rules.jpg file not found in root folder! Make sure the image is named rules.jpg</div>'" />
-        </div>
-
-        <div class="p-3.5 border-t border-zinc-200 bg-white flex justify-end gap-2 shrink-0 text-xs">
-          <button type="button" onclick="closeHostelRulesModal()" class="px-4 py-2.5 rounded-xl border border-zinc-300 text-zinc-700 font-bold cursor-pointer">
-            Close
-          </button>
-          <button type="button" onclick="acceptHostelRules()" class="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold cursor-pointer">
-            <i class="fa-solid fa-check mr-1"></i> I Have Read & Agree
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  }
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
-  modal.style.setProperty("display", "flex", "important");
-};
-
-window.closeHostelRulesModal = function() {
-  const modal = document.getElementById("hostelRulesImgModal");
-  if (modal) {
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-    modal.style.setProperty("display", "none", "important");
-  }
-};
-
-window.acceptHostelRules = function() {
-  const chk = document.getElementById("agreeRulesCheckbox");
-  if (chk) chk.checked = true;
-  closeHostelRulesModal();
-};
-
-window.addEventListener("DOMContentLoaded", () => {
-  const admForm = document.getElementById("onlineAdmissionForm");
-  if (admForm && !document.getElementById("agreeRulesCheckbox")) {
-    const termsBox = document.createElement("div");
-    termsBox.className = "bg-zinc-50 border border-zinc-300 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs";
-    termsBox.innerHTML = `
-      <label class="flex items-start sm:items-center gap-2.5 cursor-pointer select-none">
-        <input id="agreeRulesCheckbox" type="checkbox" required class="w-4 h-4 mt-0.5 sm:mt-0 accent-emerald-700 rounded cursor-pointer shrink-0" />
-        <span class="font-bold text-zinc-800 leading-snug">
-          I have read and agree to the <span class="text-emerald-800 underline">Hostel Rules, Terms & Conditions</span> *
-        </span>
-      </label>
-      <button type="button" onclick="openHostelRulesModal()" class="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer">
-        <i class="fa-solid fa-file-contract text-emerald-400 mr-1"></i> Read Rules & Terms
-      </button>
-    `;
-
-    const submitBar = admForm.lastElementChild;
-    admForm.insertBefore(termsBox, submitBar);
-
-    const origSubmit = window.submitOnlineAdmission;
-    if (typeof origSubmit === "function") {
-      window.submitOnlineAdmission = function(e) {
-        if (e) e.preventDefault();
-        const chk = document.getElementById("agreeRulesCheckbox");
-        if (chk && !chk.checked) {
-          alert("⚠️ Please read and tick 'I agree to the Hostel Rules, Terms & Conditions' before submitting!");
-          return false;
-        }
-        return origSubmit(e);
-      };
-    }
-  }
-});
