@@ -883,8 +883,65 @@
       }
     }
 
+    // 🔍 Helper: Check if CNIC or Phone already exists in Applications OR Enrolled Students
+    function findExistingRecord(cnicVal, phoneVal) {
+      const db = typeof getDB === "function" ? getDB() : {};
+      const cleanCnic = (cnicVal || "").replace(/\D/g, "");
+      const cleanPhone = (phoneVal || "").replace(/\D/g, "");
+
+      // 1. Check in Enrolled Students (db.students)
+      const stuMatch = (db.students || []).find(s => {
+        const sCnic = String(s.cnic || "").replace(/\D/g, "");
+        const sPhone = String(s.phone || "").replace(/\D/g, "");
+        return (cleanCnic.length >= 13 && sCnic === cleanCnic) ||
+               (cleanPhone.length >= 10 && sPhone === cleanPhone);
+      });
+      if (stuMatch) {
+        return {
+          type: "Student",
+          record: stuMatch,
+          msg: `🚫 Registration Blocked!\n\nThis CNIC or Phone number is ALREADY registered as an Enrolled Resident (${stuMatch.name} — Roll ID: ${stuMatch.id}, Room ${stuMatch.room}).\n\nPlease login directly to the Student Portal.`
+        };
+      }
+
+      // 2. Check in Submitted Applications (db.applications) - Pending or Approved
+      const appMatch = (db.applications || []).find(a => {
+        if (a.status === "Rejected") return false; // Allow re-apply only if previously rejected
+        const aCnic = String(a.cnic || "").replace(/\D/g, "");
+        const aPhone = String(a.phone || "").replace(/\D/g, "");
+        return (cleanCnic.length >= 13 && aCnic === cleanCnic) ||
+               (cleanPhone.length >= 10 && aPhone === cleanPhone);
+      });
+      if (appMatch) {
+        return {
+          type: "Application",
+          record: appMatch,
+          msg: `🚫 Duplicate Application Blocked!\n\nAn application with this CNIC or Phone number already exists!\n• Applicant: ${appMatch.name}\n• Tracking ID: ${appMatch.id}\n• Status: ${appMatch.status || "Pending"}`
+        };
+      }
+
+      return null;
+    }
+
     function submitOnlineAdmission(e) {
       if (e) e.preventDefault();
+
+      const cnicVal = document.getElementById("appCnic").value.trim();
+      const phoneVal = document.getElementById("appPhone").value.trim();
+
+      // 🛑 STRICT DUPLICATE BLOCK (Checks both CNIC & Phone before anything else!)
+      const duplicate = findExistingRecord(cnicVal, phoneVal);
+      if (duplicate) {
+        alert(duplicate.msg);
+        if (duplicate.type === "Application") {
+          lastSubmittedAppId = duplicate.record.id;
+          localStorage.setItem("lastHostelAppId", duplicate.record.id);
+          closeAdmissionModal();
+          trackSubmittedAppNow();
+        }
+        return false; // Application bilkul submit nahi hogi!
+      }
+
       const uploads = window.kycTempUploads || {};
       if (!uploads.photo || !uploads.cnicFront || !uploads.cnicBack) {
         alert("⚠️ Please upload your Student Photo, CNIC Front, and CNIC Back before submitting!");
@@ -897,26 +954,103 @@
         return false;
       }
 
-      const db = getDB();
-      db.applications = db.applications || [];
+      const formEl = document.getElementById("onlineAdmissionForm");
+      const submitBtn = formEl ? formEl.querySelector("button[type='submit']") : null;
+      const origBtnHtml = submitBtn ? submitBtn.innerHTML : "Submit Application →";
 
-      const cnicVal = document.getElementById("appCnic").value.trim();
-      const phoneVal = document.getElementById("appPhone").value.trim();
+      const stepTitle = document.getElementById("loaderStepTitle");
+      const progBar = document.getElementById("loaderProgressBar");
 
-      // Prevent accidental duplicate pending applications
-      const existingPending = db.applications.find(a =>
-        a.status === "Pending" &&
-        ((cnicVal && a.cnic === cnicVal) || (phoneVal && a.phone === phoneVal))
-      );
-      if (existingPending) {
-        alert(`ℹ️ Your application is already submitted and Pending Review!\n\nYour Tracking ID is: ${existingPending.id}`);
-        lastSubmittedAppId = existingPending.id;
-        localStorage.setItem("lastHostelAppId", existingPending.id);
-        closeAdmissionModal();
-        trackSubmittedAppNow();
-        return false;
+      if (stepTitle) stepTitle.innerText = "Uploading Photo & CNIC...";
+      if (progBar) progBar.style.width = "35%";
+
+      setModalVisibility("appSubmittingOverlay", true);
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i> Submitting...`;
       }
 
+      setTimeout(() => {
+        if (stepTitle) stepTitle.innerText = "Syncing with Hostel Cloud ERP...";
+        if (progBar) progBar.style.width = "80%";
+      }, 750);
+
+      setTimeout(() => {
+        if (progBar) progBar.style.width = "100%";
+
+        const freshDb = getDB();
+        freshDb.applications = freshDb.applications || [];
+
+        const resType = document.getElementById("appResType")?.value || "New";
+        const userNote = document.getElementById("appNote").value.trim();
+        const finalNote = resType === "Existing" ? `[EXISTING RESIDENT - SECURITY PAID] ${userNote}`.trim() : userNote;
+
+        const newApp = {
+          id: "APP-" + Math.floor(1000 + Math.random() * 9000),
+          resType,
+          name: document.getElementById("appName").value.trim(),
+          cnic: cnicVal,
+          phone: phoneVal,
+          guardian: document.getElementById("appGuardian").value.trim(),
+          uni: document.getElementById("appUni").value.trim(),
+          room: document.getElementById("appRoomSelect").value,
+          note: finalNote,
+          photo: uploads.photo,
+          cnicFront: uploads.cnicFront,
+          cnicBack: uploads.cnicBack,
+          acceptedRules: true,
+          date: new Date().toLocaleDateString("en-GB"),
+          status: "Pending"
+        };
+
+        freshDb.applications.unshift(newApp);
+        saveDB(freshDb, `Online ${resType} Application submitted by ${newApp.name} for Room ${newApp.room}`, "Applicant");
+
+        window.kycTempUploads = { photo: "", cnicFront: "", cnicBack: "" };
+        ["prevStuPhoto", "prevCnicFront", "prevCnicBack"].forEach(id => {
+          document.getElementById(id)?.classList.add("hidden");
+        });
+        const defaultLabels = { lblStuPhoto: "Tap to Upload", lblCnicFront: "Front Picture", lblCnicBack: "Back Picture" };
+        Object.entries(defaultLabels).forEach(([id, text]) => {
+          const el = document.getElementById(id);
+          if (el) { el.innerText = text; el.className = "text-[10px] text-zinc-400"; }
+        });
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnHtml;
+        }
+        setModalVisibility("appSubmittingOverlay", false);
+
+        closeAdmissionModal();
+        if (formEl) formEl.reset();
+
+        lastSubmittedAppId = newApp.id;
+        localStorage.setItem("lastHostelAppId", newApp.id);
+        document.getElementById("succAppId").innerText = newApp.id;
+        document.getElementById("succAppName").innerText = newApp.name;
+        document.getElementById("succAppRoom").innerText = `Room ${newApp.room}`;
+        const copyBtn = document.getElementById("copyTrackBtn");
+        if (copyBtn) copyBtn.innerText = "Copy";
+
+        const set = freshDb.settings || {};
+        const rawPhone = (set.adminWhatsApp || set.jazzcash || "").replace(/[^0-9]/g, "");
+        const waNotifyBtn = document.getElementById("succWhatsAppNotifyBtn");
+        if (waNotifyBtn && rawPhone.length >= 10) {
+          const cleanWa = rawPhone.startsWith("92") ? rawPhone : "92" + rawPhone.replace(/^0/, "");
+          const msg = `Salam, I have submitted my online hostel application.\n• Name: ${newApp.name}\n• Tracking ID: ${newApp.id}\n• Room: ${newApp.room}\n• Type: ${newApp.resType}`;
+          waNotifyBtn.href = `https://wa.me/${cleanWa}?text=${encodeURIComponent(msg)}`;
+          waNotifyBtn.classList.remove("hidden");
+          waNotifyBtn.classList.add("flex");
+        }
+
+        setModalVisibility("appSuccessModal", true);
+      }, 1500);
+
+      return false;
+    }
+    window.submitOnlineAdmission = submitOnlineAdmission;
       const formEl = document.getElementById("onlineAdmissionForm");
       const submitBtn = formEl ? formEl.querySelector("button[type='submit']") : null;
       const origBtnHtml = submitBtn ? submitBtn.innerHTML : "Submit Application →";
